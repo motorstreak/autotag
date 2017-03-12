@@ -1,0 +1,63 @@
+<html>
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="../js/jquery-tagarea.js"></script>
+  <style type="text/css">
+
+    /* Color the tags! The plugin assigns the class names to matching tags. */
+    .hash-autotag { color: red; }
+    .at-autotag { color: green; }
+
+    /* CSS below this comment is required for the demo only. */
+    body {
+      background-color: #EEE;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .snippet-area {
+      box-sizing: border-box;
+      background-color: #FFF;
+      border: 1px solid #AAA;
+      border-radius: 5px;
+      height: 100%;
+      width: 100%;
+      padding: 20px;
+    }
+    .snippet-wrapper {
+      width: 500px;
+      height: 200px;
+      /* Position close to the center of the screen. */
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      margin-left: -250px;
+    }
+    .instructions {
+      text-align: center;
+      width: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div class="snippet-wrapper">
+    <div class="instructions">
+      Type some text into the box below. <br/>
+      You can use <strong>#</strong> and <strong>@</strong> before a word
+      and see it change color.
+    </div>
+    <!--
+      Use this div as an editable area. In practice, you would probably want to
+      save the contents into a textarea that is hidden, prior to POST.
+     -->
+    <div id="snippet" class="snippet-area" contentEditable="true"></div>
+  </div>
+  <script type="text/javascript">
+    $(document).ready(function(){
+      // By default, the plugin does not set focus on the editable element.
+      // You can either uncomment the line in plugin or just call focus().
+      $('#snippet').autotag().focus();
+    });
+  </script>
+</body>
+</html>
