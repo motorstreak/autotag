@@ -1,7 +1,9 @@
 <html>
 <head>
+  <!-- IE11 does support addEventListener(). Disable compatibility mode. -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-  <script src="../js/jquery-tagarea.js"></script>
+  <script src="../js/jquery-autotag.js"></script>
   <style type="text/css">
 
     /* Color the tags! The plugin assigns the class names to matching tags. */
@@ -37,6 +39,12 @@
       padding: 20px;
       box-sizing: border-box;
     }
+
+    /* Deal with IE paragraph style within the editor. */
+    #snippet > p {
+      margin: 0;
+    }
+
   </style>
 </head>
 <body>
