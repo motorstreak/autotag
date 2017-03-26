@@ -1,0 +1,25 @@
+
+    /* Override these in your CSS  */
+    .hash-autotag { color: red; }
+    .at-autotag { color: green; }
+
+    /* ------------- NOTICE ----------------- */
+    /* The below are browser specific hacks.  */
+    /* Make sure to include them in your CSS. */
+
+    /* Deal with IE paragraph style within the editor. */
+    #snippet > p {
+      margin: 0;
+    }
+
+    #snippet > a {
+      display: inline;
+    }
+
+    /* Deal with unwanted BR tags in FF. */
+/*    @-moz-document url-prefix() {
+      #snippet > span {
+        display: inline-block;
+      }
+    }*/
+    /* ---------- NOTICE END --------------- */
