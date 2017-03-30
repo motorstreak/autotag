@@ -12,8 +12,14 @@
       margin: 0;
     }
 
-    #snippet > a {
-      display: inline;
+    [contenteditable]:focus {
+      outline: none;
+    }
+
+    /* Disable focus on this element.*/
+    #snippet > div > t {
+      /*pointer-events: none;*/
+      /*opacity: 0.5;*/
     }
 
     /* Deal with unwanted BR tags in FF. */

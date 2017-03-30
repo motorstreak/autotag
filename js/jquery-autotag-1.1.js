@@ -51,10 +51,14 @@
     // Wraps the input in a span element so that we can apply any
     // styles if required - for example, when a user adds a # in front
     // of this text.
-    var wrapInput = function(str) {
+    var wrapString = function(str, flag) {
+      flag = (flag == undefined) ? false : true;
       var wrapperNode = document.createElement("a");
       wrapperNode.appendChild(document.createTextNode(spaceToUnicode(str)));
       applyStyleToNode(wrapperNode, str);
+      if (flag) {
+        wrapperNode.setAttribute("type", "pilot");
+      }
       return wrapperNode;
     };
 
@@ -78,15 +82,23 @@
       parentNode && parentNode.removeChild(node);
     }
 
-    var processInput = function(e) {
+    var processLine = function(range, line) {
       // Always get the current location to determine the current node
       // being operated on.
-      var range = getCaretPosition();
+      // var range = getCaretPosition();
       var offset = range.endOffset;
-      var container = range.endContainer;
+      var container = range.startContainer;
       var containerParent = container.parentNode;
-      var input = container.nodeValue || '';
-      var parts = input.match(/[,\.\s]*[^,\.\s]*/ig);
+
+      // Remove pilot node status and trim text.
+      if (containerParent.hasAttribute("type")) {
+        container.nodeValue = container.nodeValue.replace(/\s+$/, '');
+        containerParent.removeAttribute("type");
+        setCaretPosition(container, container.length);
+      }
+
+      var input = line || container.nodeValue || '';
+      var parts = input.split(/(\B[#@]\b\w+(?=\W))/ig);
 
       if (parts != null) {
         parts = parts.filter(Boolean);
@@ -96,7 +108,7 @@
 
         if (partsCount > 0) {
           if (containerParent.tagName != 'A') {
-            var wrapper = wrapInput(parts[0]);
+            var wrapper = wrapString(parts[0]);
             var newContainer = wrapper.firstChild;
             appendNode(wrapper, container);
             removeNode(container);
@@ -108,7 +120,7 @@
           applyStyleToNode(containerParent, container.nodeValue);
 
           var containerGrandParent = containerParent.parentNode;
-          if (containerGrandParent.tagName != 'DIV' ||
+          if (containerGrandParent.tagName != 'P' ||
               containerGrandParent.isSameNode(editor)) {
             var containerParentNextSibling = containerParent.nextSibling;
             var blockWrapper = blockWrap(containerParent);
@@ -120,7 +132,7 @@
         if (partsCount > 1) {
           container.nodeValue = parts[0];
           for(var i=1; i<partsCount; i++) {
-            var wrapper = wrapInput(parts[i]);
+            var wrapper = wrapString(parts[i]);
             var newContainer = wrapper.firstChild;
             appendNode(wrapper, containerParent);
             setCaretPosition(newContainer, newContainer.length);
@@ -138,18 +150,31 @@
       var value = container.nodeValue;
       container.nodeValue =
         value.substring(0, offset) + "\u00a0"  + value.substring(offset);
-      setCaretPosition(container, offset + 1);
-      processInput();
+      range = setCaretPosition(container, offset + 1);
+      processLine(range);
     };
 
     var processNewline = function(e) {
       var range = getCaretPosition();
       var container = range.endContainer;
       var offset = range.endOffset;
-      var value = container.nodeValue;
-      // var parts = container.nodeValue.slice(range.endOffset);
+      var value = container.nodeValue || '';
+
       var parts = [value.substring(0, offset), value.substring(offset)];
       container.nodeValue = parts[0];
+      // parts[1] = (parts[1].length > 0) ? parts[1] : "\u00a0";
+
+      var wrapper;
+      if (parts[1].length > 0) {
+        wrapper = wrapString(parts[1]);
+      } else {
+        wrapper = wrapString("\u00a0", true);
+      }
+
+      // var wrapper = wrapString(parts[1], true);
+      var blockWrapper = blockWrap(wrapper);
+      appendNode(blockWrapper, container.parentNode.parentNode);
+      setCaretPosition(wrapper.firstChild, 0);
     };
 
     var editorHasNoText = function(){
@@ -159,9 +184,22 @@
 
     var blockWrap = function(node) {
       // Add a newline wrapper.
-      var blockNode = document.createElement("div");
+      var blockNode = document.createElement("p");
       removeNode(node);
       blockNode.appendChild(node);
+
+      // Setting any layout property on block wrapper (div)
+      // will result in the display of resizable bars in IE. By adding
+      // an text element on the div (which we never use) acts as a wedge
+      // and props up the div element to its natural height. Note that
+      // we set contenteditable to false so that the text node does not
+      // get edited.
+      var wedge = document.createTextNode(spaceToUnicode("\u00a0"));
+      var wedgeWrapper = document.createElement('t');
+      wedgeWrapper.appendChild(wedge);
+      wedgeWrapper.setAttribute("contenteditable", "false");
+      blockNode.appendChild(wedgeWrapper);
+
       return blockNode;
     };
 
@@ -198,9 +236,33 @@
           removeNode(nextSibling);
         }
         if (e.keyCode > 40 && e.keyCode < 112) {
-          processInput(e);
+          processLine(getCaretPosition());
         }
       }
+    });
+
+    editor.addEventListener('paste', function(e) {
+      e.preventDefault();
+      var range = getCaretPosition();
+      var content;
+      if (e.clipboardData) {
+        content = (e.originalEvent || e).clipboardData.getData('text/plain');
+        // document.execCommand('insertText', false, content);
+      } else if (window.clipboardData) {
+        content = window.clipboardData.getData('Text');
+        // document.selection.createRange().pasteHTML(content);
+      }
+
+      var container = range.endContainer;
+      var wrapper = wrapString(content);
+      if (container.isSameNode(editor)) {
+        container.appendChild(wrapper);
+        range = setCaretPosition(wrapper.firstChild, 0);
+      } else {
+        appendNode(wrapper, container);
+      }
+
+      processLine(range, content);
     });
 
     return this;
