@@ -64,9 +64,9 @@
 
     // Apply styles to the input text if it is a hashtag or an attag.
     var applyStyleToNode = function(node, str) {
-      if (str.match(/^[\s]*#[\w]/)) {
+      if (str.match(/^#[\w]+/)) {
         node.className = 'hash-autotag';
-      } else if (str.match(/^[\s]*@[\w]/)) {
+      } else if (str.match(/^@[\w]+/)) {
         node.className = 'at-autotag';
       } else {
         node.removeAttribute("class");
@@ -98,7 +98,7 @@
       }
 
       var input = line || container.nodeValue || '';
-      var parts = input.split(/(\B[#@]\b\w+(?=\W))/ig);
+      var parts = input.split(/(\B[#@]\b\w+(?=\W*))/ig);
 
       if (parts != null) {
         parts = parts.filter(Boolean);
@@ -162,7 +162,6 @@
 
       var parts = [value.substring(0, offset), value.substring(offset)];
       container.nodeValue = parts[0];
-      // parts[1] = (parts[1].length > 0) ? parts[1] : "\u00a0";
 
       var wrapper;
       if (parts[1].length > 0) {
@@ -217,12 +216,11 @@
 
     // Prevent FF from inserting ghost <br>s on Space.
     editor.addEventListener('keydown', function(e) {
-      // prepareEditor();
       if (e.keyCode == 32) {
-        processSpace(e);
+        processSpace();
         e.preventDefault();
       } else if (e.keyCode == 13) {
-        processNewline(e);
+        processNewline();
         e.preventDefault();
       }
     });
@@ -237,22 +235,23 @@
         }
         if (e.keyCode > 40 && e.keyCode < 112) {
           processLine(getCaretPosition());
+        } else if (e.keyCode == 8) {
+          processLine(getCaretPosition());
         }
       }
     });
 
     editor.addEventListener('paste', function(e) {
       e.preventDefault();
-      var range = getCaretPosition();
+
       var content;
       if (e.clipboardData) {
         content = (e.originalEvent || e).clipboardData.getData('text/plain');
-        // document.execCommand('insertText', false, content);
       } else if (window.clipboardData) {
         content = window.clipboardData.getData('Text');
-        // document.selection.createRange().pasteHTML(content);
       }
 
+      var range = getCaretPosition();
       var container = range.endContainer;
       var wrapper = wrapString(content);
       if (container.isSameNode(editor)) {
@@ -261,8 +260,13 @@
       } else {
         appendNode(wrapper, container);
       }
-
       processLine(range, content);
+    });
+
+    editor.addEventListener('click', function(e) {
+      var range = getCaretPosition();
+      var container = range.endContainer;
+      console.log(container.parentNode.previousSibling);
     });
 
     return this;
