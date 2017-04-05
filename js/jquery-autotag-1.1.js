@@ -5,8 +5,9 @@
         // Store the value of the last saved caret position so that
         // we can position the cursor at the last known position
         // when focus is gained on tab in.
-        var activeRange;
+
         var AUTO_NODE = '_auto_';
+        var activeRange = getCaret();
 
         var createTextNode = function(str) {
             // Firefox hack - without this, firefox will ignore the leading
@@ -15,34 +16,33 @@
             return document.createTextNode(str);
         };
 
-        var getCaretPosition = function() {
+        var getCaret = function() {
             var range;
             if (window.getSelection) {
                 range = window.getSelection().getRangeAt(0);
             } else if (document.selection) {
                 range = document.selection.createRange();
             }
-            // activeRange = range;
             return range;
         };
 
         // Takes in the current node and sets the cursor location
         // on the first child, if the child is a Text node.
-        var setCaretPosition = function(node, offset) {
+        var setCaret = function(node, offset) {
             var range;
             if (node !== null) {
                 offset = (typeof offset === "undefined") ? node.length : offset;
-                range = getCaretPosition();
+                range = getCaret();
                 range.setStart(node, offset);
                 range.setEnd(node, offset);
-                resetCaretPosition(range);
+                resetCaret(range);
             }
-            activeRange = range;
+            activeRange = getCaret();
             return range;
         };
 
         // Clears all existing ranges and sets it to the provided one.
-        var resetCaretPosition = function(range) {
+        var resetCaret = function(range) {
             if (range !== null) {
                 if (window.getSelection) {
                     var selection = window.getSelection();
@@ -56,20 +56,11 @@
                     range.select();
                 }
             }
+            return getCaret();
         };
 
         var isOfType = function(node, type) {
             return node && (node.getAttribute('type') === type);
-        };
-
-        var setNodeType = function(node, type) {
-            if (node !== null) {
-                if (typeof type === 'undefined') {
-                    node.removeAttribute('type');
-                } else {
-                    node.setAttribute('type', type);
-                }
-            }
         };
 
         // Wraps the input in a span element so that we can apply any
@@ -82,15 +73,15 @@
                 textNode = createTextNode(str);
             } else {
                 textNode = createTextNode('\u00a0');
-                setNodeType(wrapperNode, AUTO_NODE);
+                wrapperNode.setAttribute('type', AUTO_NODE);
             }
             wrapperNode.appendChild(textNode);
-            applyStyleToNode(wrapperNode, str);
+            applyStyle(wrapperNode, str);
             return wrapperNode;
         };
 
         // Apply styles to the input text if it is a hashtag or an attag.
-        var applyStyleToNode = function(node, str) {
+        var applyStyle = function(node, str) {
             if (str.match(/^#[\w]+/)) {
                 node.className = 'hash-autotag';
             } else if (str.match(/^@[\w]+/)) {
@@ -110,33 +101,19 @@
             }
         };
 
-        var processLine = function(range, line) {
+        var processLine = function(line) {
             // Always get the current location to determine the current node
             // being operated on.
-            // var range;
+            var range = getCaret();
             var offset = range.endOffset;
             var container = range.endContainer;
-            var containerParent = container.parentNode;
+            var node = container.parentNode;
 
-            // Remove pilot node status and trim text.
-            // if (containerParent.hasAttribute("type")) {
-            //     if (containerParent.getAttribute('type') == 'lead') {
-            //         container.nodeValue = container.nodeValue.replace(/\s+$/, '');
-            //     }
-            //     containerParent.removeAttribute("type");
-            //     range = setCaretPosition(container, container.length);
-            // }
-
-            if (isOfType(containerParent, AUTO_NODE)) {
+            if (isOfType(node, AUTO_NODE)) {
                 container.nodeValue = container.nodeValue.replace(/\s+$/, '');
-                containerParent.removeAttribute("type");
-                // range.endOffset = container.nodeValue.length;
-                setCaretPosition(container);
+                node.removeAttribute("type");
+                setCaret(container);
             }
-
-            // if (container.nodeValue) {
-            //     container.nodeValue = container.nodeValue.replace(/^\s+$/, '');
-            // }
 
             var input = line || container.nodeValue || '';
             var parts = input.split(/(\B[#@]\b\w+(?=\W*))/ig);
@@ -145,110 +122,85 @@
                 parts = parts.filter(Boolean);
                 var partsCount = parts.length;
 
-                console.log(parts);
+                // console.log(parts);
 
                 var wrapper, newContainer;
                 if (partsCount > 0) {
-                    if (containerParent.nodeName != 'A') {
+                    if (node.nodeName != 'A') {
                         wrapper = wrapString(parts[0]);
                         appendNode(wrapper, container);
                         removeNode(container);
 
                         newContainer = wrapper.firstChild;
-                        range = setCaretPosition(newContainer, newContainer.length);
+                        range = setCaret(newContainer, newContainer.length);
                         container = range.endContainer;
-                        containerParent = container.parentNode;
+                        node = container.parentNode;
                     }
 
-                    applyStyleToNode(containerParent, container.nodeValue);
+                    applyStyle(node, container.nodeValue);
 
-                    var containerGrandParent = containerParent.parentNode;
-                    if (containerGrandParent.nodeName != 'P' ||
-                        containerGrandParent.isSameNode(editor)) {
-                        var containerParentNextSibling = containerParent.nextSibling;
-                        var blockWrapper = blockWrap(containerParent);
-                        containerGrandParent.insertBefore(blockWrapper, containerParentNextSibling);
-                        range = setCaretPosition(container, container.length);
+                    var nodeParent = node.parentNode;
+                    if (nodeParent.nodeName != 'P' ||
+                        nodeParent.isSameNode(editor)) {
+
+                        var blockWrapper = blockWrap(node);
+                        nodeParent.insertBefore(blockWrapper, node.nextSibling);
+                        setCaret(container);
                     }
-                }
 
-                if (partsCount > 1) {
-                    container.nodeValue = parts[0];
-                    for (var i = 1; i < partsCount; i++) {
-                        wrapper = wrapString(parts[i]);
-                        appendNode(wrapper, containerParent);
+                    if (partsCount > 1) {
+                        container.nodeValue = parts[0];
+                        for (var i = 1; i < partsCount; i++) {
+                            wrapper = wrapString(parts[i]);
+                            appendNode(wrapper, node);
 
-                        newContainer = wrapper.firstChild;
-                        range = setCaretPosition(newContainer, newContainer.length);
-                        containerParent = newContainer.parentNode;
+                            newContainer = wrapper.firstChild;
+                            setCaret(newContainer);
+                            node = newContainer.parentNode;
+                        }
                     }
                 }
             }
-            return range;
+            return getCaret();
         };
 
         // Prevent FF inserted <br> tags on Space.
         var processSpace = function() {
-            var range = getCaretPosition();
+            var range = getCaret();
             var offset = range.endOffset;
             var container = range.endContainer;
             var value = container.nodeValue;
             container.nodeValue =
                 value.substring(0, offset) + "\u00a0" + value.substring(offset);
-            range = setCaretPosition(container, offset + 1);
-            processLine(range);
-            return range;
+            setCaret(container, offset + 1);
+            return processLine();
         };
 
         var processNewline = function() {
-            var range = getCaretPosition();
+            var range = getCaret();
             var container = range.endContainer;
-            var containerParent = container.parentNode;
+            var node = container.parentNode;
 
             var offset = range.endOffset;
             var value = container.nodeValue || '';
 
             var parts = [value.substring(0, offset), value.substring(offset)];
-
             container.nodeValue = parts[0].length === 0 ? '\u00a0' : parts[0];
 
-            if (isOfType(containerParent, AUTO_NODE)) {
+            if (isOfType(node, AUTO_NODE)) {
                 wrapper = wrapString(value);
+                wrapper.setAttribute('type', AUTO_NODE);
             } else {
                 wrapper = wrapString(parts[1]);
             }
-            setNodeType(wrapper, AUTO_NODE);
-
-
-            // if (isOfType(containerParent, AUTO_NODE)) {
-            //
-            //     if (parts[1].length === 0)
-            //         parts[1] = '\u00a0';
-            //     }
-            //     wrapper = wrapString(parts[1]);
-            //     setNodeType(wrapper, AUTO_NODE);
-            // }
-            // container.nodeValue = parts[0];
-
-            // var wrapper;
-            // if (parts[1].length > 0) {
-            //     wrapper = wrapString(parts[1]);
-            // } else {
-            //     wrapper = wrapString("\u00a0", true);
-            // }
-
-            // wrapper = wrapString(parts[1]);
-            // if ((parts[1] === '\u00a0' || parts[1].length === 0) &&
-            //     isOfType(containerParent, AUTO_NODE)) {
-            //     setNodeType(wrapper, AUTO_NODE);
-            // }
 
             var blockWrapper = blockWrap(wrapper);
-            appendNode(blockWrapper, container.parentNode.parentNode);
-            range = setCaretPosition(wrapper.firstChild, 0);
-            // editor.focus();
-            console.log(range);
-            return range;
+            appendNode(blockWrapper, node.parentNode);
+            return setCaret(wrapper.firstChild, 0);
+        };
+
+        var processDelete = function() {
+            var range = getCaret();
         };
 
         var editorHasNoText = function() {
@@ -277,31 +229,36 @@
             return blockNode;
         };
 
-        var prepareEditor = function() {
+        editor.addEventListener('focus', function(e) {
             if (editorHasNoText()) {
                 while (editor.firstChild) {
                     editor.removeChild(editor.firstChild);
                 }
             }
-        };
-
-        editor.addEventListener('focus', function(e) {
-            prepareEditor();
         });
 
         // Prevent FF from inserting ghost <br>s on Space.
         editor.addEventListener('keydown', function(e) {
             var code = (e.keyCode ? e.keyCode : e.which);
+            var container = getCaret().endContainer;
+            var node = container.parentNode;
+
             if (code == 32) {
                 processSpace();
                 e.preventDefault();
             } else if (code == 13) {
                 processNewline();
                 e.preventDefault();
-            } else if (code == 39) {
-                var node = getCaretPosition().endContainer.parentNode;
+            } else if (code == 39 || code == 40) {
                 if (isOfType(node, AUTO_NODE)) {
-                    e.preventDefault();
+                    setCaret(container, 0);
+                    if (code == 39) {
+                        e.preventDefault();
+                    }
+                }
+            } else if (code == 8) {
+                if (isOfType(node, AUTO_NODE)) {
+                    removeNode(node);
                 }
             }
         });
@@ -310,13 +267,20 @@
         editor.addEventListener('keyup', function(e) {
             var code = (e.keyCode ? e.keyCode : e.which);
             if (code != 32 && code != 13) {
-                var nextSibling = getCaretPosition().endContainer.nextSibling;
+                var container = getCaret().endContainer;
+                var nextSibling = container.nextSibling;
                 // Remove unwanted <br> tags inserted by firefox.
                 if (nextSibling && nextSibling.nodeName == 'BR') {
                     removeNode(nextSibling);
                 }
-                if (code > 40 && code < 112 || code == 8) {
-                    activeRange = processLine(getCaretPosition());
+                if (code > 40 && code < 112) {
+                    processLine();
+                } else if (code == 8) {
+                    processDelete();
+                } else if (code >= 37 || code <= 40) {
+                    if (isOfType(container.parentNode, AUTO_NODE)) {
+                        setCaret(container, 0);
+                    }
                 }
             }
         });
@@ -331,33 +295,31 @@
                 content = window.clipboardData.getData('Text');
             }
 
-            var range = getCaretPosition();
-            var container = range.endContainer;
+            var container = getCaret().endContainer;
             var wrapper = wrapString(content);
             if (container.isSameNode(editor)) {
                 container.appendChild(wrapper);
-                range = setCaretPosition(wrapper.firstChild, 0);
+                setCaret(wrapper.firstChild, 0);
             } else {
                 appendNode(wrapper, container);
             }
-            processLine(range, content);
+            processLine(content);
         });
 
         editor.addEventListener('focus', function(e) {
-            var node = getCaretPosition().endContainer.parentNode;
+            var node = getCaret().endContainer.parentNode;
             if (activeRange && (node.nodeName == "T" || node.isSameNode(editor))) {
-                resetCaretPosition(activeRange);
+                resetCaret(activeRange);
             }
         });
 
         editor.addEventListener('click', function(e) {
-            var node = getCaretPosition().endContainer;
+            var node = getCaret().endContainer;
             if (node.nodeName == "P") {
-                setCaretPosition(node.firstChild, 0);
+                setCaret(node.firstChild, 0);
             } else if (isOfType(node.parentNode, AUTO_NODE)) {
-                setCaretPosition(node, 0);
+                setCaret(node, 0);
             }
-            console.log(node);
         });
 
         return this;

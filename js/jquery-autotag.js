@@ -8,7 +8,7 @@
       return str.replace(/ /g, '\u00a0');
     };
 
-    var getCaretPosition = function() {
+    var getCaret = function() {
       var range;
       if(window.getSelection) {
         range = window.getSelection().getRangeAt(0);
@@ -20,19 +20,19 @@
 
     // Takes in the current node and sets the cursor location
     // on the first child, if the child is a Text node.
-    var setCaretPosition = function(node, offset) {
+    var setCaret = function(node, offset) {
       var range;
       if (node != null) {
-        range =  getCaretPosition();
+        range =  getCaret();
         range.setStart(node, offset);
         range.setEnd(node, offset);
-        resetCaretPosition(range);
+        resetCaret(range);
       }
       return range;
     };
 
     // Clears all existing ranges and sets it to the provided one.
-    var resetCaretPosition = function(range) {
+    var resetCaret = function(range) {
       if (range != null) {
         if (window.getSelection) {
           var selection = window.getSelection();
@@ -80,7 +80,7 @@
     var processInput = function(e) {
       // Always get the current location to determine the current node
       // being operated on.
-      var range = getCaretPosition();
+      var range = getCaret();
       var offset = range.endOffset;
       var container = range.endContainer;
       var input = container.nodeValue || '';
@@ -135,7 +135,7 @@
 
           var curNode =
             ptrNode.nodeType == Node.TEXT_NODE ? ptrNode : ptrNode.firstChild;
-          setCaretPosition(curNode, offset);
+          setCaret(curNode, offset);
         }
       }
     };
