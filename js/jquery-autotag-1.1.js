@@ -7,7 +7,7 @@
         // when focus is gained on tab in.
 
         var AUTO_NODE = '_auto_';
-        var activeRange = getCaret();
+        var activeRange;
 
         var createTextNode = function(str) {
             // Firefox hack - without this, firefox will ignore the leading
@@ -260,6 +260,15 @@
                 if (isOfType(node, AUTO_NODE)) {
                     removeNode(node);
                 }
+            } else if (code == 38) {
+                var node = container.parentNode;
+                var topline = node.parentNode.previousSibling;
+                var topNode = topline && topline.firstChild;
+                if (topNode && isOfType(topNode, AUTO_NODE)) {
+                    setCaret(topNode.firstChild, 0);
+                    // e.preventDefault;
+                    console.log(topNode);
+                }
             }
         });
 
@@ -277,10 +286,11 @@
                     processLine();
                 } else if (code == 8) {
                     processDelete();
-                } else if (code >= 37 || code <= 40) {
-                    if (isOfType(container.parentNode, AUTO_NODE)) {
-                        setCaret(container, 0);
-                    }
+                // } else if (code >= 37 || code <= 40) {
+                    // if (isOfType(container.parentNode, AUTO_NODE)) {
+                    //     setCaret(container, 0);
+                    // }
+
                 }
             }
         });
