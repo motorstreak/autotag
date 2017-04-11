@@ -12,7 +12,7 @@ Include jQuery and the plugin on your page along with your other jQuery and java
 ```html
 <head>
    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-   <script src="jquery-autotag.js" type="text/javascript"></script> 
+   <script src="jquery-autotag-1.3.js" type="text/javascript"></script> 
 </head>
 ```
 
