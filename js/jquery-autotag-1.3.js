@@ -25,7 +25,8 @@
                     range.setEnd(node, offset);
                 }
                 catch(err) {
-                    // Ignore.
+                    // Chrome does not like setting an offset of 1
+                    // on an empty node.
                 }
                 resetCaret(range);
             }
@@ -106,17 +107,20 @@
         };
 
         var applyStyle = function(node, str) {
+            var styleApplied = false;
             if (typeof str === 'undefined') {
                 str = node.firstChild.nodeValue;
             }
-
             if (str.match(/^#[\w]+/)) {
                 node.className = 'hash-autotag';
+                styleApplied = true;
             } else if (str.match(/^@[\w]+/)) {
                 node.className = 'at-autotag';
+                styleApplied = true;
             } else {
                 node.removeAttribute("class");
             }
+            return styleApplied;
         };
 
         var prepareLine = function(line) {
@@ -130,14 +134,9 @@
                 var pilot = createPilotNode();
                 line.appendChild(pilot);
 
-
-                console.log("here");
-
-                console.log(pilot.outerHTML);
                 // FF requires the caret to be at offset 1.
                 // IE does not care! Chrome throws an exception.
                 setCaret(pilot, 0);
-                console.log(getCaret());
             } else {
                 // IE inserts <p>text<br></p> on return mid string.
                 // Change this to <p><a>text<br></a></p>.
@@ -192,8 +191,9 @@
 
         var getLine = function(range) {
             range = (typeof range === 'undefined') ? getCaret() : range;
+            var node = null;
             if (range) {
-                var node = range.endContainer;
+                node = range.endContainer;
                 while (node.parentNode && node.tagName !== 'P') {
                     node = node.parentNode;
                 }
@@ -203,8 +203,9 @@
 
         var getLineNumber = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
+            var lineNumber = null;
             if (line) {
-                var lineNumber = 1;
+                lineNumber = 1;
                 while (line.previousSibling !== null) {
                     lineNumber++;
                     line = line.previousSibling;
@@ -230,7 +231,7 @@
                 } else {
                     var lastNode = line.querySelector('a:last-child');
                     if (lastNode) {
-                        setCaret(lastNode.firstChild);
+                        setCaret(lastNode);
                     }
                 }
             }
@@ -243,28 +244,46 @@
             var range = getCaret();
             var offset = range.endOffset;
             var container = range.endContainer;
-            var node = container.parentNode;
 
             var input = str || container.nodeValue || '';
             var parts = input.split(/(\B[#@]\b\w+(?=\W*))/ig);
 
+            // Trim empty values from the array.
             parts = parts.filter(Boolean);
-            if (parts.length > 0) {
-                var partsCount = parts.length;
+            var partsCount = parts.length;
 
-                console.log(parts);
+            if (partsCount > 0) {
+                var lastTagNode = container.parentNode;
+                container.nodeValue = parts[partsCount-1];
+                applyStyle(lastTagNode);
+
+                // Ensure that the caret does not move after the
+                // reorganization of nodes.
+                var refOffset =
+                    input.length - parts[partsCount-1].length;
+                if (offset > refOffset && offset <= input.length) {
+                    setCaret(container, offset - refOffset);
+                }
 
                 if (partsCount > 1) {
-                    container.nodeValue = parts[partsCount - 1];
-                    var tagNode;
-                    for (var i = partsCount - 2; i >= 0; i--) {
+                    var refNode = lastTagNode;
+                    var parentNode = refNode.parentNode;
+
+                    for(var i=partsCount-2; i>=0; i--) {
                         tagNode = createTagNode(parts[i]);
+                        parentNode.insertBefore(tagNode, refNode);
                         applyStyle(tagNode);
-                        node.parentNode.insertBefore(tagNode, node);
+
+                        // Ensure that the caret does not move after the
+                        // reorganization of nodes.
+                        refOffset = refOffset - parts[i].length;
+                        if (offset > refOffset &&
+                            offset <= (refOffset + parts[i].length)) {
+                            setCaret(tagNode.firstChild, offset - refOffset);
+                        }
+                        refNode = tagNode;
                     }
-                    setCaret(container);
                 }
-                applyStyle(node);
             }
         };
 
@@ -274,14 +293,10 @@
         });
 
         editor.addEventListener('keyup', function(e) {
+            var code = (e.keyCode ? e.keyCode : e.which);
             processInput();
 
-            // IE fix to advance to next line if the caret did not move
-            // on return.
-            // var range = getCaret();
-            var code = (e.keyCode ? e.keyCode : e.which);
             if (code == 13 ){
-
                 if (getLineNumber() == currentLineNumber) {
                     var next = getNextLine();
                     if (next !== null) {
@@ -296,6 +311,28 @@
                 }
             }
 
+        });
+
+        editor.addEventListener('paste', function(e) {
+            e.preventDefault();
+
+            var content;
+            if (e.clipboardData) {
+                content = (e.originalEvent || e).clipboardData.getData('text/plain');
+            } else if (window.clipboardData) {
+                content = window.clipboardData.getData('Text');
+            }
+
+            var container = getCaret().endContainer;
+            if (container.nodeValue) {
+                container.nodeValue.concat(content);
+            } else {
+                var textNode = document.createTextNode(content);
+                container.insertBefore(textNode, container.firstChild);
+                setCaret(textNode, 0);
+            }
+
+            processInput();
         });
 
         editor.addEventListener('click', function(e) {
