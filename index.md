@@ -1,7 +1,4 @@
 
-## Demo
-
-
 ## Motivation
 I was looking for a simple and lighweight Javascript or JQuery plugin to automatically color hashtags on the fly. There are a lot of solutions out there - from full fledged Rich Text editors to simple jQuery plugins. Rich Text editors were an overkill while the simpler and smaller ones added additional dom elements and CSS to the mix. 
 
