@@ -1,6 +1,8 @@
 ## Motivation
 I was looking for a simple and lighweight Javascript or JQuery plugin to automatically color hashtags on the fly. There are a lot of solutions out there - from full fledged Rich Text editors to simple jQuery plugins. Rich Text editors were an overkill while the simpler and smaller ones added additional dom elements and CSS to the mix. 
 
+If you find this plugin useful and use it as is or in some modified form, dont forget to pass on some credit. It was really hard getting this to work. Seriously.
+
 ## How does jquery-autotag work?
 jquery-hash sets the contenteditable attribute to true on the dom element, allowing you to edit the text within it. On every kestroke, the input text is analyzed and broken into substrings based on some word seperators (comma, period and space). Each substring is then wrapped within span elements and styles added as required. 
 
