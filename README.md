@@ -1,3 +1,7 @@
+## Demo
+You can see a working demo [here](https://s3-us-west-1.amazonaws.com/jquery-autotag/index.html).
+
+
 ## Motivation
 I was looking for a simple and lighweight Javascript or JQuery plugin to automatically color hashtags on the fly. There are a lot of solutions out there - from full fledged Rich Text editors to simple jQuery plugins. Rich Text editors were an overkill while the simpler and smaller ones added additional dom elements and CSS to the mix. 
 
@@ -32,7 +36,7 @@ $(document).ready(function() {
  });
 ```
 
-Still not sure? Take a look at the code in demo folder.
+Still not sure? Take a look at the code in demo folder or see it in [action](https://s3-us-west-1.amazonaws.com/jquery-autotag/index.html).
 
 ## Browser Compatibility
 Works on Chrome 57, Safari 10.1, Firefox 52.02 and IE 11.0 and Edge. 
