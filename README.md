@@ -32,6 +32,9 @@ $(document).ready(function() {
 
 Still not sure? Take a look at the code in demo folder.
 
+## Browser Compatibility
+Works on Chrome 57, Safari 10.1, Firefox 52.02 and IE 11.0 and Edge. 
+As for other browsers or their versions, I am hoping it will work fine (except for IE8 and below - for which I have no hope whatsoever!).
 
 ## Disclaimer
 I am not a Javascript developer. Chances are, there are bugs and other stuff that experienced Javascript developers may find objectionable. If you are one of them, feel free to contribute patches. If you find this useful and would like to build something better based on it, please go ahead!
