@@ -1,0 +1,14 @@
+
+/* ------------- NOTICE ----------------- */
+/* The below are browser specific hacks.  */
+/* Make sure to include them in your CSS. */
+
+/* Deal with IE paragraph style within the editor. */
+.autotag-area > p {
+    margin : 0;
+}
+
+[contenteditable]:focus {
+    outline : none;
+}
+/* ---------- NOTICE END --------------- */

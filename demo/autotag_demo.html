@@ -3,60 +3,131 @@
   <!-- IE11 does support addEventListener(). Disable compatibility mode. -->
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-  <script src="../js/jquery-autotag-1.3.min.js"></script>
-  <link rel="stylesheet" type="text/css" href="../css/jquery-autotag.css">
 
-  <!-- The styles below are for the demo only. -->
-  <style type="text/css">
+  <!-- The main js library -->
+  <script src="./js/jquery-autotag-1.4.js"></script>
 
-    body {
-      background-color: #EEE;
-      font-family: Arial, Helvetica, sans-serif;
-    }
-    .snippet-area {
-      box-sizing: border-box;
-      background-color: #FFF;
-      border: 1px solid #AAA;
-      border-radius: 5px;
-      height: 100%;
-      width: 500px;
-      padding: 20px;
-    }
-    .snippet-wrapper {
-      width: 500px;
-      height: 200px;
-      /* Position close to the center of the screen. */
-      position: absolute;
-      top: 30%;
-      left: 50%;
-      margin-left: -250px;
-    }
-    .instructions {
-      text-align: center;
-      width: 100%;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-  </style>
+  <!-- Required for input area to appear correctly across browsers -->
+  <link rel="stylesheet" type="text/css" href="./css/jquery-autotag.css">
+
+  <!-- Demo page styles -->
+  <link rel="stylesheet" type="text/css" href="./css/demo.css">
 </head>
 <body>
-  <div class="snippet-wrapper">
-    <div class="instructions">
-      Type some text into the box below. <br/>
-      You can use <strong>#</strong> and <strong>@</strong> before a word
-      and see it change color.
+    <div class="page-header">
+        <div class="page-title">jquery-autotag.js</div>
+        <div>This is a demo page. It is an eye sore. <br/>
+            But that <i style="color:black">is</i> besides the point!</div>
     </div>
-    <!--
-      Use this div as an editable area. In practice, you would probably want to
-      save the contents into a textarea that is hidden, prior to POST.
-     -->
-    <div id="snippet" class="snippet-area" contentEditable="true"></div>
+
+    <div class="demos">
+      <div id="demo_1" class="demo-container">
+        <div class="demo-instructions">
+          <b>Demo 1</b> is the default setup. <br/>
+          You can use <strong>#</strong> and <strong>@</strong> before a word
+          and see it change color.
+        </div>
+        <!--
+          Use this div as an editable area. In practice, you would probably want to
+          save the contents into a textarea that is hidden, prior to POST.
+         -->
+        <div id="demo-1-snippet" class="demo-area autotag-area" contentEditable="true"></div>
+      </div>
+
+      <div id="demo_2" class="demo-container">
+        <div class="demo-instructions">
+            <b>Demo 2</b> uses a custom tokenizer and decorator. <br/>
+            The tokenizer recognises strings that begin with '+' and
+            decorates the following string.
+        </div>
+        <div id="demo-2-snippet" class="demo-area autotag-area" contentEditable="true"></div>
+      </div>
+
+      <div id="demo_3" class="demo-container">
+        <div class="demo-instructions">
+            <b>Demo 3</b> highlights words from a list. <br/>
+            Add the words "google", "yahoo" and "bing" to your sentence.
+            Hover over the highlighted text to view the matching string.
+            </thead>
+        </div>
+        <div id="demo-3-snippet" class="demo-area autotag-area" contentEditable="true"></div>
+      </div>
   </div>
+
   <script type="text/javascript">
     $(document).ready(function(){
-      // By default, the plugin does not set focus on the editable element.
-      // You can either uncomment the line in plugin or just call focus().
-      $('#snippet').autotag().focus();
+
+        // DEMO 1
+        // By default, the plugin does not set focus on the editable element.
+        // You can either uncomment the line in plugin or just call focus().
+        $('#demo-1-snippet').autotag().focus();
+
+
+        // DEMO 2
+        // Configure a custom splitter that recognizes
+        // strings that begin with a + sign. The custom decorator changes
+        // the text color to white on a black background.
+        var demo_2_config = {
+            splitter: function(str) {
+                return str.split(/(\B[^,;\.\w]\b\w+(?=\W*))/ig);
+            },
+            decorator: function(node) {
+                var text = node.firstChild.nodeValue;
+                if (text.match(/^[\+][\w]+/)) {
+                    var style = "\
+                        color: brown;\
+                        background-color: lightyellow;\
+                        border: 1px solid yellow;\
+                        border-radius: 3px;\
+                        padding: 1px 4px;\
+                        font-size: 0.8em;\
+                    ";
+                    node.setAttribute('style', style);
+                } else {
+                    // Always remember to clean the node!
+                    node.removeAttribute('style');
+                }
+                return node;
+            }
+        };
+        $('#demo-2-snippet').autotag(demo_2_config);
+
+
+        // DEMO 3
+        // Highlight based on a given set of strings.
+        var urls = {
+            'google' : 'https://wwww.google.com',
+            'yahoo' : 'https://www.yahoo.com',
+            'bing' : 'https://www.bing.com'
+        };
+
+        var demo_3_config = {
+            splitter: function(str) {
+                return str.match(/([^\s]+)|\s+/ig);
+            },
+            decorator: function(node) {
+                var text = node.firstChild.nodeValue;
+                Object.keys(urls).some(function(key, index){
+                    if (text.toLowerCase().indexOf(key) !== -1) {
+                        node.setAttribute('class', 'underline');
+
+                        // See the demo.css file on how this attribute is
+                        // used to produce a simple tooltip.
+                        node.setAttribute('data-tooltip', urls[key]);
+
+                        // Break out of the loop.
+                        return true;
+                    } else {
+                        // Always remember to clean the node!
+                        node.removeAttribute('class');
+                        node.removeAttribute('data-tooltip');
+                    }
+                });
+            },
+            trace: true
+        };
+
+        $('#demo-3-snippet').autotag(demo_3_config);
     });
   </script>
 </body>
