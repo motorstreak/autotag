@@ -9,9 +9,9 @@
 (function($) {
     // Configuration options
     //
-    // tokenizer: A function that can receive a string, tokenize it and return
-    //            the tokens as an array. If not provided, the default
-    //            tokenizer is used.
+    // splitter:  A function that can receive a string, split it and return
+    //            the parts as an array. If not provided, the default
+    //            splitter is used.
     //
     // decorator: A function that receives nodes that need to be processed.
     //            Use the decorator to apply styles on the node or do whatever
@@ -24,7 +24,7 @@
         var editor = $(this)[0];
 
         // The default tokenizer function.
-        function tokenize(str) {
+        function split(str) {
             return str.split(/(\B[^,;\.\w]\b\w+(?=\W*))/ig);
         }
 
@@ -45,7 +45,7 @@
         // Initialize configuration.
         config = config || {};
         var trace = config.trace || false;
-        var tokenizer = config.tokenizer || tokenize;
+        var splitter = config.splitter || split;
         var decorator = config.decorator || decorate;
 
         // The line on which the input was captured. This is updated
@@ -282,42 +282,42 @@
             var container = range.endContainer;
 
             var input = str || container.nodeValue || '';
-            var tokens = tokenizer(input);
+            var parts = splitter(input);
 
             // Trim empty values from the array.
-            tokens = tokens && tokens.filter(Boolean) || '';
-            var numTokens = tokens.length;
+            parts = parts && parts.filter(Boolean) || '';
+            var numparts = parts.length;
 
             if (trace) {
-                console.log(tokens);
+                console.log(parts);
             }
 
-            if (numTokens > 0) {
+            if (numparts > 0) {
                 var lastTagNode = container.parentNode;
-                container.nodeValue = tokens[numTokens-1];
+                container.nodeValue = parts[numparts-1];
                 decorator(lastTagNode);
 
                 // Ensure that the caret does not move after the
                 // reorganization of nodes.
-                var refOffset = input.length - tokens[numTokens-1].length;
+                var refOffset = input.length - parts[numparts-1].length;
                 if (offset > refOffset && offset <= input.length) {
                     setCaret(container, offset - refOffset);
                 }
 
-                if (numTokens > 1) {
+                if (numparts > 1) {
                     var refNode = lastTagNode;
                     var parentNode = refNode.parentNode;
 
-                    for(var i=numTokens-2; i>=0; i--) {
-                        tagNode = createTagNode(tokens[i]);
+                    for(var i=numparts-2; i>=0; i--) {
+                        tagNode = createTagNode(parts[i]);
                         parentNode.insertBefore(tagNode, refNode);
                         decorator(tagNode);
 
                         // Ensure that the caret does not move after the
                         // reorganization of nodes.
-                        refOffset = refOffset - tokens[i].length;
+                        refOffset = refOffset - parts[i].length;
                         if (offset > refOffset &&
-                            offset <= (refOffset + tokens[i].length)) {
+                            offset <= (refOffset + parts[i].length)) {
                             setCaret(tagNode.firstChild, offset - refOffset);
                         }
                         refNode = tagNode;
