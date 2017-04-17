@@ -9,19 +9,20 @@
 (function($) {
     // Configuration options
     //
-    // splitter:  A function that can receive a string, split it and return
-    //            the parts as an array. If not provided, the default
-    //            splitter is used.
+    // splitter:   A function that can receive a string, split it and return
+    //             the parts as an array. If not provided, the default
+    //             splitter is used.
     //
-    // decorator: A function that receives nodes that need to be processed.
-    //            Use the decorator to apply styles on the node or do whatever
-    //            processing you wish to do. If one is not provided, the
-    //            default decorator will be used.
+    // decorator:  A function that receives nodes that need to be processed.
+    //             Use the decorator to apply styles on the node or do whatever
+    //             processing you wish to do. If one is not provided, the
+    //             default decorator will be used.
     //
-    // trace:     Set this to true to see debug messages on the console.
+    // trace:      Set this to true to see debug messages on the console.
 
     $.fn.autotag = function(config) {
         var editor = $(this)[0];
+        var lineStyle = 'autotag-line';
 
         // The default tokenizer function.
         function split(str) {
@@ -101,13 +102,16 @@
             return getCaret();
         };
 
+        //
         var createTextNode = function(str) {
             // Firefox hack - without this, firefox will ignore the leading
-            // space in the span.
+            // space in the element causing all sorts of headache.
             str = str && str.replace(/ /g, '\u00a0') || '';
             return document.createTextNode(str);
         };
 
+        // A leading Tag node, required to maintain consistancy in behavior
+        // across browsers.
         var createPilotNode = function() {
             var pilotNode = document.createElement('a');
             var breakNode = document.createElement('br');
@@ -115,6 +119,7 @@
             return pilotNode;
         }
 
+        // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
             var tagNode = document.createElement('a');
             if (str) {
@@ -124,16 +129,23 @@
             return tagNode;
         };
 
+        // A Block node form a line element in the editor.
         var createBlockNode = function(node) {
             var blockNode = document.createElement('p');
+            blockNode.className = lineStyle;
             if (node !== null) {
                 blockNode.appendChild(node);
             }
             return blockNode;
         };
 
+        var createNewLine = function() {
+            var pilot = createPilotNode();
+            return createBlockNode(pilot);
+        };
+
         var removeAllChildNodes = function(node) {
-            while (node.hasChildNodes()) {
+            while (node && node.hasChildNodes()) {
                 node.removeChild(node.lastChild);
             }
             return node;
@@ -147,7 +159,8 @@
         };
 
         var getTextWalker = function(node) {
-            return document.createTreeWalker(
+            return node &&
+                document.createTreeWalker(
                     node,
                     NodeFilter.SHOW_TEXT,
                     null,
@@ -157,9 +170,9 @@
 
         var prepareLine = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
-            if (line.nodeType !== Node.DOCUMENT_NODE) {
+            if (line) {
                 var walker = getTextWalker(line);
-                var textNode = walker.nextNode();
+                var textNode = walker && walker.nextNode();
                 if (textNode === null) {
                     // IE inserts <p><br/></p> on return at end of line.
                     // Change this to <p><a><br/></a></p>.
@@ -184,6 +197,9 @@
                         prevSibling.appendChild(breakNode);
                     }
                 }
+            } else {
+                line = createNewLine();
+                editor.appendChild(line);
             }
             return line;
         };
@@ -191,8 +207,7 @@
         var prepareText = function(textNode) {
             var parentNode = textNode.parentNode;
             if (textNode.nodeType == Node.TEXT_NODE) {
-                if(parentNode.tagName === 'P') {
-
+                if(isLine(parentNode)) {
                     var tagNode = createTagNode();
                     parentNode.insertBefore(tagNode, textNode);
                     tagNode.appendChild(textNode);
@@ -226,16 +241,37 @@
             return line && line.nextSibling;
         };
 
+        var isLine = function(node) {
+            return node &&
+                node.tagName == 'P' &&
+                node.className === lineStyle;
+        };
+
+        var isEditor = function(node) {
+            return node && node.isSameNode(editor);
+        };
+
+        // Line is a <p> node within the editor. Navigate up the
+        // range's ancestor tree until we hit either a <p> node or
+        // the editor node. If on the editor node, return the first
+        // available line.
         var getLine = function(range) {
             range = (typeof range === 'undefined') ? getCaret() : range;
-            var node = null;
+            var line = null;
             if (range) {
-                node = range.endContainer;
-                while (node.parentNode && node.tagName !== 'P') {
-                    node = node.parentNode;
+                var node = range.endContainer;
+                // Navigate up until a line node or editor node is reached.
+                while (!isEditor(node) && !isLine(node) &&
+                    (node = node.parentElement));
+                // Return the line node or the first line node if editor.
+                if (isLine(node)) {
+                    line = node;
+                } else {
+                    var selector = 'p.' + lineStyle + ':first-child';
+                    line = node.querySelector(selector);
                 }
             }
-            return node;
+            return line;
         };
 
         var getLineNumber = function(line) {
@@ -275,6 +311,7 @@
         };
 
         var processInput = function(str) {
+            prepareLine();
             prepareText(getCaret().endContainer);
 
             var range = getCaret();
@@ -288,9 +325,7 @@
             parts = parts && parts.filter(Boolean) || '';
             var numparts = parts.length;
 
-            if (trace) {
-                console.log(parts);
-            }
+            if (trace) console.log(parts);
 
             if (numparts > 0) {
                 var lastTagNode = container.parentNode;
