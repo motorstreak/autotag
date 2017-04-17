@@ -117,7 +117,7 @@
             var breakNode = document.createElement('br');
             pilotNode.appendChild(breakNode);
             return pilotNode;
-        }
+        };
 
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
@@ -285,7 +285,7 @@
                 }
             }
             return lineNumber;
-        }
+        };
 
         var gotoCurrentLine = function() {
             return gotoLine(getLine());
