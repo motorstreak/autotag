@@ -30,7 +30,7 @@ body {
     display : table-cell;
     box-sizing : border-box;
     width : 400px;
-    height : 80px;
+    height : 100px;
     padding : 20px 10px 10px;
     text-align : center;
     vertical-align : bottom;
@@ -50,7 +50,7 @@ body {
 .underline {
     font-style : italic;
     line-height : 1em;
-    color : #555;
+    color : brown;
     border-bottom : 1px solid rosybrown;
     text-shadow : -1px 1px #FFF, 1px 1px #FFF, -2px -1px #FFF, 0 -1px #FFF;
 }
@@ -60,6 +60,15 @@ body {
     text-decoration : none;
 }
 
+#demo-4-snippet {
+    font-family: 'Caveat', cursive;
+    font-size: 20px;
+    background: lemonchiffon;
+}
+
+#demo-4-snippet > p {
+    border-bottom: 1px solid antiquewhite;
+}
 
 /* The default decorator tag styles */
 .autotag-hashtag {
@@ -67,70 +76,4 @@ body {
 }
 .autotag-attag {
     color : green;
-}
-
-/* Tooltip - https://chrisbracco.com/a-simple-css-tooltip/ */
-
-[data-tooltip] {
-    position : relative;
-    z-index : 2;
-    cursor : pointer;
-}
-
-/* Hide the tooltip content by default */
-[data-tooltip]:before, [data-tooltip]:after {
-    visibility : hidden;
-    pointer-events : none;
-    opacity : 1;
-
-    /* Remove inherited properties */
-    text-shadow : none;
-    font-style : normal;
-    -ms-filter : 'progid:DXImageTransform.Microsoft.Alpha(Opacity=0)';
-        filter : progid: DXImageTransform.Microsoft.Alpha(Opacity=0);
-}
-
-/* Position tooltip above the element */
-[data-tooltip]:before {
-    font-size : 14px;
-    line-height : 1.2;
-    position : absolute;
-    bottom : 150%;
-    left : 50%;
-    width : 160px;
-    margin-bottom : 5px;
-    margin-left : -80px;
-    padding : 7px;
-    content : attr(data-tooltip);
-    text-align : center;
-    color : #FFF;
-    -webkit-border-radius : 3px;
-       -moz-border-radius : 3px;
-            border-radius : 3px;
-    background-color : #000;
-    background-color : hsla(0, 0%, 20%, 0.9);
-}
-
-/* Triangle hack to make tooltip look like a speech bubble */
-[data-tooltip]:after {
-    font-size : 0;
-    line-height : 0;
-    position : absolute;
-    bottom : 150%;
-    left : 50%;
-    width : 0;
-    margin-left : -5px;
-    content : ' ';
-    border-top : 5px solid #000;
-    border-top : 5px solid hsla(0, 0%, 20%, 0.9);
-    border-right : 5px solid transparent;
-    border-left : 5px solid transparent;
-}
-
-/* Show tooltip content on hover */
-[data-tooltip]:hover:before, [data-tooltip]:hover:after {
-    visibility : visible;
-    opacity : 1;
-    -ms-filter : 'progid:DXImageTransform.Microsoft.Alpha(Opacity=100)';
-        filter : progid: DXImageTransform.Microsoft.Alpha(Opacity=100);
 }

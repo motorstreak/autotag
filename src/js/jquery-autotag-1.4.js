@@ -18,7 +18,18 @@
     //             processing you wish to do. If one is not provided, the
     //             default decorator will be used.
     //
-    // trace:      Set this to true to see debug messages on the console.
+    // returnKeyHandler: A callback function that gets invoked when a return key
+    //            press is detected during the keydown event. The callback will
+    //            only be made if the 'allowNewlines' flag is set to false.
+    //
+    // allowNewlines: If set to false, the 'returnKeyHandler' callback is
+    //            invoked and the return key will not be propogated any further.
+    //            The default 'onReturnKeydown' handler will be called if a
+    //            callback is not specified.
+    //            If set to true (default), return key presses will result in
+    //            the insertion of newlines.
+    //
+    // trace:     Set this to true to see debug messages on the console.
 
     $.fn.autotag = function(config) {
         var editor = $(this)[0];
@@ -43,11 +54,16 @@
             return node;
         }
 
+        function removeEditorFocus() {
+            editor.blur();
+        }
+
         // Initialize configuration.
         config = config || {};
         var trace = config.trace || false;
         var splitter = config.splitter || split;
         var decorator = config.decorator || decorate;
+        var returnKeyHandler = config.returnKeyHandler || removeEditorFocus;
 
         // The line on which the input was captured. This is updated
         // each time a keyup event is triggered.
@@ -365,13 +381,19 @@
 
         editor.addEventListener('keydown', function(e) {
             inputLineNumber = getLineNumber();
+
+            var code = (e.keyCode ? e.keyCode : e.which);
+            if (code == 13 && allowNewlines === false) {
+                returnKeyHandler();
+                e.preventDefault();
+            }
         });
 
         editor.addEventListener('keyup', function(e) {
             processInput();
 
             var code = (e.keyCode ? e.keyCode : e.which);
-            if (code == 13 ){
+            if (code == 13 && allowNewlines === true){
                 if (getLineNumber() == inputLineNumber) {
                     var next = getNextLine();
                     if (next !== null) {

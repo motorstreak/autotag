@@ -18,7 +18,17 @@
     //             processing you wish to do. If one is not provided, the
     //             default decorator will be used.
     //
-    // trace:      Set this to true to see debug messages on the console.
+    // returnKeyHandler: A callback function that gets invoked when a return key
+    //            press is detected during the keydown event. The callback will
+    //            only be made if the 'allowNewlines' flag is set to false. If
+    //            the flag is set to false and no handler is provided, the
+    //            default handler will be called.
+    //
+    // allowNewlines: If set to true, return key presses will result in
+    //            the insertion of newlines. If false (default), the
+    //            returnKeyHandler callback is invoked.
+    //
+    // trace:     Set this to true to see debug messages on the console.
 
     $.fn.autotag = function(config) {
         var editor = $(this)[0];
@@ -43,11 +53,19 @@
             return node;
         }
 
+        // The default return key down event handler ignores
+        // the keydown event.
+        function ignoreReturnKey() {
+            // Do nothing!
+        }
+
         // Initialize configuration.
         config = config || {};
         var trace = config.trace || false;
+        var allowNewlines = config.allowNewlines || false;
         var splitter = config.splitter || split;
         var decorator = config.decorator || decorate;
+        var returnKeyHandler = config.returnKeyHandler || ignoreReturnKey;
 
         // The line on which the input was captured. This is updated
         // each time a keyup event is triggered.
@@ -168,6 +186,28 @@
                 );
         };
 
+        // If the text is too long to fit in a single line,
+        // break it up into multiple lines.
+        var paragraphize = function(line) {
+            line = line || getLine();
+            while(line !== null) {
+                var range = getCaret();
+                if (isTag(range.endContainer.parentNode)) {
+                    var tagWidth = range.endContainer.parentNode.offsetWidth+10;
+                    if(line.offsetWidth <= (tagWidth)) {
+                        var newLine = getNextLine(line) || createNewLine();
+                        line.parentNode.insertBefore(newLine, line.nextSibling);
+                        gotoLine(newLine);
+                        line = newLine;
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            }
+        };
+
         var prepareLine = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
             if (line) {
@@ -196,6 +236,8 @@
                         var prevSibling = breakNode.previousSibling;
                         prevSibling.appendChild(breakNode);
                     }
+
+                    paragraphize(line);
                 }
             } else {
                 line = createNewLine();
@@ -245,6 +287,10 @@
             return node &&
                 node.tagName == 'P' &&
                 node.className === lineStyle;
+        };
+
+        var isTag = function(node) {
+            return node && node.tagName == 'A';
         };
 
         var isEditor = function(node) {
@@ -310,7 +356,45 @@
             return line;
         };
 
+        var processReturnKey = function(e) {
+            var code = (e.keyCode ? e.keyCode : e.which);
+            if (code == 13 && allowNewlines === true){
+                if (getLineNumber() == inputLineNumber) {
+                    var next = getNextLine();
+                    if (next !== null) {
+                        prepareLine(next);
+                        gotoLine(next, 0);
+                    }
+                } else {
+                    var line = getLine();
+                    prepareLine(getPreviousLine(line));
+                    prepareLine(line);
+                    gotoLine(line);
+                }
+            }
+        };
+
+        var processPastedInput = function(e) {
+            var content;
+            if (e.clipboardData) {
+                content = (e.originalEvent || e).clipboardData.getData('text/plain');
+            } else if (window.clipboardData) {
+                content = window.clipboardData.getData('Text');
+            }
+
+            var container = getCaret().endContainer;
+            if (container.nodeValue) {
+                container.nodeValue.concat(content);
+            } else {
+                var textNode = document.createTextNode(content);
+                container.insertBefore(textNode, container.firstChild);
+                setCaret(textNode, 0);
+            }
+            processInput();
+        };
+
         var processInput = function(str) {
+
             prepareLine();
             prepareText(getCaret().endContainer);
 
@@ -365,13 +449,23 @@
 
         editor.addEventListener('keydown', function(e) {
             inputLineNumber = getLineNumber();
+
+            var code = (e.keyCode ? e.keyCode : e.which);
+            if (code == 13) {
+                if (allowNewlines === false) {
+                    returnKeyHandler();
+                    e.preventDefault();
+                }
+            } else {
+                paragraphize();
+            }
         });
 
         editor.addEventListener('keyup', function(e) {
             processInput();
 
             var code = (e.keyCode ? e.keyCode : e.which);
-            if (code == 13 ){
+            if (code == 13 && allowNewlines === true){
                 if (getLineNumber() == inputLineNumber) {
                     var next = getNextLine();
                     if (next !== null) {
@@ -389,23 +483,7 @@
 
         editor.addEventListener('paste', function(e) {
             e.preventDefault();
-
-            var content;
-            if (e.clipboardData) {
-                content = (e.originalEvent || e).clipboardData.getData('text/plain');
-            } else if (window.clipboardData) {
-                content = window.clipboardData.getData('Text');
-            }
-
-            var container = getCaret().endContainer;
-            if (container.nodeValue) {
-                container.nodeValue.concat(content);
-            } else {
-                var textNode = document.createTextNode(content);
-                container.insertBefore(textNode, container.firstChild);
-                setCaret(textNode, 0);
-            }
-            processInput();
+            processPastedInput(e);
         });
 
         editor.addEventListener('click', function(e) {

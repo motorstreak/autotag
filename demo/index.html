@@ -2,7 +2,11 @@
 <head>
   <!-- IE11 does support addEventListener(). Disable compatibility mode. -->
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+  <!-- Load a custom font -->
+  <link href="https://fonts.googleapis.com/css?family=Caveat" rel="stylesheet">
 
   <!-- The main js library -->
   <script src="./js/jquery-autotag-1.4.js"></script>
@@ -12,6 +16,8 @@
 
   <!-- Demo page styles -->
   <link rel="stylesheet" type="text/css" href="./css/demo.css">
+  <link rel="stylesheet" type="text/css" href="./css/tooltip.css">
+
 </head>
 <body>
     <div class="page-header">
@@ -51,6 +57,14 @@
             </thead>
         </div>
         <div id="demo-3-snippet" class="demo-area autotag-area" contentEditable="true"></div>
+      </div>
+
+      <div id="demo_4" class="demo-container">
+        <div class="demo-instructions">
+            <b>Demo 4</b> shows off a cool notepad. <br/>
+            </thead>
+        </div>
+        <div id="demo-4-snippet" class="demo-area autotag-area" contentEditable="true"></div>
       </div>
   </div>
 
@@ -124,11 +138,16 @@
                     }
                 });
             },
+            // Pressing return will insert newlines.
+            allowNewlines: true,
             // Log to your browsers console.
-            trace: true
+            trace: false
         };
 
         $('#demo-3-snippet').autotag(demo_3_config);
+        $('#demo-4-snippet').autotag(demo_3_config);
+
+
     });
   </script>
 </body>
