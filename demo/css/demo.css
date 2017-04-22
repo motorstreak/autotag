@@ -30,13 +30,13 @@ body {
     display : table-cell;
     box-sizing : border-box;
     width : 400px;
-    height : 80px;
+    height : 100px;
     padding : 20px 10px 10px;
     text-align : center;
     vertical-align : bottom;
     color : #555;
 }
-.demo-area {
+.demo-input {
     box-sizing : border-box;
     height : auto;
     min-height : 100px;
@@ -46,91 +46,43 @@ body {
     background-color : #FFF;
 }
 
+.demo-2-plus-sign {
+    color: brown;
+    background-color: lightyellow;
+    border: 1px solid yellow;
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 0.8em;
+}
+
+.demo-2-hash-tag {
+    color : red;
+}
+
+.demo-2-at-tag {
+    color : green;
+}
+
 /* Style underlines in demo 3 */
-.underline {
+.demo-3-underline {
     font-style : italic;
-    line-height : 1em;
-    color : #555;
-    border-bottom : 1px solid rosybrown;
+    color : brown;
+    box-shadow: 0px 2px;
     text-shadow : -1px 1px #FFF, 1px 1px #FFF, -2px -1px #FFF, 0 -1px #FFF;
 }
 
 /* Remove default link decoration. Its ugly as hell. */
-#demo-3-snippet > p > a[href] {
+.demo-3-input > p > a[href],
+.demo-4-input > p > a[href] {
     text-decoration : none;
 }
 
-
-/* The default decorator tag styles */
-.autotag-hashtag {
-    color : red;
-}
-.autotag-attag {
-    color : green;
+.demo-4-input {
+    font-family: 'Caveat', cursive;
+    font-size: 20px;
+    background: lemonchiffon;
 }
 
-/* Tooltip - https://chrisbracco.com/a-simple-css-tooltip/ */
-
-[data-tooltip] {
-    position : relative;
-    z-index : 2;
-    cursor : pointer;
-}
-
-/* Hide the tooltip content by default */
-[data-tooltip]:before, [data-tooltip]:after {
-    visibility : hidden;
-    pointer-events : none;
-    opacity : 1;
-
-    /* Remove inherited properties */
-    text-shadow : none;
-    font-style : normal;
-    -ms-filter : 'progid:DXImageTransform.Microsoft.Alpha(Opacity=0)';
-        filter : progid: DXImageTransform.Microsoft.Alpha(Opacity=0);
-}
-
-/* Position tooltip above the element */
-[data-tooltip]:before {
-    font-size : 14px;
-    line-height : 1.2;
-    position : absolute;
-    bottom : 150%;
-    left : 50%;
-    width : 160px;
-    margin-bottom : 5px;
-    margin-left : -80px;
-    padding : 7px;
-    content : attr(data-tooltip);
-    text-align : center;
-    color : #FFF;
-    -webkit-border-radius : 3px;
-       -moz-border-radius : 3px;
-            border-radius : 3px;
-    background-color : #000;
-    background-color : hsla(0, 0%, 20%, 0.9);
-}
-
-/* Triangle hack to make tooltip look like a speech bubble */
-[data-tooltip]:after {
-    font-size : 0;
-    line-height : 0;
-    position : absolute;
-    bottom : 150%;
-    left : 50%;
-    width : 0;
-    margin-left : -5px;
-    content : ' ';
-    border-top : 5px solid #000;
-    border-top : 5px solid hsla(0, 0%, 20%, 0.9);
-    border-right : 5px solid transparent;
-    border-left : 5px solid transparent;
-}
-
-/* Show tooltip content on hover */
-[data-tooltip]:hover:before, [data-tooltip]:hover:after {
-    visibility : visible;
-    opacity : 1;
-    -ms-filter : 'progid:DXImageTransform.Microsoft.Alpha(Opacity=100)';
-        filter : progid: DXImageTransform.Microsoft.Alpha(Opacity=100);
+.demo-4-input > p {
+    border-bottom: 1px solid lightgray;
 }
