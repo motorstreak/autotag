@@ -237,6 +237,7 @@
                             // move the last tag node to the new line.
                             if (line.childNodes.length > 2) {
                                 newLine.insertBefore(tagNode, newLine.firstChild);
+                                setCaret(tagNode.firstChild);
                             }
                         }
                     }
