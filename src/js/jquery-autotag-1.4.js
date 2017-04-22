@@ -9,25 +9,33 @@
 (function($) {
     // Configuration options
     //
-    // splitter:   A function that can receive a string, split it and return
-    //             the parts as an array. If not provided, the default
-    //             splitter is used.
+    // splitter:    A callback function that can receive a string, split it and return
+    //              the parts as an array. If not provided, the default
+    //              splitter is used.
     //
-    // decorator:  A function that receives nodes that need to be processed.
-    //             Use the decorator to apply styles on the node or do whatever
-    //             processing you wish to do. If one is not provided, the
-    //             default decorator will be used.
+    // decorator:   A callback function that receives nodes for processing.
+    //              Use the decorator to apply styles on the node or do whatever
+    //              processing you wish to do. If one is not provided, the
+    //              default decorator will be used.
     //
-    // returnKeyHandler: A callback function that gets invoked when a return key
-    //            press is detected during the keydown event. The callback will
-    //            only be made if the 'allowNewlines' flag is set to false.
+    // The callback functions below are invoked before and after processing
+    // the similarly named events. If any of the before<event> callbacks
+    // return evaluates to false, jquery-autotag will not perform any action on
+    // the registered input and the after<event> callbacks will not be invoked.
     //
-    // allowNewlines: If set to false, the 'returnKeyHandler' callback is
-    //            invoked and the return key will not be propogated any further.
-    //            The default 'onReturnKeydown' handler will be called if a
-    //            callback is not specified.
-    //            If set to true (default), return key presses will result in
-    //            the insertion of newlines.
+    //      beforeKeypress(e) - called before processing a keydown event.
+    //      afterKeypress - called after processing a keyup event.
+    //      beforePaste
+    //      afterPaste
+    //      beforeClick
+    //      afterClick
+    //
+    // ignoreReturnKey: If set to true, return key presses will be
+    //              ignored. False by default.
+    //
+    // onReturnKey: A callback function that gets invoked when a return key
+    //              press is detected during the keydown event. The callback will
+    //              only be made if the 'ignoreReturnKey' flag is set to true.
     //
     // trace:     Set this to true to see debug messages on the console.
 
@@ -35,35 +43,52 @@
         var editor = $(this)[0];
         var lineStyle = 'autotag-line';
 
+        function logToConsole(pretext, data) {
+            data = (typeof data === 'undefined') ? '' : data;
+            if (trace) {
+                console.log('TRACE ' + pretext + ' => ' + data);
+            }
+        }
+
         // The default tokenizer function.
         function split(str) {
-            return str.split(/(\B[^,;\.\w]\b\w+(?=\W*))/ig);
+            return str.match(/([^\s]+)|\s+/ig);
         }
 
         // The default decorator applies a css class to text that begin
         // with a hash (#) or at (@) character.
-        function decorate(node) {
-            var text = node.firstChild.nodeValue;
-            if (text.match(/^#[\w]+/)) {
-                node.className = 'autotag-hashtag';
-            } else if (text.match(/^@[\w]+/)) {
-                node.className = 'autotag-attag';
-            } else {
-                node.removeAttribute("class");
-            }
-            return node;
-        }
+        function decorate(node, text) {}
 
-        function removeEditorFocus() {
-            editor.blur();
-        }
+        // Event callback functions.
+        function beforeKeypress(e) { return true; }
+        function afterKeypress() {}
+        function beforePaste() { return true; }
+        function afterPaste() {}
+        function beforeClick() { return true; }
+        function afterClick() {}
+
+        // The default return key down event handler ignores
+        // the keydown event.
+        function onReturnKey() {}
 
         // Initialize configuration.
         config = config || {};
         var trace = config.trace || false;
+        var ignoreReturnKey = config.ignoreReturnKey || false;
         var splitter = config.splitter || split;
         var decorator = config.decorator || decorate;
-        var returnKeyHandler = config.returnKeyHandler || removeEditorFocus;
+        var doOnReturnKey = config.onReturnKey || onReturnKey;
+
+        // Event callbacks
+        var doBeforeKeypress = config.beforeKeypress || beforeKeypress;
+        var doAfterKeypress = config.afterKeypress || afterKeypress;
+        var doBeforePaste = config.beforePaste || beforePaste;
+        var doAfterPaste = config.afterPaste || afterPaste;
+        var doBeforeClick = config.beforeClick || beforeClick;
+        var doAfterClick = config.afterClick || afterClick;
+
+        // Store status of beforeKeypress callback return.
+        var processInputFlag;
 
         // The line on which the input was captured. This is updated
         // each time a keyup event is triggered.
@@ -84,7 +109,7 @@
         var setCaret = function(node, offset) {
             var range;
             if (node !== null) {
-                offset = (typeof offset === "undefined") ? node.length : offset;
+                offset = (typeof offset === 'undefined') ? node.length : offset;
                 range = getCaret();
                 try {
                     range.setStart(node, offset);
@@ -102,7 +127,7 @@
 
         // Clears all existing ranges and sets it to the provided one.
         var resetCaret = function(range) {
-            if (range !== null) {
+            if (range) {
                 if (window.getSelection) {
                     var selection = window.getSelection();
                     if (selection.rangeCount > 0) {
@@ -184,6 +209,42 @@
                 );
         };
 
+        // If the text is too long to fit in a single line,
+        // break it up into multiple lines. The threshold value ensures that
+        // the line breakup happens in a preemptive fashion.
+        var paragraphize = function(line, threshold) {
+            if (ignoreReturnKey == false) {
+                line = line || getLine();
+
+                // A default value of 10 is sufficient for most fonts.
+                threshold = (typeof threshold === 'undefined') ? 10 : threshold;
+                if (line !== null) {
+                    var range = getCaret();
+                    var tagNode = range.endContainer.parentNode;
+                    var lineRightPos = line.getBoundingClientRect().right;
+
+                    if (isTag(tagNode)) {
+                        var tagRightPos = tagNode.getBoundingClientRect().right;
+
+                        // Start on a new line when tagNode is close to the
+                        // edge of the current line.
+                        console.log(tagRightPos + " : " + lineRightPos);
+                        if((tagRightPos + threshold) >= lineRightPos ) {
+                            var newLine = getNextLine(line) || createNewLine();
+                            line.parentNode.insertBefore(newLine, line.nextSibling);
+
+                            // If there are more than one tag node on the line,
+                            // move the last tag node to the new line.
+                            if (line.childNodes.length > 2) {
+                                newLine.insertBefore(tagNode, newLine.firstChild);
+                                setCaret(tagNode.firstChild);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
         var prepareLine = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
             if (line) {
@@ -202,15 +263,19 @@
                 } else {
                     // IE inserts <p>text<br></p> on return mid string.
                     // Change this to <p><a>text<br></a></p>.
-                    var tagNode;
                     while(textNode) {
-                        tagNode = prepareText(textNode).parentNode;
+                        prepareText(textNode);
                         textNode = walker.nextNode();
                     }
+
+                    // Now deal with the last BR tag. If it exists and is
+                    // a child of the line, reattach to the last tag node.
                     var breakNode = line.querySelector('br:last-child');
-                    if (breakNode) {
+                    if (breakNode && isLine(breakNode.parentNode)) {
                         var prevSibling = breakNode.previousSibling;
-                        prevSibling.appendChild(breakNode);
+                        if (prevSibling && isTag(prevSibling)) {
+                            prevSibling.appendChild(breakNode);
+                        }
                     }
                 }
             } else {
@@ -221,8 +286,8 @@
         };
 
         var prepareText = function(textNode) {
-            var parentNode = textNode.parentNode;
             if (textNode.nodeType == Node.TEXT_NODE) {
+                var parentNode = textNode.parentNode;
                 if(isLine(parentNode)) {
                     var tagNode = createTagNode();
                     parentNode.insertBefore(tagNode, textNode);
@@ -263,6 +328,10 @@
                 node.className === lineStyle;
         };
 
+        var isTag = function(node) {
+            return node && node.tagName == 'A';
+        };
+
         var isEditor = function(node) {
             return node && node.isSameNode(editor);
         };
@@ -277,14 +346,17 @@
             if (range) {
                 var node = range.endContainer;
                 // Navigate up until a line node or editor node is reached.
-                while (!isEditor(node) && !isLine(node) &&
+                while (node && !isEditor(node) && !isLine(node) &&
                     (node = node.parentElement));
+
                 // Return the line node or the first line node if editor.
-                if (isLine(node)) {
-                    line = node;
-                } else {
-                    var selector = 'p.' + lineStyle + ':first-child';
-                    line = node.querySelector(selector);
+                if (node !== null) {
+                    if (isLine(node)) {
+                        line = node;
+                    } else {
+                        var selector = 'p.' + lineStyle + ':first-child';
+                        line = node.querySelector(selector);
+                    }
                 }
             }
             return line;
@@ -326,74 +398,22 @@
             return line;
         };
 
-        var processInput = function(str) {
-            prepareLine();
-            prepareText(getCaret().endContainer);
-
-            var range = getCaret();
-            var offset = range.endOffset;
-            var container = range.endContainer;
-
-            var input = str || container.nodeValue || '';
-            var parts = splitter(input);
-
-            // Trim empty values from the array.
-            parts = parts && parts.filter(Boolean) || '';
-            var numparts = parts.length;
-
-            if (trace) console.log(parts);
-
-            if (numparts > 0) {
-                var lastTagNode = container.parentNode;
-                container.nodeValue = parts[numparts-1];
-                decorator(lastTagNode);
-
-                // Ensure that the caret does not move after the
-                // reorganization of nodes.
-                var refOffset = input.length - parts[numparts-1].length;
-                if (offset > refOffset && offset <= input.length) {
-                    setCaret(container, offset - refOffset);
-                }
-
-                if (numparts > 1) {
-                    var refNode = lastTagNode;
-                    var parentNode = refNode.parentNode;
-
-                    for(var i=numparts-2; i>=0; i--) {
-                        tagNode = createTagNode(parts[i]);
-                        parentNode.insertBefore(tagNode, refNode);
-                        decorator(tagNode);
-
-                        // Ensure that the caret does not move after the
-                        // reorganization of nodes.
-                        refOffset = refOffset - parts[i].length;
-                        if (offset > refOffset &&
-                            offset <= (refOffset + parts[i].length)) {
-                            setCaret(tagNode.firstChild, offset - refOffset);
-                        }
-                        refNode = tagNode;
-                    }
-                }
-            }
+        var isPrintableKey = function(e) {
+            var code = (e.keyCode ? e.keyCode : e.which);
+            var isPrintable =
+                code == 32 || // Spacebar key
+                code == 13 || // Return key
+                (code > 47 && code < 58)   || // Number keys
+                (code > 64 && code < 91)   || // Alphabet keys
+                (code > 95 && code < 112)  || // Numpad keys
+                (code > 185 && code < 193) || // ; = , - . / ` keys
+                (code > 218 && code < 223);   // [ \ ] ' keys
+            return isPrintable;
         };
 
-        ///////////// Start processing events
-
-        editor.addEventListener('keydown', function(e) {
-            inputLineNumber = getLineNumber();
-
+        var processReturnKey = function(e) {
             var code = (e.keyCode ? e.keyCode : e.which);
-            if (code == 13 && allowNewlines === false) {
-                returnKeyHandler();
-                e.preventDefault();
-            }
-        });
-
-        editor.addEventListener('keyup', function(e) {
-            processInput();
-
-            var code = (e.keyCode ? e.keyCode : e.which);
-            if (code == 13 && allowNewlines === true){
+            if (code == 13 && ignoreReturnKey === false){
                 if (getLineNumber() == inputLineNumber) {
                     var next = getNextLine();
                     if (next !== null) {
@@ -407,11 +427,9 @@
                     gotoLine(line);
                 }
             }
-        });
+        };
 
-        editor.addEventListener('paste', function(e) {
-            e.preventDefault();
-
+        var processPastedInput = function(e) {
             var content;
             if (e.clipboardData) {
                 content = (e.originalEvent || e).clipboardData.getData('text/plain');
@@ -428,14 +446,116 @@
                 setCaret(textNode, 0);
             }
             processInput();
+        };
+
+        var processInput = function(str) {
+            prepareLine();
+            prepareText(getCaret().endContainer);
+
+            var range = getCaret();
+            var offset = range.endOffset;
+            var container = range.endContainer;
+
+            var input = str || container.nodeValue || '';
+            var parts = splitter(input);
+
+            // Trim empty values from the array.
+            parts = parts && parts.filter(Boolean) || '';
+            var numparts = parts.length;
+
+            logToConsole('Splitter Output', parts);
+
+            if (numparts > 0) {
+                var lastTagNode = container.parentNode;
+                container.nodeValue = parts[numparts-1];
+                decorator(lastTagNode, lastTagNode.firstChild.nodeValue);
+
+                // Ensure that the caret does not move after the
+                // reorganization of nodes.
+                var refOffset = input.length - parts[numparts-1].length;
+                if (offset > refOffset && offset <= input.length) {
+                    setCaret(container, offset - refOffset);
+                }
+
+                if (numparts > 1) {
+                    var refNode = lastTagNode;
+                    var parentNode = refNode.parentNode;
+
+                    for(var i=numparts-2; i>=0; i--) {
+                        tagNode = createTagNode(parts[i]);
+                        parentNode.insertBefore(tagNode, refNode);
+                        decorator(tagNode, tagNode.firstChild.nodeValue);
+
+                        // Ensure that the caret does not move after the
+                        // reorganization of nodes.
+                        refOffset = refOffset - parts[i].length;
+                        if (offset > refOffset &&
+                            offset <= (refOffset + parts[i].length)) {
+                            setCaret(tagNode.firstChild, offset - refOffset);
+                        }
+                        refNode = tagNode;
+                    }
+                }
+            }
+        };
+
+        // Start handling events.
+        editor.addEventListener('keydown', function(e) {
+            processInputFlag = doBeforeKeypress(e);
+            if (processInputFlag == true) {
+                inputLineNumber = getLineNumber();
+
+                var code = (e.keyCode ? e.keyCode : e.which);
+                logToConsole('keydown', code);
+
+                if (code == 13) {
+                    if (ignoreReturnKey === true) {
+                        e.preventDefault();
+                        doOnReturnKey();
+                    }
+                } else if (isPrintableKey(e)) {
+                    paragraphize();
+                }
+            }
+        });
+
+        editor.addEventListener('keyup', function(e) {
+            if (processInputFlag == true) {
+                var isPrintable = isPrintableKey(e);
+                if (isPrintable) { processInput(); }
+
+                var code = (e.keyCode ? e.keyCode : e.which);
+                if (code == 13 && ignoreReturnKey === false){
+                    if (getLineNumber() == inputLineNumber) {
+                        var next = getNextLine();
+                        if (next !== null) {
+                            prepareLine(next);
+                            gotoLine(next, 0);
+                        }
+                    } else if (isPrintable) {
+                        var line = getLine();
+                        prepareLine(getPreviousLine(line));
+                        prepareLine(line);
+                        gotoLine(line);
+                    }
+                }
+                doAfterKeypress();
+            }
+        });
+
+        editor.addEventListener('paste', function(e) {
+            if (doBeforePaste() == true) {
+                e.preventDefault();
+                processPastedInput(e);
+                doAfterPaste();
+            }
         });
 
         editor.addEventListener('click', function(e) {
-            prepareEditor();
-        });
-
-        editor.addEventListener('focus', function(e) {
-            prepareEditor();
+            if (doBeforeClick() == true) {
+                prepareEditor();
+                doAfterClick();
+            }
         });
 
         return this;
