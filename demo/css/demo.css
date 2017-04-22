@@ -36,7 +36,7 @@ body {
     vertical-align : bottom;
     color : #555;
 }
-.demo-area {
+.demo-input {
     box-sizing : border-box;
     height : auto;
     min-height : 100px;
@@ -46,34 +46,43 @@ body {
     background-color : #FFF;
 }
 
+.demo-2-plus-sign {
+    color: brown;
+    background-color: lightyellow;
+    border: 1px solid yellow;
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 0.8em;
+}
+
+.demo-2-hash-tag {
+    color : red;
+}
+
+.demo-2-at-tag {
+    color : green;
+}
+
 /* Style underlines in demo 3 */
-.underline {
+.demo-3-underline {
     font-style : italic;
-    line-height : 1em;
     color : brown;
-    border-bottom : 1px solid rosybrown;
+    box-shadow: 0px 2px;
     text-shadow : -1px 1px #FFF, 1px 1px #FFF, -2px -1px #FFF, 0 -1px #FFF;
 }
 
 /* Remove default link decoration. Its ugly as hell. */
-#demo-3-snippet > p > a[href] {
+.demo-3-input > p > a[href],
+.demo-4-input > p > a[href] {
     text-decoration : none;
 }
 
-#demo-4-snippet {
+.demo-4-input {
     font-family: 'Caveat', cursive;
     font-size: 20px;
     background: lemonchiffon;
 }
 
-#demo-4-snippet > p {
-    border-bottom: 1px solid antiquewhite;
-}
-
-/* The default decorator tag styles */
-.autotag-hashtag {
-    color : red;
-}
-.autotag-attag {
-    color : green;
+.demo-4-input > p {
+    border-bottom: 1px solid lightgray;
 }

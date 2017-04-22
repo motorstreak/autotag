@@ -4,10 +4,11 @@
 /* Make sure to include them in your CSS. */
 
 /* Deal with IE paragraph style within the editor. */
-.autotag-area > p {
+[contenteditable] > p {
     margin : 0;
 }
 
+/* Prevent outlines on contenteditable items in IE. */
 [contenteditable]:focus {
     outline : none;
 }

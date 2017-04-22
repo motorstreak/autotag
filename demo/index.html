@@ -27,87 +27,75 @@
     </div>
 
     <div class="demos">
-      <div id="demo_1" class="demo-container">
+      <div class="demo-container">
         <div class="demo-instructions">
           <b>Demo 1</b> is the default setup. <br/>
-          You can use <strong>#</strong> and <strong>@</strong> before a word
-          and see it change color.
+          It merely wraps words you input witin an &lt;a&gt; tag.
+          Nothing fancy.
         </div>
         <!--
           Use this div as an editable area. In practice, you would probably want to
           save the contents into a textarea that is hidden, prior to POST.
          -->
-        <div id="demo-1-snippet" class="demo-area autotag-area" contentEditable="true"></div>
+        <div id="demo-1" class="demo-input demo-1-input" contentEditable="true"></div>
       </div>
 
-      <div id="demo_2" class="demo-container">
+      <div class="demo-container">
         <div class="demo-instructions">
-            <b>Demo 2</b> uses a custom tokenizer and decorator. <br/>
-            The tokenizer recognises strings that begin with '+' and
-            decorates the following string.
+            <b>Demo 2</b> uses a custom decorator. <br/>
+            Strings that begin with a +, # or @ sign are highlighted.
+            Newlines are enables in addition.
         </div>
-        <div id="demo-2-snippet" class="demo-area autotag-area" contentEditable="true"></div>
+        <div id="demo-2" class="demo-input demo-2-input" contentEditable="true"></div>
       </div>
 
-      <div id="demo_3" class="demo-container">
+      <div class="demo-container">
         <div class="demo-instructions">
             <b>Demo 3</b> highlights words from a list. <br/>
-            Add the words "google", "yahoo" and "bing" to your sentence.
-            Hover over the highlighted text to view the matching string.
-            </thead>
+            Add "google", "yahoo" and "bing"  your sentence.
+            Hover to view the matching string.
         </div>
-        <div id="demo-3-snippet" class="demo-area autotag-area" contentEditable="true"></div>
+        <div id="demo-3" class="demo-input demo-3-input" contentEditable="true"></div>
       </div>
 
-      <div id="demo_4" class="demo-container">
+      <div class="demo-container">
         <div class="demo-instructions">
             <b>Demo 4</b> shows off a cool notepad. <br/>
-            </thead>
         </div>
-        <div id="demo-4-snippet" class="demo-area autotag-area" contentEditable="true"></div>
+        <div id="demo-4" class="demo-input demo-4-input" contentEditable="true"></div>
       </div>
   </div>
 
   <script type="text/javascript">
     $(document).ready(function(){
 
-        // DEMO 1
+        // Demo 1
         // By default, the plugin does not set focus on the editable element.
         // You can either uncomment the line in plugin or just call focus().
-        $('#demo-1-snippet').autotag().focus();
+        $('#demo-1').autotag().focus();
 
-
-        // DEMO 2
-        // Configure a custom splitter that recognizes
-        // strings that begin with a + sign. The custom decorator changes
-        // the text color to white on a black background.
+        // Demo 2
+        // Configure a custom decorator that recognizes
+        // strings that begin with a + sign and applies some css style
+        // to the token text that follows.
         var demo_2_config = {
-            splitter: function(str) {
-                return str.split(/(\B[^,;\.\w]\b\w+(?=\W*))/ig);
-            },
-            decorator: function(node) {
-                var text = node.firstChild.nodeValue;
+            decorator: function(node, text) {
                 if (text.match(/^[\+][\w]+/)) {
-                    var style = "\
-                        color: brown;\
-                        background-color: lightyellow;\
-                        border: 1px solid yellow;\
-                        border-radius: 3px;\
-                        padding: 1px 4px;\
-                        font-size: 0.8em;\
-                    ";
-                    node.setAttribute('style', style);
+                    node.setAttribute('class', 'demo-2-plus-sign');
+                } else if (text.match(/^[\#][\w]+/)) {
+                    node.setAttribute('class', 'demo-2-hash-tag');
+                } else if (text.match(/^[\@][\w]+/)) {
+                    node.setAttribute('class', 'demo-2-at-tag');
                 } else {
                     // Always remember to clean the node!
-                    node.removeAttribute('style');
+                    node.removeAttribute('class');
                 }
                 return node;
             }
         };
-        $('#demo-2-snippet').autotag(demo_2_config);
+        $('#demo-2').autotag(demo_2_config);
 
-
-        // DEMO 3
+        // Demo 3
         // Highlight based on a given set of strings.
         var urls = {
             'google' : 'https://wwww.google.com',
@@ -115,15 +103,11 @@
             'bing' : 'https://www.bing.com'
         };
 
-        var demo_3_config = {
-            splitter: function(str) {
-                return str.match(/([^\s]+)|\s+/ig);
-            },
-            decorator: function(node) {
-                var text = node.firstChild.nodeValue;
+        var demo_3_4_config = {
+            decorator: function(node, text) {
                 Object.keys(urls).some(function(key, index){
                     if (text.toLowerCase().indexOf(key) !== -1) {
-                        node.setAttribute('class', 'underline');
+                        node.setAttribute('class', 'demo-3-underline');
 
                         // See the demo.css file on how this attribute is
                         // used to produce a simple tooltip.
@@ -138,16 +122,16 @@
                     }
                 });
             },
-            // Pressing return will insert newlines.
-            allowNewlines: true,
-            // Log to your browsers console.
-            trace: false
+            trace: true
         };
 
-        $('#demo-3-snippet').autotag(demo_3_config);
-        $('#demo-4-snippet').autotag(demo_3_config);
+        $('#demo-3').autotag(demo_3_4_config);
 
 
+        // Demo 4
+        // Use the same splitter and decorator
+        demo_3_4_config['ignoreReturnKey'] = false;
+        $('#demo-4').autotag(demo_3_4_config);
     });
   </script>
 </body>
