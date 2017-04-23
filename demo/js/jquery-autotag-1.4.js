@@ -285,17 +285,17 @@
             return line;
         };
 
-        var prepareText = function(textNode) {
-            if (textNode.nodeType == Node.TEXT_NODE) {
-                var parentNode = textNode.parentNode;
+        var prepareText = function(node) {
+            if (isText(node)) {
+                var parentNode = node.parentNode;
                 if(isLine(parentNode)) {
                     var tagNode = createTagNode();
-                    parentNode.insertBefore(tagNode, textNode);
-                    tagNode.appendChild(textNode);
-                    setCaret(textNode);
+                    parentNode.insertBefore(tagNode, node);
+                    tagNode.appendChild(node);
+                    setCaret(node);
                 }
             }
-            return textNode;
+            return node;
         };
 
         var prepareEditor = function() {
@@ -334,6 +334,10 @@
 
         var isEditor = function(node) {
             return node && node.isSameNode(editor);
+        };
+
+        var isText = function(node) {
+            return node && node.nodeType == Node.TEXT_NODE;
         };
 
         // Line is a <p> node within the editor. Navigate up the
@@ -438,12 +442,13 @@
             }
 
             var container = getCaret().endContainer;
-            if (container.nodeValue) {
-                container.nodeValue.concat(content);
+            if (isText(container)) {
+                container.nodeValue = container.nodeValue + content;
+                setCaret(container);
             } else {
                 var textNode = document.createTextNode(content);
                 container.insertBefore(textNode, container.firstChild);
-                setCaret(textNode, 0);
+                setCaret(textNode);
             }
             processInput();
         };
@@ -524,7 +529,7 @@
                 var isPrintable = isPrintableKey(e);
                 if (isPrintable) { processInput(); }
 
-                var code = (e.keyCode ? e.keyCode : e.which);
+                var code = e.which || e.keyCode || 0;
                 if (code == 13 && ignoreReturnKey === false){
                     if (getLineNumber() == inputLineNumber) {
                         var next = getNextLine();
