@@ -213,7 +213,7 @@
         // break it up into multiple lines. The threshold value ensures that
         // the line breakup happens in a preemptive fashion.
         var paragraphize = function(line, threshold) {
-            if (ignoreReturnKey == false) {
+            if (ignoreReturnKey === false) {
                 line = line || getLine();
 
                 // A default value of 10 is sufficient for most fonts.
@@ -285,17 +285,17 @@
             return line;
         };
 
-        var prepareText = function(textNode) {
-            if (textNode.nodeType == Node.TEXT_NODE) {
-                var parentNode = textNode.parentNode;
+        var prepareText = function(node) {
+            if (isText(node)) {
+                var parentNode = node.parentNode;
                 if(isLine(parentNode)) {
                     var tagNode = createTagNode();
-                    parentNode.insertBefore(tagNode, textNode);
-                    tagNode.appendChild(textNode);
-                    setCaret(textNode);
+                    parentNode.insertBefore(tagNode, node);
+                    tagNode.appendChild(node);
+                    setCaret(node);
                 }
             }
-            return textNode;
+            return node;
         };
 
         var prepareEditor = function() {
@@ -334,6 +334,10 @@
 
         var isEditor = function(node) {
             return node && node.isSameNode(editor);
+        };
+
+        var isText = function(node) {
+            return node && node.nodeType == Node.TEXT_NODE;
         };
 
         // Line is a <p> node within the editor. Navigate up the
@@ -399,7 +403,7 @@
         };
 
         var isPrintableKey = function(e) {
-            var code = (e.keyCode ? e.keyCode : e.which);
+            var code = e.which || e.keyCode || 0;
             var isPrintable =
                 code == 32 || // Spacebar key
                 code == 13 || // Return key
@@ -412,7 +416,7 @@
         };
 
         var processReturnKey = function(e) {
-            var code = (e.keyCode ? e.keyCode : e.which);
+            var code = e.which || e.keyCode || 0;
             if (code == 13 && ignoreReturnKey === false){
                 if (getLineNumber() == inputLineNumber) {
                     var next = getNextLine();
@@ -438,12 +442,13 @@
             }
 
             var container = getCaret().endContainer;
-            if (container.nodeValue) {
-                container.nodeValue.concat(content);
+            if (isText(container)) {
+                container.nodeValue = container.nodeValue + content;
+                setCaret(container);
             } else {
                 var textNode = document.createTextNode(content);
                 container.insertBefore(textNode, container.firstChild);
-                setCaret(textNode, 0);
+                setCaret(textNode);
             }
             processInput();
         };
@@ -502,10 +507,10 @@
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
             processInputFlag = doBeforeKeypress(e);
-            if (processInputFlag == true) {
+            if (processInputFlag === true) {
                 inputLineNumber = getLineNumber();
 
-                var code = (e.keyCode ? e.keyCode : e.which);
+                var code = e.which || e.keyCode || 0;
                 logToConsole('keydown', code);
 
                 if (code == 13) {
@@ -520,11 +525,11 @@
         });
 
         editor.addEventListener('keyup', function(e) {
-            if (processInputFlag == true) {
+            if (processInputFlag === true) {
                 var isPrintable = isPrintableKey(e);
                 if (isPrintable) { processInput(); }
 
-                var code = (e.keyCode ? e.keyCode : e.which);
+                var code = e.which || e.keyCode || 0;
                 if (code == 13 && ignoreReturnKey === false){
                     if (getLineNumber() == inputLineNumber) {
                         var next = getNextLine();
@@ -544,7 +549,7 @@
         });
 
         editor.addEventListener('paste', function(e) {
-            if (doBeforePaste() == true) {
+            if (doBeforePaste() === true) {
                 e.preventDefault();
                 processPastedInput(e);
                 doAfterPaste();
@@ -552,7 +557,7 @@
         });
 
         editor.addEventListener('click', function(e) {
-            if (doBeforeClick() == true) {
+            if (doBeforeClick() === true) {
                 prepareEditor();
                 doAfterClick();
             }
