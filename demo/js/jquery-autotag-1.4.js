@@ -228,7 +228,7 @@
 
                         // Start on a new line when tagNode is close to the
                         // edge of the current line.
-                        console.log(tagRightPos + " : " + lineRightPos);
+                        logToConsole("Line to text block right position", tagRightPos + " : " + lineRightPos);
                         if((tagRightPos + threshold) >= lineRightPos ) {
                             var newLine = getNextLine(line) || createNewLine();
                             line.parentNode.insertBefore(newLine, line.nextSibling);
@@ -365,7 +365,6 @@
                     }
                 }
             }
-            console.log("Exit Loop");
             return line;
         };
 
@@ -457,7 +456,6 @@
         };
 
         var processInput = function(str) {
-            prepareLine();
             prepareText(getCaret().endContainer);
 
             var range = getCaret();
@@ -529,6 +527,8 @@
 
         editor.addEventListener('keyup', function(e) {
             if (processInputFlag === true) {
+                prepareLine();
+
                 var isPrintable = isPrintableKey(e);
                 if (isPrintable) { processInput(); }
 
