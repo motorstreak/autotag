@@ -213,7 +213,7 @@
         // break it up into multiple lines. The threshold value ensures that
         // the line breakup happens in a preemptive fashion.
         var paragraphize = function(line, threshold) {
-            if (ignoreReturnKey == false) {
+            if (ignoreReturnKey === false) {
                 line = line || getLine();
 
                 // A default value of 10 is sufficient for most fonts.
@@ -349,12 +349,14 @@
             var line = null;
             if (range) {
                 var node = range.endContainer;
+
                 // Navigate up until a line node or editor node is reached.
-                while (node && !isEditor(node) && !isLine(node) &&
-                    (node = node.parentElement));
+                while (node && !isEditor(node) && !isLine(node)) {
+                    node = node.parentNode;
+                }
 
                 // Return the line node or the first line node if editor.
-                if (node !== null) {
+                if (node) {
                     if (isLine(node)) {
                         line = node;
                     } else {
@@ -363,6 +365,7 @@
                     }
                 }
             }
+            console.log("Exit Loop");
             return line;
         };
 
@@ -403,10 +406,10 @@
         };
 
         var isPrintableKey = function(e) {
-            var code = (e.keyCode ? e.keyCode : e.which);
+            var code = e.which || e.keyCode || 0;
             var isPrintable =
                 code == 32 || // Spacebar key
-                code == 13 || // Return key
+                // code == 13 || // Return key
                 (code > 47 && code < 58)   || // Number keys
                 (code > 64 && code < 91)   || // Alphabet keys
                 (code > 95 && code < 112)  || // Numpad keys
@@ -416,7 +419,7 @@
         };
 
         var processReturnKey = function(e) {
-            var code = (e.keyCode ? e.keyCode : e.which);
+            var code = e.which || e.keyCode || 0;
             if (code == 13 && ignoreReturnKey === false){
                 if (getLineNumber() == inputLineNumber) {
                     var next = getNextLine();
@@ -507,10 +510,10 @@
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
             processInputFlag = doBeforeKeypress(e);
-            if (processInputFlag == true) {
+            if (processInputFlag === true) {
                 inputLineNumber = getLineNumber();
 
-                var code = (e.keyCode ? e.keyCode : e.which);
+                var code = e.which || e.keyCode || 0;
                 logToConsole('keydown', code);
 
                 if (code == 13) {
@@ -525,7 +528,7 @@
         });
 
         editor.addEventListener('keyup', function(e) {
-            if (processInputFlag == true) {
+            if (processInputFlag === true) {
                 var isPrintable = isPrintableKey(e);
                 if (isPrintable) { processInput(); }
 
@@ -549,7 +552,7 @@
         });
 
         editor.addEventListener('paste', function(e) {
-            if (doBeforePaste() == true) {
+            if (doBeforePaste() === true) {
                 e.preventDefault();
                 processPastedInput(e);
                 doAfterPaste();
@@ -557,7 +560,7 @@
         });
 
         editor.addEventListener('click', function(e) {
-            if (doBeforeClick() == true) {
+            if (doBeforeClick() === true) {
                 prepareEditor();
                 doAfterClick();
             }
