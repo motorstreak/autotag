@@ -5,6 +5,22 @@
     $.fn.autotag = function(config) {
         var editor = $(this)[0];
 
+        function logToConsole(data) {
+            if (trace) {
+                console.log(data);
+            }
+        }
+
+        // The default tokenizer function.
+        function split(str) {
+            return str.match(/([^\s]+)|\s+/ig);
+        }
+
+        // Options
+        config = config || {};
+        var trace = config.trace || false;
+        var splitter = config.splitter || split;
+
         var getCaret = function() {
             var range;
             if (window.getSelection) {
@@ -52,6 +68,10 @@
             return getCaret();
         };
 
+        var appendNode = function(node, toNode) {
+            node.parentNode.insertBefore(node, toNode.nextSibling);
+        }
+
         var getKeyCode = function(e) {
             return e.which || e.keyCode || 0;
         };
@@ -74,7 +94,7 @@
         };
 
         var isLine = function(node) {
-            return node && node.tagName == 'P'
+            return node && node.tagName == 'P';
         };
 
         var isText = function(node) {
@@ -132,6 +152,33 @@
             line.appendChild(text);
         };
 
+        var processInput = function() {
+            var range = getCaret();
+            var offset = range.endOffset;
+            var text = range.endContainer;
+            var parent = text.parentNode;
+
+            var input = text.nodeValue || '';
+            var parts = splitter(input);
+
+            // Trim empty values from the array.
+            parts = parts && parts.filter(Boolean) || '';
+            var numparts = parts.length;
+
+            logToConsole(parts);
+
+            var tagNode;
+            var refNode = text;
+            for (var i=0; i<numparts; i++) {
+                tagNode = decorator(parts[i]);
+                if (tagNode) {
+
+                } else {
+
+                }
+            }
+        };
+
         editor.addEventListener('click', function(e) {
             fixNode(getCaret().endContainer);
         });
@@ -145,7 +192,7 @@
             if (isPrintableKey(e)) {
                 var range = getCaret();
                 fixNode(range.endContainer);
-                // fixLine(range);
+                processInput();
             } else if(keyCode == 13) {
 
             }
