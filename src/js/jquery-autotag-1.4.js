@@ -43,10 +43,10 @@
         var editor = $(this)[0];
         var lineStyle = 'autotag-line';
 
-        function logToConsole(pretext, data) {
-            data = (typeof data === 'undefined') ? '' : data;
+        function logToConsole(data, msg) {
+            msg = (typeof msg === 'undefined') ? '' : msg;
             if (trace) {
-                console.log('TRACE ' + pretext + ' => ' + data);
+                console.log('TRACE : ' + msg + ' : ' + data);
             }
         }
 
@@ -151,15 +151,6 @@
             return document.createTextNode(str);
         };
 
-        // A leading Tag node, required to maintain consistancy in behavior
-        // across browsers.
-        var createPilotNode = function() {
-            var pilotNode = document.createElement('a');
-            var breakNode = document.createElement('br');
-            pilotNode.appendChild(breakNode);
-            return pilotNode;
-        };
-
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
             var tagNode = document.createElement('a');
@@ -171,18 +162,39 @@
         };
 
         // A Block node form a line element in the editor.
-        var createBlockNode = function(node) {
-            var blockNode = document.createElement('p');
-            blockNode.className = lineStyle;
-            if (node !== null) {
-                blockNode.appendChild(node);
-            }
-            return blockNode;
+        var createBlockNode = function() {
+            return document.createElement('p');
+        };
+
+        // A leading Tag node, required to maintain consistancy in behavior
+        // across browsers.
+        var addPilotNode = function(line) {
+            var pilot = createTagNode();
+            pilot.appendChild(document.createElement('br'));
+            line.appendChild(pilot);
+            return pilot;
         };
 
         var createNewLine = function() {
-            var pilot = createPilotNode();
-            return createBlockNode(pilot);
+            var line = createBlockNode();
+            editor.appendChild(line);
+
+            addPilotNode(line);
+            return line;
+        };
+
+        var removeAllBreakNodes = function(node) {
+            var i=0;
+            var breakNode;
+            // var parentNode;
+            var breakNodes = node.querySelectorAll('BR');
+            while ((breakNode = breakNodes[i++]) && i <= breakNodes.length) {
+                var parentNode = breakNode.parentNode;
+                parentNode.removeChild(breakNode);
+                if (parentNode.childNodes.length === 0) {
+                    removeNode(parentNode);
+                }
+            }
         };
 
         var removeAllChildNodes = function(node) {
@@ -228,10 +240,12 @@
 
                         // Start on a new line when tagNode is close to the
                         // edge of the current line.
-                        console.log(tagRightPos + " : " + lineRightPos);
+                        logToConsole(tagRightPos + ':' + lineRightPos,
+                            'Line to text block right position');
+
                         if((tagRightPos + threshold) >= lineRightPos ) {
                             var newLine = getNextLine(line) || createNewLine();
-                            line.parentNode.insertBefore(newLine, line.nextSibling);
+                            // line.parentNode.insertBefore(newLine, line.nextSibling);
 
                             // If there are more than one tag node on the line,
                             // move the last tag node to the new line.
@@ -254,8 +268,7 @@
                     // IE inserts <p><br/></p> on return at end of line.
                     // Change this to <p><a><br/></a></p>.
                     removeAllChildNodes(line);
-                    var pilot = createPilotNode();
-                    line.appendChild(pilot);
+                    var pilot = addPilotNode(line);
 
                     // FF requires the caret to be at offset 1.
                     // IE does not care! Chrome throws an exception.
@@ -270,17 +283,11 @@
 
                     // Now deal with the last BR tag. If it exists and is
                     // a child of the line, reattach to the last tag node.
-                    var breakNode = line.querySelector('br:last-child');
-                    if (breakNode && isLine(breakNode.parentNode)) {
-                        var prevSibling = breakNode.previousSibling;
-                        if (prevSibling && isTag(prevSibling)) {
-                            prevSibling.appendChild(breakNode);
-                        }
-                    }
+                    removeAllBreakNodes(line);
+                    addPilotNode(line);
                 }
             } else {
                 line = createNewLine();
-                editor.appendChild(line);
             }
             return line;
         };
@@ -303,10 +310,7 @@
             var textNode = walker.nextNode();
             if (textNode === null) {
                 removeAllChildNodes(editor);
-                var pilot = createPilotNode();
-                var blockNode = createBlockNode(pilot);
-                editor.appendChild(blockNode);
-                setCaret(pilot, 0);
+                createNewLine();
             } else {
                 prepareLine();
             }
@@ -323,9 +327,7 @@
         };
 
         var isLine = function(node) {
-            return node &&
-                node.tagName == 'P' &&
-                node.className === lineStyle;
+            return node && node.tagName == 'P';
         };
 
         var isTag = function(node) {
@@ -340,6 +342,16 @@
             return node && node.nodeType == Node.TEXT_NODE;
         };
 
+        var isBreak = function(node) {
+            return node && node.tagName == 'BR';
+        }
+
+        var getKeyCode = function(e) {
+            var code = e.which || e.keyCode || 0;
+            logToConsole(code, 'Key');
+            return code;
+        }
+
         // Line is a <p> node within the editor. Navigate up the
         // range's ancestor tree until we hit either a <p> node or
         // the editor node. If on the editor node, return the first
@@ -349,12 +361,14 @@
             var line = null;
             if (range) {
                 var node = range.endContainer;
+
                 // Navigate up until a line node or editor node is reached.
-                while (node && !isEditor(node) && !isLine(node) &&
-                    (node = node.parentElement));
+                while (node && !isEditor(node) && !isLine(node)) {
+                    node = node.parentNode;
+                }
 
                 // Return the line node or the first line node if editor.
-                if (node !== null) {
+                if (node) {
                     if (isLine(node)) {
                         line = node;
                     } else {
@@ -402,11 +416,18 @@
             return line;
         };
 
-        var isPrintableKey = function(e) {
-            var code = e.which || e.keyCode || 0;
+        var isDeleteKey = function(code) {
+            return code == 8;
+        };
+
+        var isReturnKey = function(code) {
+            return code == 13;
+        };
+
+        var isPrintableKey = function(code) {
             var isPrintable =
                 code == 32 || // Spacebar key
-                code == 13 || // Return key
+                // code == 13 || // Return key
                 (code > 47 && code < 58)   || // Number keys
                 (code > 64 && code < 91)   || // Alphabet keys
                 (code > 95 && code < 112)  || // Numpad keys
@@ -415,9 +436,8 @@
             return isPrintable;
         };
 
-        var processReturnKey = function(e) {
-            var code = e.which || e.keyCode || 0;
-            if (code == 13 && ignoreReturnKey === false){
+        var processReturnKey = function() {
+            if (ignoreReturnKey === false){
                 if (getLineNumber() == inputLineNumber) {
                     var next = getNextLine();
                     if (next !== null) {
@@ -431,6 +451,57 @@
                     gotoLine(line);
                 }
             }
+        };
+
+        var getPreviousTag = function(node) {
+            var prev = node.previousSibling;
+            if (prev) {
+                if (isLine(prev)) {
+                    return prev.querySelector('a:nth-last-child(1)');
+                } else if (isTag(prev)) {
+                    return prev
+                }
+            } else {
+                if (isTag(node)) {
+                    return getPreviousTag(node.parentNode);
+                } else {
+
+                }
+            }
+        };
+
+        var deleteText = function(node, offset) {
+            var prev;
+            if (isText(node)) {
+                offset = (typeof offset === 'undefined') ? node.nodeValue.length
+                                                         : offset;
+                if (offset > 0) {
+                    var str = node.nodeValue;
+                    node.nodeValue = str.slice(0, offset-1) + str.slice(offset);
+                    setCaret(node, offset-1);
+                    prepareLine();
+                } else if (offset === 0) {
+                    node = getPreviousTag(node.parentNode);
+                    deleteText(node.firstChild);
+                } else {
+                    setCaret(node);
+                }
+            } else if (isBreak(node)) {
+                prev = getPreviousTag(node.parentNode);
+                if (prev) {
+                    deleteText(prev.firstChild, -1);
+                }
+            } else {
+                prev = getPreviousTag(node);
+                if (prev) {
+                    deleteText(prev.firstChild);
+                }
+            }
+        };
+
+        var processDeleteKey = function() {
+            var range = getCaret();
+            deleteText(range.endContainer, range.endOffset);
         };
 
         var processPastedInput = function(e) {
@@ -454,7 +525,6 @@
         };
 
         var processInput = function(str) {
-            prepareLine();
             prepareText(getCaret().endContainer);
 
             var range = getCaret();
@@ -468,7 +538,7 @@
             parts = parts && parts.filter(Boolean) || '';
             var numparts = parts.length;
 
-            logToConsole('Splitter Output', parts);
+            logToConsole(parts, 'splitter');
 
             if (numparts > 0) {
                 var lastTagNode = container.parentNode;
@@ -510,15 +580,16 @@
             if (processInputFlag === true) {
                 inputLineNumber = getLineNumber();
 
-                var code = e.which || e.keyCode || 0;
-                logToConsole('keydown', code);
-
-                if (code == 13) {
+                var code = getKeyCode(e);
+                if (isDeleteKey(code)) {
+                    e.preventDefault();
+                    processDeleteKey();
+                } else if (isReturnKey(code)) {
                     if (ignoreReturnKey === true) {
                         e.preventDefault();
                         doOnReturnKey();
                     }
-                } else if (isPrintableKey(e)) {
+                } else if (isPrintableKey(code)) {
                     paragraphize();
                 }
             }
@@ -526,23 +597,17 @@
 
         editor.addEventListener('keyup', function(e) {
             if (processInputFlag === true) {
-                var isPrintable = isPrintableKey(e);
-                if (isPrintable) { processInput(); }
+                var code = getKeyCode(e);
+                var isPrintable = isPrintableKey(code);
+                if (isPrintable) {
+                    prepareLine();
+                    processInput();
+                } else {
+                    console.log(getCaret().endContainer);
+                }
 
-                var code = e.which || e.keyCode || 0;
-                if (code == 13 && ignoreReturnKey === false){
-                    if (getLineNumber() == inputLineNumber) {
-                        var next = getNextLine();
-                        if (next !== null) {
-                            prepareLine(next);
-                            gotoLine(next, 0);
-                        }
-                    } else if (isPrintable) {
-                        var line = getLine();
-                        prepareLine(getPreviousLine(line));
-                        prepareLine(line);
-                        gotoLine(line);
-                    }
+                if (isReturnKey(code)){
+                    processReturnKey();
                 }
                 doAfterKeypress();
             }

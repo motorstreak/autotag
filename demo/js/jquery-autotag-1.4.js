@@ -151,15 +151,6 @@
             return document.createTextNode(str);
         };
 
-        // A leading Tag node, required to maintain consistancy in behavior
-        // across browsers.
-        var createPilotNode = function() {
-            var pilotNode = document.createElement('a');
-            var breakNode = document.createElement('br');
-            pilotNode.appendChild(breakNode);
-            return pilotNode;
-        };
-
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
             var tagNode = document.createElement('a');
@@ -171,18 +162,25 @@
         };
 
         // A Block node form a line element in the editor.
-        var createBlockNode = function(node) {
-            var blockNode = document.createElement('p');
-            blockNode.className = lineStyle;
-            if (node !== null) {
-                blockNode.appendChild(node);
-            }
-            return blockNode;
+        var createBlockNode = function() {
+            return document.createElement('p');
+        };
+
+        // A leading Tag node, required to maintain consistancy in behavior
+        // across browsers.
+        var addPilotNode = function(line) {
+            var pilot = createTagNode();
+            pilot.appendChild(document.createElement('br'));
+            line.appendChild(pilot);
+            return pilot;
         };
 
         var createNewLine = function() {
-            var pilot = createPilotNode();
-            return createBlockNode(pilot);
+            var line = createBlockNode();
+            editor.appendChild(line);
+
+            addPilotNode(line);
+            return line;
         };
 
         var removeAllBreakNodes = function(node) {
@@ -247,7 +245,7 @@
 
                         if((tagRightPos + threshold) >= lineRightPos ) {
                             var newLine = getNextLine(line) || createNewLine();
-                            line.parentNode.insertBefore(newLine, line.nextSibling);
+                            // line.parentNode.insertBefore(newLine, line.nextSibling);
 
                             // If there are more than one tag node on the line,
                             // move the last tag node to the new line.
@@ -270,8 +268,7 @@
                     // IE inserts <p><br/></p> on return at end of line.
                     // Change this to <p><a><br/></a></p>.
                     removeAllChildNodes(line);
-                    var pilot = createPilotNode();
-                    line.appendChild(pilot);
+                    var pilot = addPilotNode(line);
 
                     // FF requires the caret to be at offset 1.
                     // IE does not care! Chrome throws an exception.
@@ -287,20 +284,10 @@
                     // Now deal with the last BR tag. If it exists and is
                     // a child of the line, reattach to the last tag node.
                     removeAllBreakNodes(line);
-                    line.appendChild(createPilotNode());
-
-                    // if (breakNode && isLine(breakNode.parentNode)) {
-                    //     var prevSibling = breakNode.previousSibling;
-                    //     if (prevSibling && isTag(prevSibling)) {
-                    //         prevSibling.appendChild(breakNode);
-                    //     }
-                    // } else {
-                    //     line.appendChild(createPilotNode());
-                    // }
+                    addPilotNode(line);
                 }
             } else {
                 line = createNewLine();
-                editor.appendChild(line);
             }
             return line;
         };
@@ -323,10 +310,7 @@
             var textNode = walker.nextNode();
             if (textNode === null) {
                 removeAllChildNodes(editor);
-                var pilot = createPilotNode();
-                var blockNode = createBlockNode(pilot);
-                editor.appendChild(blockNode);
-                setCaret(pilot, 0);
+                createNewLine();
             } else {
                 prepareLine();
             }
@@ -343,9 +327,7 @@
         };
 
         var isLine = function(node) {
-            return node &&
-                node.tagName == 'P' &&
-                node.className === lineStyle;
+            return node && node.tagName == 'P';
         };
 
         var isTag = function(node) {
@@ -359,6 +341,10 @@
         var isText = function(node) {
             return node && node.nodeType == Node.TEXT_NODE;
         };
+
+        var isBreak = function(node) {
+            return node && node.tagName == 'BR';
+        }
 
         var getKeyCode = function(e) {
             var code = e.which || e.keyCode || 0;
@@ -471,7 +457,7 @@
             var prev = node.previousSibling;
             if (prev) {
                 if (isLine(prev)) {
-                    return prev.querySelector('a:last-child');
+                    return prev.querySelector('a:nth-last-child(1)');
                 } else if (isTag(prev)) {
                     return prev
                 }
@@ -485,6 +471,7 @@
         };
 
         var deleteText = function(node, offset) {
+            var prev;
             if (isText(node)) {
                 offset = (typeof offset === 'undefined') ? node.nodeValue.length
                                                          : offset;
@@ -493,16 +480,21 @@
                     node.nodeValue = str.slice(0, offset-1) + str.slice(offset);
                     setCaret(node, offset-1);
                     prepareLine();
-                } else {
+                } else if (offset === 0) {
                     node = getPreviousTag(node.parentNode);
-                    setCaret(node.firstChild);
+                    deleteText(node.firstChild);
+                } else {
+                    setCaret(node);
+                }
+            } else if (isBreak(node)) {
+                prev = getPreviousTag(node.parentNode);
+                if (prev) {
+                    deleteText(prev.firstChild, -1);
                 }
             } else {
-                console.log("Yikes!");
-                console.log(node);
-                var nextTag = getPreviousTag(node);
-                if (nextTag) {
-                    setCaret(nextTag.firstChild);
+                prev = getPreviousTag(node);
+                if (prev) {
+                    deleteText(prev.firstChild);
                 }
             }
         };
