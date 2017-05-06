@@ -3,11 +3,17 @@
 /* The below are browser specific hacks.  */
 /* Make sure to include them in your CSS. */
 
-/* Deal with IE paragraph style within the editor. */
-.autotag-area > p {
-    margin : 0;
+[contenteditable] > p {
+    margin: 0;
+    word-break: break-all;
+    white-space: pre-line;
 }
 
+[contenteditable] > p > a {
+    /*display: inline-block;*/
+}
+
+/* Prevent outlines on contenteditable items in IE. */
 [contenteditable]:focus {
     outline : none;
 }
