@@ -33,6 +33,10 @@
     // ignoreReturnKey: If set to true, return key presses will be
     //              ignored. False by default.
     //
+    // newlineOnWrap: If set to true, instead of wrapping, overflowing text
+    //              will be insrted into a new line, similar in behavior to
+    //              pressing the return key.
+    //
     // onReturnKey: A callback function that gets invoked when a return key
     //              press is detected during the keydown event. The callback will
     //              only be made if the 'ignoreReturnKey' flag is set to true.
@@ -74,7 +78,9 @@
         // Initialize configuration.
         config = config || {};
         var trace = config.trace || false;
+        var newlineOnWrap = config.newlineOnWrap || false;
         var ignoreReturnKey = config.ignoreReturnKey || false;
+
         var splitter = config.splitter || split;
         var decorator = config.decorator || decorate;
         var doOnReturnKey = config.onReturnKey || onReturnKey;
@@ -169,7 +175,7 @@
         // A leading Tag node, required to maintain consistancy in behavior
         // across browsers.
         var addPilotNode = function(line) {
-            var pilot = createTagNode();
+            var pilot = createTagNode('');
             pilot.appendChild(document.createElement('br'));
             line.appendChild(pilot);
             return pilot;
@@ -179,14 +185,14 @@
             var line = createBlockNode();
             editor.appendChild(line);
 
-            addPilotNode(line);
+            var pilot = addPilotNode(line);
+            setCaret(pilot, 0);
             return line;
         };
 
         var removeAllBreakNodes = function(node) {
             var i=0;
             var breakNode;
-            // var parentNode;
             var breakNodes = node.querySelectorAll('BR');
             while ((breakNode = breakNodes[i++]) && i <= breakNodes.length) {
                 var parentNode = breakNode.parentNode;
@@ -344,13 +350,13 @@
 
         var isBreak = function(node) {
             return node && node.tagName == 'BR';
-        }
+        };
 
         var getKeyCode = function(e) {
             var code = e.which || e.keyCode || 0;
             logToConsole(code, 'Key');
             return code;
-        }
+        };
 
         // Line is a <p> node within the editor. Navigate up the
         // range's ancestor tree until we hit either a <p> node or
@@ -459,7 +465,7 @@
                 if (isLine(prev)) {
                     return prev.querySelector('a:nth-last-child(1)');
                 } else if (isTag(prev)) {
-                    return prev
+                    return prev;
                 }
             } else {
                 if (isTag(node)) {
@@ -481,8 +487,11 @@
                     setCaret(node, offset-1);
                     prepareLine();
                 } else if (offset === 0) {
-                    node = getPreviousTag(node.parentNode);
-                    deleteText(node.firstChild);
+                    prev = getPreviousTag(node.parentNode);
+                    deleteText(prev.firstChild);
+                    if (node.nodeValue.length === 0) {
+                        removeNode(node.parentNode);
+                    }
                 } else {
                     setCaret(node);
                 }
@@ -490,6 +499,14 @@
                 prev = getPreviousTag(node.parentNode);
                 if (prev) {
                     deleteText(prev.firstChild, -1);
+
+                    var oldLine = getNextLine();
+                    var newLine = getLine();
+                    while (oldLine.childNodes.length > 0) {
+                        newLine.appendChild(oldLine.childNodes[0]);
+                    }
+                    removeNode(node);
+                    removeNode(oldLine);
                 }
             } else {
                 prev = getPreviousTag(node);
@@ -501,7 +518,12 @@
 
         var processDeleteKey = function() {
             var range = getCaret();
-            deleteText(range.endContainer, range.endOffset);
+            if (range.startOffset === range.endOffset) {
+                deleteText(range.endContainer, range.endOffset);
+                return true;
+            } else {
+                return false;
+            }
         };
 
         var processPastedInput = function(e) {
@@ -525,6 +547,7 @@
         };
 
         var processInput = function(str) {
+
             prepareText(getCaret().endContainer);
 
             var range = getCaret();
@@ -542,6 +565,7 @@
 
             if (numparts > 0) {
                 var lastTagNode = container.parentNode;
+
                 container.nodeValue = parts[numparts-1];
                 decorator(lastTagNode, lastTagNode.firstChild.nodeValue);
 
@@ -560,14 +584,6 @@
                         tagNode = createTagNode(parts[i]);
                         parentNode.insertBefore(tagNode, refNode);
                         decorator(tagNode, tagNode.firstChild.nodeValue);
-
-                        // Ensure that the caret does not move after the
-                        // reorganization of nodes.
-                        refOffset = refOffset - parts[i].length;
-                        if (offset > refOffset &&
-                            offset <= (refOffset + parts[i].length)) {
-                            setCaret(tagNode.firstChild, offset - refOffset);
-                        }
                         refNode = tagNode;
                     }
                 }
@@ -582,15 +598,18 @@
 
                 var code = getKeyCode(e);
                 if (isDeleteKey(code)) {
-                    e.preventDefault();
-                    processDeleteKey();
+                    if (processDeleteKey() === true) {
+                        e.preventDefault();
+                    }
                 } else if (isReturnKey(code)) {
                     if (ignoreReturnKey === true) {
                         e.preventDefault();
                         doOnReturnKey();
                     }
                 } else if (isPrintableKey(code)) {
-                    paragraphize();
+                    if (newlineOnWrap === true) {
+                        paragraphize();
+                    }
                 }
             }
         });

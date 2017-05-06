@@ -80,9 +80,9 @@ body {
 .demo-4-input {
     font-family: 'Caveat', cursive;
     font-size: 20px;
-    background: lemonchiffon;
+    background: url(../img/notebook.png) repeat-y;
 }
 
 .demo-4-input > p {
-    border-bottom: 1px solid lightgray;
+    line-height: 30px;
 }

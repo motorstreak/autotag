@@ -1,28 +1,21 @@
 
-/* The default decorator add the below classes on strings that */
-/* begin with a # or @. Override these in your CSS if you use */
-/* the default decorator.  */
-.autotag-hashtag
-{
-    color: red;
-}
-.autotag-attag
-{
-    color: green;
-}
-
 /* ------------- NOTICE ----------------- */
 /* The below are browser specific hacks.  */
 /* Make sure to include them in your CSS. */
 
 /* Deal with IE paragraph style within the editor. */
-.autotag-area > p
-{
+[contenteditable] > p {
     margin: 0;
+    word-break: break-all;
+    white-space: pre-line;
 }
 
-[contenteditable]:focus
-{
-    outline: none;
+[contenteditable] > p > a {
+    /*display: inline-block;*/
+}
+
+/* Prevent outlines on contenteditable items in IE. */
+[contenteditable]:focus {
+    outline : none;
 }
 /* ---------- NOTICE END --------------- */

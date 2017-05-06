@@ -5,7 +5,13 @@
 
 /* Deal with IE paragraph style within the editor. */
 [contenteditable] > p {
-    margin : 0;
+    margin: 0;
+    word-break: break-all;
+    white-space: pre-line;
+}
+
+[contenteditable] > p > a {
+    /*display: inline-block;*/
 }
 
 /* Prevent outlines on contenteditable items in IE. */
