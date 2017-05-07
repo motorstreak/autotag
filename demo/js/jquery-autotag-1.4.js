@@ -99,14 +99,28 @@
         // The line on which the input was captured. This is updated
         // each time a keyup event is triggered.
         var inputLineNumber;
+        var activeRange;
 
-        var getCaret = function() {
+        var getRange = function() {
             var range;
-            if (window.getSelection) {
-                range = window.getSelection().getRangeAt(0);
-            } else if (document.selection) {
-                range = document.selection.createRange();
+            var selection;
+            if (typeof window.getSelection != "undefined") {
+                selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    range = selection.getRangeAt(0);
+                } else {
+                    // range = activeRange;
+                    // if (!range) {
+                    //     var firstTag = editor.querySelector('a:first-child');
+                    //     range = setCaret(firstTag.firstChild);
+                    // }
+                }
+            } else if ((selection = document.selection) &&
+                selection.type != "Control") {
+                range = selection.createRange();
             }
+
+            activeRange = range;
             return range;
         };
 
@@ -116,7 +130,7 @@
             var range;
             if (node !== null) {
                 offset = (typeof offset === 'undefined') ? node.length : offset;
-                range = getCaret();
+                range = document.createRange();
                 try {
                     range.setStart(node, offset);
                     range.setEnd(node, offset);
@@ -127,7 +141,9 @@
                 }
                 resetCaret(range);
             }
-            activeRange = getCaret();
+            activeRange = range;
+
+            console.log(range);
             return range;
         };
 
@@ -146,7 +162,8 @@
                     range.select();
                 }
             }
-            return getCaret();
+            activeRange = range;
+            return range;
         };
 
         //
@@ -237,7 +254,7 @@
                 // A default value of 10 is sufficient for most fonts.
                 threshold = (typeof threshold === 'undefined') ? 10 : threshold;
                 if (line !== null) {
-                    var range = getCaret();
+                    var range = getRange();
                     var tagNode = range.endContainer.parentNode;
                     var lineRightPos = line.getBoundingClientRect().right;
 
@@ -363,7 +380,7 @@
         // the editor node. If on the editor node, return the first
         // available line.
         var getLine = function(range) {
-            range = (typeof range === 'undefined') ? getCaret() : range;
+            range = (typeof range === 'undefined') ? getRange() : range;
             var line = null;
             if (range) {
                 var node = range.endContainer;
@@ -454,7 +471,7 @@
                     var line = getLine();
                     prepareLine(getPreviousLine(line));
                     prepareLine(line);
-                    gotoLine(line);
+                    gotoLine(line, 0);
                 }
             }
         };
@@ -517,7 +534,7 @@
         };
 
         var processDeleteKey = function() {
-            var range = getCaret();
+            var range = getRange();
             if (range.startOffset === range.endOffset) {
                 deleteText(range.endContainer, range.endOffset);
                 return true;
@@ -534,7 +551,7 @@
                 content = window.clipboardData.getData('Text');
             }
 
-            var container = getCaret().endContainer;
+            var container = getRange().endContainer;
             if (isText(container)) {
                 container.nodeValue = container.nodeValue + content;
                 setCaret(container);
@@ -547,10 +564,9 @@
         };
 
         var processInput = function(str) {
+            prepareText(getRange().endContainer);
 
-            prepareText(getCaret().endContainer);
-
-            var range = getCaret();
+            var range = getRange();
             var offset = range.endOffset;
             var container = range.endContainer;
 
@@ -563,30 +579,26 @@
 
             logToConsole(parts, 'splitter');
 
-            if (numparts > 0) {
-                var lastTagNode = container.parentNode;
+            var refTag = container.parentNode;
+            if (numparts > 1) {
+                // Prevent caret jump in Safari.
+                refTag.style.display = 'none';
 
-                container.nodeValue = parts[numparts-1];
-                decorator(lastTagNode, lastTagNode.firstChild.nodeValue);
-
-                // Ensure that the caret does not move after the
-                // reorganization of nodes.
-                var refOffset = input.length - parts[numparts-1].length;
-                if (offset > refOffset && offset <= input.length) {
-                    setCaret(container, offset - refOffset);
-                }
-
-                if (numparts > 1) {
-                    var refNode = lastTagNode;
-                    var parentNode = refNode.parentNode;
-
-                    for(var i=numparts-2; i>=0; i--) {
-                        tagNode = createTagNode(parts[i]);
-                        parentNode.insertBefore(tagNode, refNode);
-                        decorator(tagNode, tagNode.firstChild.nodeValue);
-                        refNode = tagNode;
+                var newTag, length;
+                for(var i=0; i<numparts; i++) {
+                    length = parts[i].length;
+                    newTag = createTagNode(parts[i]);
+                    refTag.parentNode.insertBefore(newTag, refTag.nextSibling);
+                    if (offset > 0 && offset <= length) {
+                        setCaret(newTag.firstChild, offset);
                     }
+                    offset = offset - length;
+                    refTag = newTag;
                 }
+
+                removeNode(container.parentNode);
+            } else {
+                decorator(refTag, refTag.firstChild.nodeValue);
             }
         };
 
@@ -621,8 +633,6 @@
                 if (isPrintable) {
                     prepareLine();
                     processInput();
-                } else {
-                    console.log(getCaret().endContainer);
                 }
 
                 if (isReturnKey(code)){
