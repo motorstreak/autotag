@@ -45,7 +45,6 @@
 
     $.fn.autotag = function(config) {
         var editor = $(this)[0];
-        var lineStyle = 'autotag-line';
 
         function logToConsole(data, msg) {
             msg = (typeof msg === 'undefined') ? '' : msg;
@@ -64,11 +63,22 @@
         function decorate(node, text) {}
 
         // Event callback functions.
-        function beforeKeypress(e) { return true; }
+        function beforeKeypress(e) {
+            return true;
+        }
+
         function afterKeypress() {}
-        function beforePaste() { return true; }
+
+        function beforePaste() {
+            return true;
+        }
+
         function afterPaste() {}
-        function beforeClick() { return true; }
+
+        function beforeClick() {
+            return true;
+        }
+
         function afterClick() {}
 
         // The default return key down event handler ignores
@@ -99,7 +109,11 @@
         // The line on which the input was captured. This is updated
         // each time a keyup event is triggered.
         var inputLineNumber;
-        var activeRange;
+
+        // Setting this to a span (or any other element) causes IE
+        // to add additional HTML tags to the text, especially when
+        // a URL is added to the attribute.
+        var tagNodeName = 'a';
 
         var getRange = function() {
             var range;
@@ -108,19 +122,11 @@
                 selection = window.getSelection();
                 if (selection.rangeCount > 0) {
                     range = selection.getRangeAt(0);
-                } else {
-                    // range = activeRange;
-                    // if (!range) {
-                    //     var firstTag = editor.querySelector('a:first-child');
-                    //     range = setCaret(firstTag.firstChild);
-                    // }
                 }
             } else if ((selection = document.selection) &&
                 selection.type != "Control") {
                 range = selection.createRange();
             }
-
-            activeRange = range;
             return range;
         };
 
@@ -134,16 +140,12 @@
                 try {
                     range.setStart(node, offset);
                     range.setEnd(node, offset);
-                }
-                catch(err) {
+                } catch (err) {
                     // Chrome does not like setting an offset of 1
                     // on an empty node.
                 }
                 resetCaret(range);
             }
-            activeRange = range;
-
-            console.log(range);
             return range;
         };
 
@@ -176,7 +178,7 @@
 
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
-            var tagNode = document.createElement('a');
+            var tagNode = document.createElement(tagNodeName);
             if (str) {
                 var textNode = createTextNode(str);
                 tagNode.appendChild(textNode);
@@ -189,12 +191,24 @@
             return document.createElement('p');
         };
 
+        var createBreakNode = function() {
+            var node = document.createElement('span');
+            node.appendChild(document.createElement('br'));
+            node.setAttribute("contenteditable", false);
+            return node;
+        };
+
         // A leading Tag node, required to maintain consistancy in behavior
         // across browsers.
         var addPilotNode = function(line) {
-            var pilot = createTagNode('');
-            pilot.appendChild(document.createElement('br'));
+            var pilot = createBreakNode();
             line.appendChild(pilot);
+
+            if (pilot.previousSibling === null) {
+                pilot.parentNode.insertBefore(createTagNode(), pilot);
+                pilot = pilot.previousSibling;
+            }
+
             return pilot;
         };
 
@@ -208,7 +222,7 @@
         };
 
         var removeAllBreakNodes = function(node) {
-            var i=0;
+            var i = 0;
             var breakNode;
             var breakNodes = node.querySelectorAll('BR');
             while ((breakNode = breakNodes[i++]) && i <= breakNodes.length) {
@@ -266,7 +280,7 @@
                         logToConsole(tagRightPos + ':' + lineRightPos,
                             'Line to text block right position');
 
-                        if((tagRightPos + threshold) >= lineRightPos ) {
+                        if ((tagRightPos + threshold) >= lineRightPos) {
                             var newLine = getNextLine(line) || createNewLine();
                             // line.parentNode.insertBefore(newLine, line.nextSibling);
 
@@ -299,7 +313,7 @@
                 } else {
                     // IE inserts <p>text<br></p> on return mid string.
                     // Change this to <p><a>text<br></a></p>.
-                    while(textNode) {
+                    while (textNode) {
                         prepareText(textNode);
                         textNode = walker.nextNode();
                     }
@@ -318,7 +332,7 @@
         var prepareText = function(node) {
             if (isText(node)) {
                 var parentNode = node.parentNode;
-                if(isLine(parentNode)) {
+                if (isLine(parentNode)) {
                     var tagNode = createTagNode();
                     parentNode.insertBefore(tagNode, node);
                     tagNode.appendChild(node);
@@ -354,7 +368,7 @@
         };
 
         var isTag = function(node) {
-            return node && node.tagName == 'A';
+            return node && node.tagName == tagNodeName.toUpperCase();
         };
 
         var isEditor = function(node) {
@@ -395,8 +409,7 @@
                     if (isLine(node)) {
                         line = node;
                     } else {
-                        var selector = 'p.' + lineStyle + ':first-child';
-                        line = node.querySelector(selector);
+                        line = node.querySelector('p:first-child');
                     }
                 }
             }
@@ -424,15 +437,16 @@
             if (line) {
                 if (typeof pos !== 'undefined') {
                     if (pos === 0) {
-                        var firstNode = line.querySelector('a:first-child');
-                        if (firstNode) {
-                            setCaret(firstNode, 0);
+                        var first = line.querySelector(tagNodeName + ':first-child');
+                        if (first) {
+                            setCaret(first, 0);
                         }
                     }
                 } else {
-                    var lastNode = line.querySelector('a:last-child');
-                    if (lastNode) {
-                        setCaret(lastNode);
+                    var tags = line.querySelectorAll(toUpperCase);
+                    var last = tags[tags.length - 1];
+                    if (last) {
+                        setCaret(last);
                     }
                 }
             }
@@ -451,16 +465,16 @@
             var isPrintable =
                 code == 32 || // Spacebar key
                 // code == 13 || // Return key
-                (code > 47 && code < 58)   || // Number keys
-                (code > 64 && code < 91)   || // Alphabet keys
-                (code > 95 && code < 112)  || // Numpad keys
+                (code > 47 && code < 58) || // Number keys
+                (code > 64 && code < 91) || // Alphabet keys
+                (code > 95 && code < 112) || // Numpad keys
                 (code > 185 && code < 193) || // ; = , - . / ` keys
-                (code > 218 && code < 223);   // [ \ ] ' keys
+                (code > 218 && code < 223); // [ \ ] ' keys
             return isPrintable;
         };
 
         var processReturnKey = function() {
-            if (ignoreReturnKey === false){
+            if (ignoreReturnKey === false) {
                 if (getLineNumber() == inputLineNumber) {
                     var next = getNextLine();
                     if (next !== null) {
@@ -480,15 +494,14 @@
             var prev = node.previousSibling;
             if (prev) {
                 if (isLine(prev)) {
-                    return prev.querySelector('a:nth-last-child(1)');
+                    var nodes = prev.querySelectorAll(tagNodeName);
+                    return nodes[nodes.length - 1];
                 } else if (isTag(prev)) {
                     return prev;
                 }
             } else {
                 if (isTag(node)) {
                     return getPreviousTag(node.parentNode);
-                } else {
-
                 }
             }
         };
@@ -496,16 +509,18 @@
         var deleteText = function(node, offset) {
             var prev;
             if (isText(node)) {
-                offset = (typeof offset === 'undefined') ? node.nodeValue.length
-                                                         : offset;
+                offset = (typeof offset === 'undefined') ? node.nodeValue.length :
+                    offset;
                 if (offset > 0) {
                     var str = node.nodeValue;
-                    node.nodeValue = str.slice(0, offset-1) + str.slice(offset);
-                    setCaret(node, offset-1);
+                    node.nodeValue = str.slice(0, offset - 1) + str.slice(offset);
+                    setCaret(node, offset - 1);
                     prepareLine();
                 } else if (offset === 0) {
                     prev = getPreviousTag(node.parentNode);
-                    deleteText(prev.firstChild);
+                    if (prev) {
+                        deleteText(prev.firstChild);
+                    }
                     if (node.nodeValue.length === 0) {
                         removeNode(node.parentNode);
                     }
@@ -570,6 +585,8 @@
             var offset = range.endOffset;
             var container = range.endContainer;
 
+            console.log(range);
+
             var input = str || container.nodeValue || '';
             var parts = splitter(input);
 
@@ -581,21 +598,23 @@
 
             var refTag = container.parentNode;
             if (numparts > 1) {
-                // Prevent caret jump in Safari.
+                // Prevent caret jump in Safari by hiding the original node.
                 refTag.style.display = 'none';
 
                 var newTag, length;
-                for(var i=0; i<numparts; i++) {
-                    length = parts[i].length;
+                for (var i = 0; i < numparts; i++) {
                     newTag = createTagNode(parts[i]);
+                    decorator(newTag, newTag.firstChild.nodeValue);
                     refTag.parentNode.insertBefore(newTag, refTag.nextSibling);
+
+                    length = parts[i].length;
                     if (offset > 0 && offset <= length) {
                         setCaret(newTag.firstChild, offset);
                     }
+
                     offset = offset - length;
                     refTag = newTag;
                 }
-
                 removeNode(container.parentNode);
             } else {
                 decorator(refTag, refTag.firstChild.nodeValue);
@@ -635,7 +654,7 @@
                     processInput();
                 }
 
-                if (isReturnKey(code)){
+                if (isReturnKey(code)) {
                     processReturnKey();
                 }
                 doAfterKeypress();
@@ -652,7 +671,20 @@
 
         editor.addEventListener('click', function(e) {
             if (doBeforeClick() === true) {
+
+                // The editor may be blank sometime (e.g first use).
                 prepareEditor();
+
+                // IE & Firefox may place the cursor outside the span.
+                var node = getRange().endContainer;
+                if (!isText(node)) {
+                    // The last tag (n==1) is a break node.
+                    var tags = node.querySelectorAll(tagNodeName);
+                    var tag = tags[tags.length - 1];
+                    if (tag) {
+                        setCaret(tag.firstChild);
+                    }
+                }
                 doAfterClick();
             }
         });

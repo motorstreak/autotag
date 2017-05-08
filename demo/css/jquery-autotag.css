@@ -8,14 +8,21 @@
     margin: 0;
     word-break: break-all;
     white-space: pre-line;
+    /*display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-flow: row wrap;
+    flex-flow: row wrap;*/
 }
 
 [contenteditable] > p > a {
-    /*display: inline-block;*/
+    color: #999;
 }
 
 /* Prevent outlines on contenteditable items in IE. */
-[contenteditable]:focus {
-    outline : none;
+[contenteditable]:focus,
+[contenteditable] > p > a:focus {
+    outline : 0;
 }
+
 /* ---------- NOTICE END --------------- */

@@ -63,6 +63,7 @@
       <div class="demo-container">
         <div class="demo-instructions">
             <b>Demo 4</b> shows off a cool notepad. <br/>
+            It highlights pronouns and teh words google, yahoo and bing.
         </div>
         <div id="demo-4" class="demo-input demo-4-input" contentEditable="true"></div>
       </div>
@@ -105,10 +106,21 @@
             'bing' : 'https://www.bing.com'
         };
 
+        var pronouns = [
+            'your','I','they','their','we','who','them','its','our','my',
+            'those','he','us','her','something','me','yourself','someone',
+            'everything','itself','everyone','themselves','anyone','him',
+            'whose','myself','everybody','ourselves','himself','somebody',
+            'yours','herself','whoever','you','that','it','this','what',
+            'which','these','his','she','lot','anything','whatever','nobody',
+            'none','mine','anybody'
+        ];
+
         var demo_3_4_config = {
             decorator: function(node, text) {
+                text = text.replace(/,$/, '')
                 Object.keys(urls).some(function(key, index){
-                    if (text.toLowerCase().indexOf(key) !== -1) {
+                    if (text && text.toLowerCase().indexOf(key) !== -1) {
                         node.setAttribute('class', 'demo-3-underline');
 
                         // See the demo.css file on how this attribute is
@@ -117,6 +129,9 @@
 
                         // Break out of the loop.
                         return true;
+                    } else if (pronouns.includes(text)) {
+                        node.setAttribute('class', 'demo-3-pronoun');
+                        node.setAttribute('data-tooltip', 'Pronoun');
                     } else {
                         // Always remember to clean the node!
                         node.removeAttribute('class');

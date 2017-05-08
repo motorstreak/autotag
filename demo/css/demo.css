@@ -66,9 +66,15 @@ body {
 /* Style underlines in demo 3 */
 .demo-3-underline {
     font-style : italic;
-    color : brown;
+    color : royalblue;
     box-shadow: 0px 2px;
     text-shadow : -1px 1px #FFF, 1px 1px #FFF, -2px -1px #FFF, 0 -1px #FFF;
+}
+
+.demo-3-pronoun:hover {
+    font-weight: bold;
+    color: red !important;
+    background-color: lightyellow;
 }
 
 /* Remove default link decoration. Its ugly as hell. */

@@ -1,7 +1,6 @@
 .demo-4-input {
     margin: 0;
-    padding: 30px 20px 20px 60px;
-    height: 200px;
+    padding: 30px 60px 20px 60px;
 	/* gradients - second red border, first red border, top white space, blue lines */
     background-image:
         -webkit-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
