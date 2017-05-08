@@ -71,9 +71,11 @@ body {
     text-shadow : -1px 1px #FFF, 1px 1px #FFF, -2px -1px #FFF, 0 -1px #FFF;
 }
 
-.demo-3-pronoun:hover {
-    font-weight: bold;
+.demo-3-pronoun {
     color: red !important;
+}
+
+.demo-3-pronoun:hover {
     background-color: lightyellow;
 }
 

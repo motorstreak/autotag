@@ -63,7 +63,7 @@
       <div class="demo-container">
         <div class="demo-instructions">
             <b>Demo 4</b> shows off a cool notepad. <br/>
-            It highlights pronouns and teh words google, yahoo and bing.
+            It highlights pronouns in the text you type in.
         </div>
         <div id="demo-4" class="demo-input demo-4-input" contentEditable="true"></div>
       </div>
@@ -129,7 +129,7 @@
 
                         // Break out of the loop.
                         return true;
-                    } else if (pronouns.includes(text)) {
+                    } else if (pronouns.indexOf(text) >= 0) {
                         node.setAttribute('class', 'demo-3-pronoun');
                         node.setAttribute('data-tooltip', 'Pronoun');
                     } else {
@@ -139,6 +139,7 @@
                     }
                 });
             },
+            newlineOnWrap: true,
             trace: false
         };
         $('#demo-3').autotag(demo_3_4_config);
