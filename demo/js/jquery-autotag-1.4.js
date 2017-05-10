@@ -46,6 +46,18 @@
     $.fn.autotag = function(config) {
         var editor = $(this)[0];
 
+        // The line on which the input was captured. This is updated
+        // each time a keyup event is triggered.
+        var inputLineNumber;
+
+        // Store status of beforeKeypress callback return.
+        var processInputFlag;
+
+        // Setting this to a span (or any other element) causes IE
+        // to add additional HTML tags to the text, especially when
+        // a URL is added to the attribute.
+        var tagNodeName = 'a';
+
         function logToConsole(data, msg) {
             msg = (typeof msg === 'undefined') ? '' : msg;
             if (trace) {
@@ -53,67 +65,110 @@
             }
         }
 
-        // The default tokenizer function.
-        function split(str) {
-            return str.match(/([^\s]+)|\s+/ig);
-        }
+        function afterClick() {}
+        function afterKeypress() {}
+        function afterPaste() {}
+        function beforeClick() { return true; }
+        function beforeKeypress(e) { return true; }
+        function beforePaste() { return true; }
 
         // The default decorator applies a css class to text that begin
         // with a hash (#) or at (@) character.
         function decorate(node, text) {}
 
-        // Event callback functions.
-        function beforeKeypress(e) {
-            return true;
-        }
-
-        function afterKeypress() {}
-
-        function beforePaste() {
-            return true;
-        }
-
-        function afterPaste() {}
-
-        function beforeClick() {
-            return true;
-        }
-
-        function afterClick() {}
-
         // The default return key down event handler ignores
         // the keydown event.
         function onReturnKey() {}
 
+        // The default tokenizer function.
+        function split(str) {
+            return str.match(/([^\s]+)|\s+/ig);
+        }
+
         // Initialize configuration.
         config = config || {};
-        var trace = config.trace || false;
-        var newlineOnWrap = config.newlineOnWrap || false;
         var ignoreReturnKey = config.ignoreReturnKey || false;
+        var newlineOnWrap = config.newlineOnWrap || false;
+        var trace = config.trace || false;
 
-        var splitter = config.splitter || split;
+        // Callbacks
         var decorator = config.decorator || decorate;
         var doOnReturnKey = config.onReturnKey || onReturnKey;
+        var splitter = config.splitter || split;
 
         // Event callbacks
-        var doBeforeKeypress = config.beforeKeypress || beforeKeypress;
-        var doAfterKeypress = config.afterKeypress || afterKeypress;
-        var doBeforePaste = config.beforePaste || beforePaste;
-        var doAfterPaste = config.afterPaste || afterPaste;
-        var doBeforeClick = config.beforeClick || beforeClick;
         var doAfterClick = config.afterClick || afterClick;
+        var doAfterKeypress = config.afterKeypress || afterKeypress;
+        var doAfterPaste = config.afterPaste || afterPaste;
 
-        // Store status of beforeKeypress callback return.
-        var processInputFlag;
+        var doBeforeClick = config.beforeClick || beforeClick;
+        var doBeforeKeypress = config.beforeKeypress || beforeKeypress;
+        var doBeforePaste = config.beforePaste || beforePaste;
 
-        // The line on which the input was captured. This is updated
-        // each time a keyup event is triggered.
-        var inputLineNumber;
 
-        // Setting this to a span (or any other element) causes IE
-        // to add additional HTML tags to the text, especially when
-        // a URL is added to the attribute.
-        var tagNodeName = 'a';
+        // A leading Tag node, required to maintain consistancy in behavior
+        // across browsers.
+        var addPilotNode = function(line) {
+            var breakNode = createBreakNode();
+            line.appendChild(breakNode);
+            return breakNode;
+        };
+
+        // A Block node form a line element in the editor.
+        var createBlockNode = function() {
+            return document.createElement('p');
+        };
+
+        var createBreakNode = function() {
+            var node = document.createElement(tagNodeName);
+            node.appendChild(document.createElement('br'));
+            return node;
+        };
+
+        var createNewLine = function() {
+            var line = createBlockNode();
+            editor.appendChild(line);
+
+            var pilot = addPilotNode(line);
+            setCaret(pilot, 0);
+            return line;
+        };
+
+        // Every text node in the editor is wrapped in a Tag node.
+        var createTagNode = function(str) {
+            var tagNode = document.createElement(tagNodeName);
+            if (str) {
+                var textNode = createTextNode(str);
+                tagNode.appendChild(textNode);
+            }
+            return tagNode;
+        };
+
+        var createTextNode = function(str) {
+            // Firefox hack - without this, firefox will ignore the leading
+            // space in the element causing all sorts of headache.
+            str = str && str.replace(/ /g, '\u00a0') || '';
+            return document.createTextNode(str);
+        };
+
+        var deleteText = function(node, offset) {
+            if (node) {
+                if (isText(node)) {
+                    var str = node.nodeValue;
+                    var parent = node.parentNode;
+                    offset = (typeof offset === 'undefined') ? str.length : offset;
+                    if (offset > 0) {
+                        node.nodeValue = str.slice(0, offset - 1) + str.slice(offset);
+                        setCaret(node, offset - 1);
+                        prepareLine();
+                    } else if (offset === 0) {
+                        deleteText(getPreviousText(node));
+                    }
+                } else {
+                    deleteText(getPreviousText(node));
+                }
+            }
+        };
 
         var getRange = function() {
             var range;
@@ -130,125 +185,6 @@
             return range;
         };
 
-        // Takes in the current node and sets the cursor location
-        // on the first child, if the child is a Text node.
-        var setCaret = function(node, offset) {
-            var range;
-            if (node !== null) {
-                offset = (typeof offset === 'undefined') ? node.length : offset;
-                range = document.createRange();
-                try {
-                    range.setStart(node, offset);
-                    range.setEnd(node, offset);
-                } catch (err) {
-                    // Chrome does not like setting an offset of 1
-                    // on an empty node.
-                }
-                resetCaret(range);
-            }
-            return range;
-        };
-
-        // Clears all existing ranges and sets it to the provided one.
-        var resetCaret = function(range) {
-            if (range) {
-                if (window.getSelection) {
-                    var selection = window.getSelection();
-                    if (selection.rangeCount > 0) {
-                        selection.removeAllRanges();
-                    }
-                    selection.addRange(range);
-                } else if (document.createRange) {
-                    window.getSelection().addRange(range);
-                } else if (document.selection) {
-                    range.select();
-                }
-            }
-            activeRange = range;
-            return range;
-        };
-
-        //
-        var createTextNode = function(str) {
-            // Firefox hack - without this, firefox will ignore the leading
-            // space in the element causing all sorts of headache.
-            str = str && str.replace(/ /g, '\u00a0') || '';
-            return document.createTextNode(str);
-        };
-
-        // Every text node in the editor is wrapped in a Tag node.
-        var createTagNode = function(str) {
-            var tagNode = document.createElement(tagNodeName);
-            if (str) {
-                var textNode = createTextNode(str);
-                tagNode.appendChild(textNode);
-            }
-            return tagNode;
-        };
-
-        // A Block node form a line element in the editor.
-        var createBlockNode = function() {
-            return document.createElement('p');
-        };
-
-        var createBreakNode = function() {
-            var node = document.createElement('span');
-            node.appendChild(document.createElement('br'));
-            node.setAttribute("contenteditable", false);
-            return node;
-        };
-
-        // A leading Tag node, required to maintain consistancy in behavior
-        // across browsers.
-        var addPilotNode = function(line) {
-            var breakNode = createBreakNode();
-            line.appendChild(breakNode);
-
-            var pilot = breakNode.previousSibling;
-            if (pilot === null) {
-                breakNode.parentNode.insertBefore(createTagNode(), breakNode);
-                pilot = breakNode.previousSibling;
-            }
-
-            return pilot;
-        };
-
-        var createNewLine = function() {
-            var line = createBlockNode();
-            editor.appendChild(line);
-
-            var pilot = addPilotNode(line);
-            setCaret(pilot, 0);
-            return line;
-        };
-
-        var removeAllBreakNodes = function(node) {
-            var i = 0;
-            var breakNode;
-            var breakNodes = node.querySelectorAll('BR');
-            while ((breakNode = breakNodes[i++]) && i <= breakNodes.length) {
-                var parentNode = breakNode.parentNode;
-                parentNode.removeChild(breakNode);
-                if (parentNode.childNodes.length === 0) {
-                    removeNode(parentNode);
-                }
-            }
-        };
-
-        var removeAllChildNodes = function(node) {
-            while (node && node.hasChildNodes()) {
-                node.removeChild(node.lastChild);
-            }
-            return node;
-        };
-
-        var removeNode = function(node) {
-            if (node && node.parentNode) {
-                node.parentNode.removeChild(node);
-            }
-            return node;
-        };
-
         var getTextWalker = function(node) {
             return node &&
                 document.createTreeWalker(
@@ -257,6 +193,161 @@
                     null,
                     false
                 );
+        };
+
+        var getKeyCode = function(e) {
+            var code = e.which || e.keyCode || 0;
+            logToConsole(code, 'Key');
+            return code;
+        };
+
+        // Line is a <p> node within the editor. Navigate up the
+        // range's ancestor tree until we hit either a <p> node or
+        // the editor node. If on the editor node, return the first
+        // available line.
+        var getLine = function(node) {
+            node = (typeof range === 'undefined')  ? getRange().endContainer : node;
+            var line = null;
+
+            // Navigate up until a line node or editor node is reached.
+            while (node && !isEditor(node) && !isLine(node)) {
+                node = node.parentNode;
+            }
+
+            // Return the line node or the first line node if editor.
+            if (node) {
+                if (isLine(node)) {
+                    line = node;
+                } else {
+                    // Some other node?
+                    line = node.querySelector('p:first-child');
+                }
+            }
+            return line;
+        };
+
+        var getLineNumber = function(line) {
+            line = (typeof line === 'undefined') ? getLine() : line;
+            var lineNumber = null;
+            if (line) {
+                lineNumber = 1;
+                while (line.previousSibling !== null) {
+                    lineNumber++;
+                    line = line.previousSibling;
+                }
+            }
+            return lineNumber;
+        };
+
+        var getNextLine = function(line) {
+            line = (typeof line === 'undefined') ? getLine() : line;
+            return line && line.nextSibling;
+        };
+
+        var getPreviousLine = function(line) {
+            line = (typeof line === 'undefined') ? getLine() : line;
+            return line && line.previousSibling;
+        };
+
+        var getPreviousText = function(node) {
+            var prevText;
+            if (node && !isEditor(node)) {
+                var next = node.previousSibling || node.parentNode;
+
+                if (isText(node)) {
+                    if (node.nodeValue.length === 0) {
+                        removeNode(node);
+                        prevText = getPreviousText(next);
+                    } else {
+                        // In the event there are multiple text nodes.
+                        prevText = node;
+                    }
+                } else {
+                    var textNodes = getTextNodes(node);
+                    var textNodesCount = textNodes.length;
+                    if (textNodesCount === 0) {
+                        removeNode(node);
+                        prevText = getPreviousText(next);
+                    } else {
+                        prevText = textNodes[textNodesCount - 1];
+                    }
+                }
+            }
+            return prevText;
+        };
+
+        var getTextNodes = function(node){
+            var text;
+            var textNodes = [];
+            var walker = getTextWalker(node);
+            while(text = walker.nextNode()) {
+                textNodes.push(text);
+            }
+            return textNodes;
+        };
+
+        var gotoCurrentLine = function() {
+            return gotoLine(getLine());
+        };
+
+        var gotoLine = function(line, pos) {
+            if (line) {
+                if (typeof pos !== 'undefined') {
+                    if (pos === 0) {
+                        var first = line.querySelector(tagNodeName + ':first-child');
+                        if (first) {
+                            setCaret(first, 0);
+                        }
+                    }
+                } else {
+                    var tags = line.querySelectorAll(toUpperCase);
+                    var last = tags[tags.length - 1];
+                    if (last) {
+                        setCaret(last);
+                    }
+                }
+            }
+            return line;
+        };
+
+        var isDeleteKey = function(code) {
+            return code == 8;
+        };
+
+        var isLine = function(node) {
+            return node && node.tagName == 'P';
+        };
+
+        var isPrintableKey = function(code) {
+            var isPrintable =
+                code == 32 || // Spacebar key
+                // code == 13 || // Return key
+                (code > 47 && code < 58) || // Number keys
+                (code > 64 && code < 91) || // Alphabet keys
+                (code > 95 && code < 112) || // Numpad keys
+                (code > 185 && code < 193) || // ; = , - . / ` keys
+                (code > 218 && code < 223); // [ \ ] ' keys
+            return isPrintable;
+        };
+
+        var isReturnKey = function(code) {
+            return code == 13;
+        };
+
+        var isTag = function(node) {
+            return node && node.tagName == tagNodeName.toUpperCase();
+        };
+
+        var isEditor = function(node) {
+            return node && node.isSameNode(editor);
+        };
+
+        var isText = function(node) {
+            return node && node.nodeType == Node.TEXT_NODE;
+        };
+
+        var isBreak = function(node) {
+            return node && node.tagName == 'BR';
         };
 
         // If the text is too long to fit in a single line,
@@ -294,6 +385,17 @@
                         }
                     }
                 }
+            }
+        };
+
+        var prepareEditor = function() {
+            var walker = getTextWalker(editor);
+            var textNode = walker.nextNode();
+            if (textNode === null) {
+                removeAllChildNodes(editor);
+                createNewLine();
+            } else {
+                prepareLine();
             }
         };
 
@@ -343,286 +445,6 @@
             return node;
         };
 
-        var prepareEditor = function() {
-            var walker = getTextWalker(editor);
-            var textNode = walker.nextNode();
-            if (textNode === null) {
-                removeAllChildNodes(editor);
-                createNewLine();
-            } else {
-                prepareLine();
-            }
-        };
-
-        var getPreviousLine = function(line) {
-            line = (typeof line === 'undefined') ? getLine() : line;
-            return line && line.previousSibling;
-        };
-
-        var getNextLine = function(line) {
-            line = (typeof line === 'undefined') ? getLine() : line;
-            return line && line.nextSibling;
-        };
-
-        var isLine = function(node) {
-            return node && node.tagName == 'P';
-        };
-
-        var isTag = function(node) {
-            return node && node.tagName == tagNodeName.toUpperCase();
-        };
-
-        var isEditor = function(node) {
-            return node && node.isSameNode(editor);
-        };
-
-        var isText = function(node) {
-            return node && node.nodeType == Node.TEXT_NODE;
-        };
-
-        var isBreak = function(node) {
-            return node && node.tagName == 'BR';
-        };
-
-        var getKeyCode = function(e) {
-            var code = e.which || e.keyCode || 0;
-            logToConsole(code, 'Key');
-            return code;
-        };
-
-        // Line is a <p> node within the editor. Navigate up the
-        // range's ancestor tree until we hit either a <p> node or
-        // the editor node. If on the editor node, return the first
-        // available line.
-        var getLine = function(node) {
-            node = (typeof range === 'undefined')  ? getRange().endContainer : node;
-            var line = null;
-
-            // Navigate up until a line node or editor node is reached.
-            while (node && !isEditor(node) && !isLine(node)) {
-                node = node.parentNode;
-            }
-
-            // Return the line node or the first line node if editor.
-            if (node) {
-                if (isLine(node)) {
-                    line = node;
-                } else {
-                    // Some other node?
-                    line = node.querySelector('p:first-child');
-                }
-            }
-            return line;
-        };
-
-        var getLineNumber = function(line) {
-            line = (typeof line === 'undefined') ? getLine() : line;
-            var lineNumber = null;
-            if (line) {
-                lineNumber = 1;
-                while (line.previousSibling !== null) {
-                    lineNumber++;
-                    line = line.previousSibling;
-                }
-            }
-            return lineNumber;
-        };
-
-        var gotoCurrentLine = function() {
-            return gotoLine(getLine());
-        };
-
-        var gotoLine = function(line, pos) {
-            if (line) {
-                if (typeof pos !== 'undefined') {
-                    if (pos === 0) {
-                        var first = line.querySelector(tagNodeName + ':first-child');
-                        if (first) {
-                            setCaret(first, 0);
-                        }
-                    }
-                } else {
-                    var tags = line.querySelectorAll(toUpperCase);
-                    var last = tags[tags.length - 1];
-                    if (last) {
-                        setCaret(last);
-                    }
-                }
-            }
-            return line;
-        };
-
-        var isDeleteKey = function(code) {
-            return code == 8;
-        };
-
-        var isReturnKey = function(code) {
-            return code == 13;
-        };
-
-        var isPrintableKey = function(code) {
-            var isPrintable =
-                code == 32 || // Spacebar key
-                // code == 13 || // Return key
-                (code > 47 && code < 58) || // Number keys
-                (code > 64 && code < 91) || // Alphabet keys
-                (code > 95 && code < 112) || // Numpad keys
-                (code > 185 && code < 193) || // ; = , - . / ` keys
-                (code > 218 && code < 223); // [ \ ] ' keys
-            return isPrintable;
-        };
-
-        var processReturnKey = function() {
-            if (ignoreReturnKey === false) {
-                if (getLineNumber() == inputLineNumber) {
-                    var next = getNextLine();
-                    if (next !== null) {
-                        prepareLine(next);
-                        gotoLine(next, 0);
-                    }
-                } else {
-                    var line = getLine();
-                    prepareLine(getPreviousLine(line));
-                    prepareLine(line);
-                    gotoLine(line, 0);
-                }
-            }
-        };
-
-        // var getPreviousTag = function(node) {
-        //     var prev = node.previousSibling;
-        //     if (prev) {
-        //         if (isLine(prev)) {
-        //             var nodes = prev.querySelectorAll(tagNodeName);
-        //             return nodes[nodes.length - 1];
-        //         } else if (isTag(prev)) {
-        //             return prev;
-        //         }
-        //     } else {
-        //         // Is the first tag node in the line.
-        //         if (isTag(node)) {
-        //             return getPreviousTag(node.parentNode);
-        //         }
-        //     }
-        // };
-        //
-        // var deleteText = function(node, offset) {
-        //     var prev;
-        //     if (isText(node)) {
-        //         offset = (typeof offset === 'undefined') ? node.nodeValue.length :
-        //             offset;
-        //         if (offset > 0) {
-        //             var str = node.nodeValue;
-        //             node.nodeValue = str.slice(0, offset - 1) + str.slice(offset);
-        //             setCaret(node, offset - 1);
-        //             prepareLine();
-        //         } else if (offset === 0) {
-        //             prev = getPreviousTag(node.parentNode);
-        //             if (prev) {
-        //                 deleteText(prev.firstChild);
-        //             }
-        //             if (node.nodeValue.length === 0) {
-        //                 removeNode(node.parentNode);
-        //             }
-        //         } else {
-        //             setCaret(node);
-        //         }
-        //     } else if (isTag(node)) {
-        //         var next = node.firstChild;
-        //         if (next) {
-        //             deleteText(next);
-        //         } else {
-        //             deleteText(node.previousSibling);
-        //             removeNode(node);
-        //         }
-        //
-        //     } else if (isBreak(node)) {
-        //         deleteText(node.parentNode.previousSibling);
-        //         // prev = getPreviousTag(node.parentNode);
-        //         // if (prev) {
-        //         //     deleteText(prev.firstChild, -1);
-        //         //
-        //         //     var oldLine = getNextLine();
-        //         //     var newLine = getLine();
-        //         //     while (oldLine.childNodes.length > 0) {
-        //         //         newLine.appendChild(oldLine.childNodes[0]);
-        //         //     }
-        //         //     removeNode(node);
-        //         //     removeNode(oldLine);
-        //         // }
-        //     } else {
-        //         console.log(node);
-        //         console.log("Else");
-        //         // prev = getPreviousTag(node);
-        //         // if (prev) {
-        //         //     var next = prev.firstChild;
-        //         //     if (next) {
-        //         //         deleteText(next);
-        //         //     } else {
-        //         //         deleteText(next.previousSibling);
-        //         //         removeNode()
-        //         //     }
-        //         // }
-        //     }
-        // };
-
-        // var getTags = function(node) {
-        //     var line = getLine(node);
-        //     if (isLine(line)) {
-        //         return line.querySelectorAll(tagNodeName);
-        //     }
-        // };
-
-        //
-        // var getPreviousText = function(node) {
-        //     var prev;
-        //     if (isText(node)) {
-        //         return node;
-        //     } else if (isTag(node)) {
-        //         prev = node.previousSibling;
-        //         if (prev && prev.firstChild) {
-        //             getPreviousText(prev);
-        //         } else {
-        //             getPreviousText()
-        //         }
-        //     } else {
-        //
-        //     }
-        // };
-
-        var deleteText = function(node, offset) {
-            console.log(node);
-            var next;
-            if (isText(node)) {
-                var str = node.nodeValue;
-                var length = str.length;
-
-                offset = (typeof offset === 'undefined') ? length : offset;
-
-                if (offset > 0) {
-                    node.nodeValue = str.slice(0, offset - 1) + str.slice(offset);
-                    setCaret(node, offset - 1);
-                    prepareLine();
-                } else if (offset === 0) {
-                    var tag = node.parentNode;
-                    deleteText(tag.previousSibling || tag.parentNode.previousSibling);
-                }
-            } else if (isTag(node)){
-                next = node.firstChild;
-                if (next) {
-                    deleteText(next);
-                } else {
-                    deleteText(node.previousSibling);
-                    removeNode(node);
-                }
-            } else if (isLine(node)) {
-                var tags = node.querySelectorAll(tagNodeName);
-                deleteText(tags[tags.length - 1]);
-            } else {
-                console.trace();
-            }
-        };
-
         var processDeleteKey = function() {
             var range = getRange();
             if (range.startOffset === range.endOffset) {
@@ -631,26 +453,6 @@
             } else {
                 return false;
             }
-        };
-
-        var processPastedInput = function(e) {
-            var content;
-            if (e.clipboardData) {
-                content = (e.originalEvent || e).clipboardData.getData('text/plain');
-            } else if (window.clipboardData) {
-                content = window.clipboardData.getData('Text');
-            }
-
-            var container = getRange().endContainer;
-            if (isText(container)) {
-                container.nodeValue = container.nodeValue + content;
-                setCaret(container);
-            } else {
-                var textNode = document.createTextNode(content);
-                container.insertBefore(textNode, container.firstChild);
-                setCaret(textNode);
-            }
-            processInput();
         };
 
         var processInput = function(str) {
@@ -693,6 +495,128 @@
                 decorator(refTag, refTag.firstChild.nodeValue);
             }
         };
+
+        var processPastedInput = function(e) {
+            var content;
+            if (e.clipboardData) {
+                content = (e.originalEvent || e).clipboardData.getData('text/plain');
+            } else if (window.clipboardData) {
+                content = window.clipboardData.getData('Text');
+            }
+
+            var container = getRange().endContainer;
+            if (isText(container)) {
+                container.nodeValue = container.nodeValue + content;
+                setCaret(container);
+            } else {
+                var textNode = document.createTextNode(content);
+                container.insertBefore(textNode, container.firstChild);
+                setCaret(textNode);
+            }
+            processInput();
+        };
+
+        var processReturnKey = function() {
+            if (ignoreReturnKey === false) {
+                if (getLineNumber() == inputLineNumber) {
+                    var next = getNextLine();
+                    if (next !== null) {
+                        prepareLine(next);
+                        gotoLine(next, 0);
+                    }
+                } else {
+                    var line = getLine();
+                    prepareLine(getPreviousLine(line));
+                    prepareLine(line);
+                    gotoLine(line, 0);
+                }
+            }
+        };
+
+        var removeAllBreakNodes = function(node) {
+            var i = 0;
+            var breakNode;
+            var breakNodes = node.querySelectorAll('BR');
+            while ((breakNode = breakNodes[i++]) && i <= breakNodes.length) {
+                var parentNode = breakNode.parentNode;
+                parentNode.removeChild(breakNode);
+                if (parentNode.childNodes.length === 0) {
+                    removeNode(parentNode);
+                }
+            }
+        };
+
+        var removeAllChildNodes = function(node) {
+            while (node && node.hasChildNodes()) {
+                node.removeChild(node.lastChild);
+            }
+            return node;
+        };
+
+        var removeNode = function(node) {
+            if (node && node.parentNode) {
+                node.parentNode.removeChild(node);
+            }
+            return node;
+        };
+
+        // Clears all existing ranges and sets it to the provided one.
+        var resetCaret = function(range) {
+            if (range) {
+                if (window.getSelection) {
+                    var selection = window.getSelection();
+                    if (selection.rangeCount > 0) {
+                        selection.removeAllRanges();
+                    }
+                    selection.addRange(range);
+                } else if (document.createRange) {
+                    window.getSelection().addRange(range);
+                } else if (document.selection) {
+                    range.select();
+                }
+            }
+            activeRange = range;
+            return range;
+        };
+
+        // Takes in the current node and sets the cursor location
+        // on the first child, if the child is a Text node.
+        var setCaret = function(node, offset) {
+            var range;
+            if (node !== null) {
+                offset = (typeof offset === 'undefined') ? node.length : offset;
+                range = document.createRange();
+                try {
+                    range.setStart(node, offset);
+                    range.setEnd(node, offset);
+                } catch (err) {
+                    // Chrome does not like setting an offset of 1
+                    // on an empty node.
+                }
+                resetCaret(range);
+            }
+            return range;
+        };
+
+        editor.addEventListener('click', function(e) {
+            if (doBeforeClick() === true) {
+
+                // The editor may be blank sometime (e.g first use).
+                prepareEditor();
+
+                // IE & Firefox may place the cursor outside the span.
+                var node = getRange().endContainer;
+                if (!isText(node)) {
+                    // The last tag (n==1) is a break node.
+                    var tags = node.querySelectorAll(tagNodeName);
+                    var tag = tags[tags.length - 1];
+                    if (tag) {
+                        setCaret(tag.firstChild);
+                    }
+                }
+                doAfterClick();
+            }
+        });
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
@@ -739,26 +663,6 @@
                 e.preventDefault();
                 processPastedInput(e);
                 doAfterPaste();
-            }
-        });
-
-        editor.addEventListener('click', function(e) {
-            if (doBeforeClick() === true) {
-
-                // The editor may be blank sometime (e.g first use).
-                prepareEditor();
-
-                // IE & Firefox may place the cursor outside the span.
-                var node = getRange().endContainer;
-                if (!isText(node)) {
-                    // The last tag (n==1) is a break node.
-                    var tags = node.querySelectorAll(tagNodeName);
-                    var tag = tags[tags.length - 1];
-                    if (tag) {
-                        setCaret(tag.firstChild);
-                    }
-                }
-                doAfterClick();
             }
         });
 
