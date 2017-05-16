@@ -152,22 +152,74 @@
         };
 
         var deleteText = function(node, offset) {
-            if (node) {
-                if (isText(node)) {
-                    var str = node.nodeValue;
-                    var parent = node.parentNode;
-                    offset = (typeof offset === 'undefined') ? str.length : offset;
-                    if (offset > 0) {
-                        node.nodeValue = str.slice(0, offset - 1) + str.slice(offset);
-                        setCaret(node, offset - 1);
-                        prepareLine();
-                    } else if (offset === 0) {
-                        deleteText(getPreviousText(node));
-                    }
-                } else {
-                    deleteText(getPreviousText(node));
+            // if (node) {
+            //     if (isText(node) && offset > 0) {
+            //         var value = node.nodeValue;
+            //         var newOffset = offset - 1;
+            //         node.nodeValue =
+            //             value.slice(0, newOffset) + value.slice(offset);
+            //
+            //         // Replace empty tag nodes with break tags if required.
+            //         if (newOffset === 0) {
+            //             prepareLine();
+            //         } else {
+            //             setCaret(node, newOffset);
+            //         }
+            //     } else {
+            //         // Node could be a break tag or at the
+            //         // beginning of a regular tag.
+            //         var next = getNextTextForDeletion(node);
+            //         if (next) {
+            //             deleteText(next, next.nodeValue.length);
+            //         }
+            //     }
+            // }
+        };
+
+        // Should always return a text node or return null.
+        var getNextTextForDeletion = function(node, offset) {
+            // var nextText = null;
+            // if (node && !isEditor(node)) {
+            //     if (isBreakTag(node)) {
+            //         node = node.previousSibling || node.parentNode;
+            //     }
+            //
+            //     var next = node.previousSibling || node.parentNode;
+            //     if ((node.textContent.length === 0)) {
+            //         // An empty tag or a line with no text.
+            //         removeNode(node);
+            //     }
+            //
+            //     if (isText(next)) {
+            //         nextText = next;
+            //     } else if (isTag(next)) {
+            //         nextText = next.lastChild || getNextTextForDeletion(next);
+            //     } else if (isLine(next)) {
+            //         var lastStop = next.lastChild;
+            //         if (isBreakTag(lastStop)) {
+            //             setCaret(lastStop, 0);
+            //         } else if (isTag(lastStop)) {
+            //             setCaret(lastStop.lastChild);
+            //         } else {
+            //             nextText = getNextTextForDeletion(next);
+            //         }
+            //     }
+            // }
+            // prepareEditor();
+            // return nextText;
+        };
+
+        var fixTextParentNode = function(node) {
+            if (isText(node)) {
+                var parentNode = node.parentNode;
+                if (isLine(parentNode)) {
+                    var tagNode = createTagNode();
+                    parentNode.insertBefore(tagNode, node);
+                    tagNode.appendChild(node);
+                    setCaret(node);
                 }
             }
+            return node;
         };
 
         var getRange = function() {
@@ -249,38 +301,54 @@
             return line && line.previousSibling;
         };
 
-        var getPreviousText = function(node) {
-            var prevText;
-            if (node && !isEditor(node)) {
-                var next = node.previousSibling || node.parentNode;
+        // var getPreviousText = function(node) {
+        //     var prevText;
+        //     if (node && !isEditor(node)) {
+        //         console.log("Node :" + (node.outerHTML || node.nodeValue) + ":");
+        //
+        //         var next = node.previousSibling || node.parentNode;
+        //         console.log("Next :" + (next.outerHTML || next.nodeValue) + ":") ;
+        //
+        //         if (isText(node)) {
+        //             if (node.nodeValue.length === 0) {
+        //                 removeNode(node);
+        //                 prevText = getPreviousText(next);
+        //             } else {
+        //                 prevText = node;
+        //             }
+        //         } else {
+        //             var lineNumber;
+        //             var tagNodes = node.querySelectorAll('a');
+        //
+        //             console.log(tagNodes);
+        //
+        //             if (isLine(node) &&
+        //                     (lineNumber = getLineNumber(node)) &&
+        //                     (lineNumber == 1 || (lineNumber != inputLineNumber))) {
+        //
+        //                     var tagNodeCount = tagNodes.length;
+        //                     if (tagNodeCount > 1) {
+        //                         setCaret(tagNodes[tagNodeCount - 1].lastChild);
+        //                     } else if (tagNodeCount == 1) {
+        //                         setCaret(tagNodes[0], 0);
+        //                     }
+        //                     // console.log(getRange());
+        //             } else {
+        //                 removeNode(node);
+        //                 prevText = getPreviousText(next);
+        //             }
+        //         }
+        //     }
+        //     return prevText;
+        // };
 
-                if (isText(node)) {
-                    if (node.nodeValue.length === 0) {
-                        removeNode(node);
-                        prevText = getPreviousText(next);
-                    } else {
-                        // In the event there are multiple text nodes.
-                        prevText = node;
-                    }
-                } else {
-                    var textNodes = getTextNodes(node);
-                    var textNodesCount = textNodes.length;
-                    if (textNodesCount === 0) {
-                        removeNode(node);
-                        prevText = getPreviousText(next);
-                    } else {
-                        prevText = textNodes[textNodesCount - 1];
-                    }
-                }
-            }
-            return prevText;
-        };
+
 
         var getTextNodes = function(node){
             var text;
             var textNodes = [];
             var walker = getTextWalker(node);
-            while(text = walker.nextNode()) {
+            while((text = walker.nextNode())) {
                 textNodes.push(text);
             }
             return textNodes;
@@ -350,6 +418,10 @@
             return node && node.tagName == 'BR';
         };
 
+        var isBreakTag = function(node) {
+            return isTag(node) && isBreak(node.lastChild);
+        };
+
         // If the text is too long to fit in a single line,
         // break it up into multiple lines. The threshold value ensures that
         // the line breakup happens in a preemptive fashion.
@@ -404,7 +476,7 @@
             if (line) {
                 var walker = getTextWalker(line);
                 var textNode = walker && walker.nextNode();
-                if (textNode === null) {
+                if (textNode === null || line.textContent.length === 0) {
                     // IE inserts <p><br/></p> on return at end of line.
                     // Change this to <p><a><br/></a></p>.
                     removeAllChildNodes(line);
@@ -417,32 +489,19 @@
                     // IE inserts <p>text<br></p> on return mid string.
                     // Change this to <p><a>text<br></a></p>.
                     while (textNode) {
-                        prepareText(textNode);
+                        fixTextParentNode(textNode);
                         textNode = walker.nextNode();
                     }
 
                     // Now deal with the last BR tag. If it exists and is
                     // a child of the line, reattach to the last tag node.
                     removeAllBreakNodes(line);
-                    addPilotNode(line);
+                    // addPilotNode(line);
                 }
             } else {
                 line = createNewLine();
             }
             return line;
-        };
-
-        var prepareText = function(node) {
-            if (isText(node)) {
-                var parentNode = node.parentNode;
-                if (isLine(parentNode)) {
-                    var tagNode = createTagNode();
-                    parentNode.insertBefore(tagNode, node);
-                    tagNode.appendChild(node);
-                    setCaret(node);
-                }
-            }
-            return node;
         };
 
         var processDeleteKey = function() {
@@ -456,7 +515,7 @@
         };
 
         var processInput = function(str) {
-            prepareText(getRange().endContainer);
+            fixTextParentNode(getRange().endContainer);
 
             var range = getRange();
             var offset = range.endOffset;
@@ -518,17 +577,18 @@
 
         var processReturnKey = function() {
             if (ignoreReturnKey === false) {
-                if (getLineNumber() == inputLineNumber) {
-                    var next = getNextLine();
+                var current = getLine();
+                if (getLineNumber(current) == inputLineNumber) {
+                    var next = getNextLine(current);
                     if (next !== null) {
                         prepareLine(next);
                         gotoLine(next, 0);
                     }
                 } else {
-                    var line = getLine();
-                    prepareLine(getPreviousLine(line));
-                    prepareLine(line);
-                    gotoLine(line, 0);
+                    var prev = getPreviousLine(current);
+                    prepareLine(prev);
+                    prepareLine(current);
+                    gotoLine(current, 0);
                 }
             }
         };
@@ -598,6 +658,10 @@
             return range;
         };
 
+        // var terminateLine = function(line) {
+        //
+        // };
+
         editor.addEventListener('click', function(e) {
             if (doBeforeClick() === true) {
 
@@ -609,9 +673,11 @@
                 if (!isText(node)) {
                     // The last tag (n==1) is a break node.
                     var tags = node.querySelectorAll(tagNodeName);
-                    var tag = tags[tags.length - 1];
-                    if (tag) {
-                        setCaret(tag.firstChild);
+                    var tagCount = tags.length;
+                    if (tagCount == 1) {
+                        setCaret(tags[0], 0);
+                    } else if (tagCount > 1) {
+                        setCaret(tags[tagCount -1].firstChild);
                     }
                 }
                 doAfterClick();
