@@ -141,8 +141,24 @@
             return document.createTextNode(str);
         };
 
-        // Should always return a text node or return null.
-        var getNextTextForDeletion = function(node, offset) {};
+        var fixEditor = function() {
+            if (!getFirstLine()) {
+                createNewLine();
+            }
+        };
+
+        var fixLine = function(line) {
+            line = (typeof line === 'undefined') ? getLine() : line;
+            if (isLine(line)) {
+                if (line.textContent.length === 0) {
+                    removeAllChildNodes(line);
+                    addPilotNodeToLine(line);
+                } else {
+                    removeBreakNodesOnLine(line);
+                }
+            }
+            return line;
+        };
 
         var fixText = function(node, offset) {
             offset = (typeof offset === 'undefined') ? 0 : offset;
@@ -159,6 +175,10 @@
                 }
             }
             return node;
+        };
+
+        var getFirstLine = function() {
+            return editor.querySelector('p:first-child');
         };
 
         var getRange = function() {
@@ -194,28 +214,21 @@
 
         // Line is a <p> node within the editor. Navigate up the
         // range's ancestor tree until we hit either a <p> node or
-        // the editor node. If on the editor node, return the first
-        // available line.
+        // the editor node.
         var getLine = function(node) {
             node = (typeof range === 'undefined') ? getRange().endContainer : node;
-
             while (!isEditor(node) && !isLine(node)) {
                 node = node.parentNode;
             }
-
-            var line = node;
-            if (!isLine(node)) {
-                line = node.querySelector('p:first-child');
-            }
-
-            return line;
+            return isLine(node) ? node : getFirstLine();
         };
 
         var getLineNumber = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
 
-            var lineNumber = 1;
+            var lineNumber;
             if (isLine(line)) {
+                lineNumber = 1;
                 while ((line = line.previousSibling)) {
                     lineNumber++;
                 }
@@ -225,12 +238,12 @@
 
         var getNextLine = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
-            return line && line.nextSibling;
+            return isLine(line) && line.nextSibling;
         };
 
         var getPreviousLine = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
-            return line && line.previousSibling;
+            return isLine(line) && line.previousSibling;
         };
 
         var getTextNodes = function(node) {
@@ -304,18 +317,6 @@
             return node && node.nodeType == Node.TEXT_NODE;
         };
 
-        var fixLine = function(line) {
-            line = (typeof line === 'undefined') ? getLine() : line;
-            if (isLine(line)) {
-                if (line.textContent.length === 0) {
-                    removeAllChildNodes(line);
-                    addPilotNodeToLine(line);
-                } else {
-                    removeBreakNodesOnLine(line);
-                }
-            }
-        };
-
         var processInput = function() {
             var range = getRange();
             var container = range.endContainer;
@@ -355,7 +356,7 @@
                 } else {
                     decorator(refTag, refTag.firstChild.nodeValue);
                 }
-            } else if (isTag(container)) {
+            } else if (isTag(container) && isText(container.firstChild)) {
                 decorator(container, container.firstChild.nodeValue);
             }
         };
@@ -407,29 +408,20 @@
         };
 
         var removeBreakNodes = function(node) {
-            if (node) {
-                removeNodesInList(node.querySelectorAll('br'));
-            }
-            return node;
+            return removeNodesInList(node && node.querySelectorAll('br'));
         };
 
         var removeBreakNodesOnLine = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
-            if (isLine(line)) {
-                removeBreakNodes(line);
-            }
-            return line;
+            return isLine(line) && removeBreakNodes(line);
         };
 
         var removeNode = function(node) {
-            if (node && node.parentNode) {
-                node.parentNode.removeChild(node);
-            }
-            return node;
+            return node && node.parentNode && node.parentNode.removeChild(node);
         };
 
         var removeNodesInList = function(nodeList) {
-            for (var i = 0; i <= nodeList.length; i++) {
+            for (var i = 0; nodeList && i <= nodeList.length; i++) {
                 removeNode(nodeList[i]);
             }
             return nodeList;
@@ -450,7 +442,6 @@
                     range.select();
                 }
             }
-            activeRange = range;
             return range;
         };
 
@@ -474,10 +465,8 @@
         };
 
         editor.addEventListener('click', function(e) {
-            if (doBeforeClick() === true) {
-                if (!getLine()) {
-                    createNewLine();
-                }
+            if (doBeforeClick()) {
+                fixEditor();
                 doAfterClick();
             }
         });
@@ -491,9 +480,7 @@
                 var code = getKeyCode(e);
                 if (isDeleteKey(code)) {
                     if (isEditor(getRange().endContainer)) {
-                        if (!getLine()) {
-                            createNewLine();
-                        }
+                        fixEditor();
                         e.preventDefault();
                     }
                 } else if (isReturnKey(code) && ignoreReturnKey) {
@@ -508,9 +495,7 @@
                 var code = getKeyCode(e);
 
                 if (isDeleteKey(code) && isEditor(getRange().endContainer)) {
-                    if (!getLine()) {
-                        createNewLine();
-                    }
+                    fixEditor();
                 } else if (isReturnKey(code)) {
                     processReturnKey();
                 } else if (isPrintableKey(code)) {
