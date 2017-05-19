@@ -79,13 +79,13 @@
         var doAfterPaste = config.afterPaste || function() {};
 
         var doBeforeClick = config.beforeClick || function() {
-            return true
+            return true;
         };
         var doBeforeKeypress = config.beforeKeypress || function() {
-            return true
+            return true;
         };
         var doBeforePaste = config.beforePaste || function() {
-            return true
+            return true;
         };
 
 
@@ -128,7 +128,9 @@
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
             var tagNode = document.createElement(tagNodeName);
-            str && tagNode.appendChild(createTextNode(str));
+            if (str)  {
+                tagNode.appendChild(createTextNode(str));
+            }
             return tagNode;
         };
 
@@ -197,14 +199,12 @@
         var getLine = function(node) {
             node = (typeof range === 'undefined') ? getRange().endContainer : node;
 
-            // Navigate up until a line node or editor node is reached.
-            while (node && !isEditor(node) && !isLine(node)) {
+            while (!isEditor(node) && !isLine(node)) {
                 node = node.parentNode;
             }
 
             var line = node;
             if (!isLine(node)) {
-                // Quite possibly at the editor level!
                 line = node.querySelector('p:first-child');
             }
 
@@ -213,9 +213,10 @@
 
         var getLineNumber = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
+
             var lineNumber = 1;
             if (isLine(line)) {
-                while (line = line.previousSibling) {
+                while ((line = line.previousSibling)) {
                     lineNumber++;
                 }
             }
@@ -237,27 +238,23 @@
             var textNodes = [];
             var walker = getTextWalker(node);
 
-            while (text = walker.nextNode()) {
+            while ((text = walker.nextNode())) {
                 textNodes.push(text);
             }
             return textNodes;
         };
 
-        var gotoLine = function(line, pos) {
-            if (line) {
-                if (typeof pos !== 'undefined') {
-                    if (pos === 0) {
-                        var first = line.querySelector(tagNodeName + ':first-child');
-                        if (first) {
-                            setCaret(first, 0);
-                        }
-                    }
+        var gotoLine = function(line, wordPos) {
+            wordPos = (typeof wordPos === 'undefined') ? 0 : wordPos;
+            if (isLine(line)) {
+                if (wordPos === 0) {
+                    var first = line.querySelector(tagNodeName + ':first-child');
+                    setCaret(first, 0);
                 } else {
-                    var tags = line.querySelectorAll(toUpperCase);
-                    var last = tags[tags.length - 1];
-                    if (last) {
-                        setCaret(last);
-                    }
+                    var tags = line.querySelectorAll(tagNodeName);
+                    wordPos =
+                        (tags.length > wordPos) ? wordPos : (tags.length - 1);
+                    setCaret(tags[wordPos]);
                 }
             }
             return line;
@@ -410,18 +407,24 @@
         };
 
         var removeBreakNodes = function(node) {
-            node && removeNodesInList(node.querySelectorAll('br'));
+            if (node) {
+                removeNodesInList(node.querySelectorAll('br'));
+            }
             return node;
         };
 
         var removeBreakNodesOnLine = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
-            isLine(line) && removeBreakNodes(line);
+            if (isLine(line)) {
+                removeBreakNodes(line);
+            }
             return line;
         };
 
         var removeNode = function(node) {
-            node && node.parentNode && node.parentNode.removeChild(node);
+            if (node && node.parentNode) {
+                node.parentNode.removeChild(node);
+            }
             return node;
         };
 
@@ -472,7 +475,9 @@
 
         editor.addEventListener('click', function(e) {
             if (doBeforeClick() === true) {
-                getLine() || createNewLine();
+                if (!getLine()) {
+                    createNewLine();
+                }
                 doAfterClick();
             }
         });
@@ -486,7 +491,9 @@
                 var code = getKeyCode(e);
                 if (isDeleteKey(code)) {
                     if (isEditor(getRange().endContainer)) {
-                        getLine() || createNewLine();
+                        if (!getLine()) {
+                            createNewLine();
+                        }
                         e.preventDefault();
                     }
                 } else if (isReturnKey(code) && ignoreReturnKey) {
@@ -501,7 +508,9 @@
                 var code = getKeyCode(e);
 
                 if (isDeleteKey(code) && isEditor(getRange().endContainer)) {
-                    getLine() || createNewLine();
+                    if (!getLine()) {
+                        createNewLine();
+                    }
                 } else if (isReturnKey(code)) {
                     processReturnKey();
                 } else if (isPrintableKey(code)) {
