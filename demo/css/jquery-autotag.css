@@ -15,13 +15,8 @@
     flex-flow: row wrap;*/
 }
 
-[contenteditable] > p > a {
-    color: #999;
-}
-
 /* Prevent outlines on contenteditable items in IE. */
-[contenteditable]:focus,
-[contenteditable] > p > a:focus {
+[contenteditable]:focus {
     outline : 0;
 }
 

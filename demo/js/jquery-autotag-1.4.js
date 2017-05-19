@@ -49,9 +49,7 @@
         // Store status of beforeKeypress callback return.
         var processInputFlag;
 
-        // Setting this to a span (or any other element) causes IE
-        // to add additional HTML tags to the text, especially when
-        // a URL is added to the attribute.
+        // The wrapper element tagname.
         var tagNodeName = 'a';
 
         function logToConsole(data, msg) {
@@ -87,7 +85,6 @@
         var doBeforePaste = config.beforePaste || function() {
             return true;
         };
-
 
         // A leading Tag node, required to maintain consistancy in behavior
         // across browsers.
@@ -152,7 +149,7 @@
             if (isLine(line)) {
                 if (line.textContent.length === 0) {
                     removeAllChildNodes(line);
-                    addPilotNodeToLine(line);
+                    setCaret(addPilotNodeToLine(line), 0);
                 } else {
                     removeBreakNodesOnLine(line);
                 }
@@ -466,9 +463,16 @@
 
         editor.addEventListener('click', function(e) {
             if (doBeforeClick()) {
+                console.log(getRange());
                 fixEditor();
+                console.log(getRange());
+
                 doAfterClick();
             }
+        });
+
+        editor.addEventListener('focus', function(e) {
+            fixEditor();
         });
 
         // Start handling events.
@@ -479,9 +483,13 @@
 
                 var code = getKeyCode(e);
                 if (isDeleteKey(code)) {
+                    console.log(getRange().endContainer);
+
                     if (isEditor(getRange().endContainer)) {
                         fixEditor();
                         e.preventDefault();
+                    } else {
+
                     }
                 } else if (isReturnKey(code) && ignoreReturnKey) {
                     e.preventDefault();
@@ -494,12 +502,14 @@
             if (processInputFlag === true) {
                 var code = getKeyCode(e);
 
-                if (isDeleteKey(code) && isEditor(getRange().endContainer)) {
-                    fixEditor();
+                if (isDeleteKey(code)) {
+                    console.log(getRange().endContainer);
+                    if (isEditor(getRange().endContainer)) {
+                        fixEditor();
+                    }
                 } else if (isReturnKey(code)) {
                     processReturnKey();
                 } else if (isPrintableKey(code)) {
-                    fixLine();
                     processInput();
                 }
                 doAfterKeypress();
@@ -513,6 +523,9 @@
                 doAfterPaste();
             }
         });
+
+        // Thanks to IE, we have to initialize the editor.
+        fixEditor();
 
         return this;
     };
