@@ -139,7 +139,9 @@
             return document.createTextNode(str);
         };
 
-        var fixCaret = function(node) {
+        var fixCaret = function() {
+            var range = getRange();
+            var node = range.endContainer;
             if (isBreakTag(node)) {
                 setCaret(node, 0);
             } else if (isTag(node)){
@@ -147,13 +149,14 @@
             } else if (isLine(node)) {
                 var tags = node.querySelectorAll('a');
                 if (tags.length > 0) {
-                    setCaret(tags[tags.length-1].lastChild);
+                    setCaret(tags[range.endOffset - 1].lastChild);
                 }
             }
         };
 
         var fixEditor = function() {
             if (!getFirstLine()) {
+                removeAllChildNodes(editor);
                 createNewLine();
             }
         };
@@ -477,11 +480,8 @@
 
         editor.addEventListener('click', function(e) {
             if (doBeforeClick()) {
-                console.log(getRange());
                 fixEditor();
-                fixCaret(getRange().endContainer);
-                console.log(getRange());
-
+                fixCaret();
                 doAfterClick();
             }
         });
@@ -499,7 +499,7 @@
 
                 var code = getKeyCode(e);
                 if (isDeleteKey(code)) {
-                    // Continue for the time being.
+                    fixCaret();
                 } else if (isReturnKey(code) && ignoreReturnKey) {
                     e.preventDefault();
                     doOnReturnKey();
@@ -510,7 +510,6 @@
         editor.addEventListener('keyup', function(e) {
             if (processInputFlag === true) {
                 var code = getKeyCode(e);
-
                 if (isDeleteKey(code)) {
                     if (isEditor(getRange().endContainer)) {
                         fixEditor();

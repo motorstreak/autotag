@@ -118,7 +118,7 @@
 
         var demo_3_4_config = {
             decorator: function(node, text) {
-                text = text.replace(/,$/, '')
+                text = text.replace(/,$/, '').toLowerCase();
                 Object.keys(urls).some(function(key, index){
                     if (text && text.toLowerCase().indexOf(key) !== -1) {
                         node.setAttribute('class', 'demo-3-underline');

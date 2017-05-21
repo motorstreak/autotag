@@ -4,7 +4,9 @@
 /* Make sure to include them in your CSS. */
 
 /* Deal with IE paragraph style within the editor. */
-[contenteditable] > p {
+[contenteditable] > p,
+[contenteditable] > p > a
+  {
     margin: 0;
     word-break: break-all;
     white-space: pre-line;
