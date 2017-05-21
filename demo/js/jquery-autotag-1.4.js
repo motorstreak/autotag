@@ -499,64 +499,7 @@
 
                 var code = getKeyCode(e);
                 if (isDeleteKey(code)) {
-
-                    // var range = getRange();
-                    // var node = range.endContainer;
-                    // var offset = range.endOffset;
-                    // console.log(offset + ":" + node.nodeValue);
-                    //
-                    // var str = node.nodeValue;
-                    // if (offset > 0) {
-                    //     node.nodeValue = str.slice(0, offset - 1) + str.slice(offset);
-                    //     if (offset == 1) {
-                    //         if (node.nodeValue.length === 0) {
-                    //             if (node.parentNode.previousSibling) {
-                    //                 setCaret(node.parentNode.previousSibling.firstChild);
-                    //                 removeNode(node.parentNode);
-                    //             } else {
-                    //                 fixLine(getLine(node));
-                    //             }
-                    //         }
-                    //     } else {
-                    //         setCaret(node, offset - 1);
-                    //     }
-                    // } else {
-                    //     if (offset === 0) {
-                    //         var prevTag;
-                    //         if (isText(node)) {
-                    //             prevTag = node.parentNode.previousSibling;
-                    //         } else if (isTag(node)) {
-                    //             prevTag = node.previousSibling;
-                    //         }
-                    //
-                    //         if (node.textContent.length === 0) {
-                    //             removeNode(node);
-                    //         }
-                    //
-                    //         if (prevTag) {
-                    //             setCaret(prevTag.lastChild);
-                    //         } else {
-                    //             var prevLine = getPreviousLine();
-                    //             if (prevLine) {
-                    //                 var lastTag = prevLine.lastChild;
-                    //                 if (isBreakTag(lastTag)) {
-                    //                     setCaret(lastTag, 0);
-                    //                 } else {
-                    //                     setCaret(lastTag.lastChild);
-                    //                 }
-                    //             }
-                    //         }
-                    //     }
-                    // }
-                    //
-                    // console.log(getRange());
-                    // e.preventDefault();
-                    //
-                    // if (isEditor(getRange().endContainer)) {
-                    //     fixEditor();
-                    //     e.preventDefault();
-                    // }
-
+                    // Continue for the time being.
                 } else if (isReturnKey(code) && ignoreReturnKey) {
                     e.preventDefault();
                     doOnReturnKey();
