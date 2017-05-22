@@ -49,10 +49,9 @@ body {
 .demo-plus-sign {
     color: brown;
     background-color: yellow;
-    border: 1px solid yellow;
-    border-radius: 3px;
-    padding: 1px 4px;
-    font-size: 0.8em;
+    border-radius: 14px;
+    padding: 0px 10px 0px 5px;
+    font-size: 0.95em;
 }
 
 .demo-hash-tag {
@@ -73,6 +72,7 @@ body {
 
 .demo-pronoun {
     color: purple !important;
+    background-color: #BFF5AC;
 }
 
 .demo-pronoun:hover {

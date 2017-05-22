@@ -112,6 +112,7 @@
 
         var createBreakNode = function() {
             var node = document.createElement(tagNodeName);
+            node.setAttribute('class', 'autotag-break');
             node.appendChild(document.createElement('br'));
             return node;
         };
@@ -147,7 +148,7 @@
             } else if (isTag(node)){
                 setCaret(node.lastChild);
             } else if (isLine(node)) {
-                var tags = node.querySelectorAll('a');
+                var tags = node.querySelectorAll(tagNodeName);
                 if (tags.length > 0) {
                     var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
                     setCaret(tags[tag].lastChild);
@@ -159,6 +160,14 @@
             if (!getFirstLine()) {
                 removeAllChildNodes(editor);
                 createNewLine();
+            }
+
+            // IE adds
+            var lines = editor.childNodes;
+            for(var i=0; i < lines.length; i++) {
+                if (lines[i].tagName !== 'P') {
+                    removeNode(lines[i]);
+                }
             }
         };
 
@@ -332,6 +341,45 @@
             return node && node.nodeType == Node.TEXT_NODE;
         };
 
+        // If the text is too long to fit in a single line,
+        // break it up into multiple lines. The threshold value ensures that
+        // the line breakup happens in a preemptive fashion.
+        var paragraphize = function(line, threshold) {
+            if (ignoreReturnKey === false) {
+                line = line || getLine();
+
+                // A default value of 10 is sufficient for most fonts.
+                threshold = (typeof threshold === 'undefined') ? 10 : threshold;
+                if (line !== null) {
+                    var range = getRange();
+                    var tagNode = range.endContainer.parentNode;
+                    var lineRightPos = line.getBoundingClientRect().right;
+
+                    if (isTag(tagNode)) {
+                        var tagRightPos = tagNode.getBoundingClientRect().right;
+
+                        // Start on a new line when tagNode is close to the
+                        // edge of the current line.
+                        logToConsole(tagRightPos + ':' + lineRightPos,
+                            'Line to text block right position');
+
+                        if ((tagRightPos + threshold) >= lineRightPos) {
+                            var newLine = getNextLine(line) || createNewLine();
+                            // line.parentNode.insertBefore(newLine, line.nextSibling);
+
+                            // If there are more than one tag node on the line,
+                            // move the last tag node to the new line.
+                            if (line.childNodes.length > 2) {
+                                newLine.insertBefore(tagNode, newLine.firstChild);
+                                setCaret(tagNode.firstChild);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+
         var processInput = function() {
             var range = getRange();
             var container = range.endContainer;
@@ -411,6 +459,7 @@
                     fixLine(current);
                     gotoLine(current, 0);
                 }
+                fixEditor();
                 processInput();
             }
         };
@@ -532,6 +581,10 @@
                 processPastedInput(e);
                 doAfterPaste();
             }
+        });
+
+        editor.addEventListener('mscontrolselect', function() {
+            return false;
         });
 
         // Thanks to IE, we have to initialize the editor.

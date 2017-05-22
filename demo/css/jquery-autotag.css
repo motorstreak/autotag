@@ -5,20 +5,26 @@
 
 /* Deal with IE paragraph style within the editor. */
 [contenteditable] > p,
-[contenteditable] > p > a
-  {
+[contenteditable] > p > a {
     margin: 0;
     word-break: break-all;
-    white-space: pre-line;
-    /*display: -webkit-box;
-    display: -ms-flexbox;
-    display: flex;
-    -ms-flex-flow: row wrap;
-    flex-flow: row wrap;*/
+
+}
+
+@-moz-document url-prefix() {
+    [contenteditable] > p > a {
+        white-space: nowrap;
+    }
+}
+
+/* Required for chrome to be able display caret on an empty tag */
+[contenteditable] > p > a.autotag-break {
+    display: block;
 }
 
 /* Prevent outlines on contenteditable items in IE. */
-[contenteditable]:focus {
+[contenteditable]:focus,
+[contenteditable] > p > a:focus {
     outline : 0;
 }
 
