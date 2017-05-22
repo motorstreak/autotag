@@ -1,4 +1,4 @@
-.demo-4-input {
+.notepad {
     margin: 0;
     padding: 30px 60px 20px 60px;
 	/* gradients - second red border, first red border, top white space, blue lines */
@@ -35,51 +35,4 @@
     background-size: 1px, 1px, auto, auto 30px;
     background-repeat: repeat-y, repeat-y, no-repeat, repeat;
     background-position: 90% 0px, 10% 0px, 0px 0px, 0px 0px;
-}
-
-.paper {
-	margin: 0;
-    display: block;
-    font: 10pt Arial, sans-serif;
-    line-height: 20px;
-    padding-top: 50px;
-    padding-left: 10.5%;
-    padding-right: 10.5%;
-    text-align: justify;
-}
-.paper:first-line {
-    font: 20pt Arial, sans-serif;
-    line-height: 33px;
-    vertical-align: baseline;
-}
-.paper:after {
-    content: '';
-    display: block;
-    width: 20px;
-    height: 20px;
-    border-radius: 10px;
-    position: absolute;
-    background: rgba(255,255,255,1);
-    top: 40px;
-    left: 2%;
-    z-index: 10;
-    -webkit-box-shadow:
-        inset 2px 2px 5px rgba(125,125,125,1),
-        2px 50.1em 5px rgba(255,255,255,1), 0px 50em rgba(125,125,125,.75),
-        2px 90.1em 5px rgba(255,255,255,1), 0px 90em rgba(125,125,125,.5),
-        2px 130.1em 5px rgba(255,255,255,1), 0px 130em rgba(125,125,125,.25);
-    -moz-box-shadow:
-        inset 2px 2px 5px rgba(125,125,125,1),
-        2px 50.1em 5px rgba(255,255,255,1), 0px 50em rgba(125,125,125,.75),
-        2px 90.1em 5px rgba(255,255,255,1), 0px 90em rgba(125,125,125,.5),
-        2px 130.1em 5px rgba(255,255,255,1), 0px 130em rgba(125,125,125,.25);
-    box-shadow:
-        inset 2px 2px 5px rgba(125,125,125,1),
-        2px 50.1em 5px rgba(255,255,255,1), 0px 50em rgba(125,125,125,.75),
-        2px 90.1em 5px rgba(255,255,255,1), 0px 90em rgba(125,125,125,.5),
-        2px 130.1em 5px rgba(255,255,255,1), 0px 130em rgba(125,125,125,.25);
-}
-
-.paper:focus {
-    outline: none;
 }

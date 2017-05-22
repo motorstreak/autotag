@@ -149,7 +149,8 @@
             } else if (isLine(node)) {
                 var tags = node.querySelectorAll('a');
                 if (tags.length > 0) {
-                    setCaret(tags[range.endOffset - 1].lastChild);
+                    var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
+                    setCaret(tags[tag].lastChild);
                 }
             }
         };

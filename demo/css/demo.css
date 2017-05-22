@@ -46,51 +46,49 @@ body {
     background-color : #FFF;
 }
 
-.demo-2-plus-sign {
+.demo-plus-sign {
     color: brown;
-    background-color: lightyellow;
+    background-color: yellow;
     border: 1px solid yellow;
     border-radius: 3px;
     padding: 1px 4px;
     font-size: 0.8em;
 }
 
-.demo-2-hash-tag {
+.demo-hash-tag {
     color : red;
 }
 
-.demo-2-at-tag {
+.demo-at-tag {
     color : green;
 }
 
 /* Style underlines in demo 3 */
-.demo-3-underline {
+.demo-url {
     font-style : italic;
     color : royalblue;
     box-shadow: 0px 2px;
     text-shadow : -1px 1px #FFF, 1px 1px #FFF, -2px -1px #FFF, 0 -1px #FFF;
 }
 
-.demo-3-pronoun {
-    color: red !important;
+.demo-pronoun {
+    color: purple !important;
 }
 
-.demo-3-pronoun:hover {
-    background-color: lightyellow;
+.demo-pronoun:hover {
+    background-color: yellow;
 }
 
 /* Remove default link decoration. Its ugly as hell. */
-.demo-3-input > p > a[href],
-.demo-4-input > p > a[href] {
+.demo-input > p > a[href] {
     text-decoration : none;
 }
 
-.demo-4-input {
+.demo-input {
     font-family: 'Caveat', cursive;
     font-size: 20px;
-    background: url(../img/notebook.png) repeat-y;
 }
 
-.demo-4-input > p {
+.demo-input > p {
     line-height: 30px;
 }
