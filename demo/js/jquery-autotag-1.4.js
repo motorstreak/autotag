@@ -341,42 +341,19 @@
             return node && node.nodeType == Node.TEXT_NODE;
         };
 
-        // If the text is too long to fit in a single line,
-        // break it up into multiple lines. The threshold value ensures that
-        // the line breakup happens in a preemptive fashion.
-        var paragraphize = function(line, threshold) {
-            if (ignoreReturnKey === false) {
-                line = line || getLine();
+        var paragraphize = function(root, refresh) {
+            root = (typeof root === 'undefined') ? editor : root;
+            refresh = (typeof refresh === 'undefined') ? false : true;
 
-                // A default value of 10 is sufficient for most fonts.
-                threshold = (typeof threshold === 'undefined') ? 10 : threshold;
-                if (line !== null) {
-                    var range = getRange();
-                    var tagNode = range.endContainer.parentNode;
-                    var lineRightPos = line.getBoundingClientRect().right;
+            if (refresh) {
+                removeNodesInList(root.querySelectorAll('div'));
+            }
 
-                    if (isTag(tagNode)) {
-                        var tagRightPos = tagNode.getBoundingClientRect().right;
-
-                        // Start on a new line when tagNode is close to the
-                        // edge of the current line.
-                        logToConsole(tagRightPos + ':' + lineRightPos,
-                            'Line to text block right position');
-
-                        if ((tagRightPos + threshold) >= lineRightPos) {
-                            // If there are more than one tag node on the line,
-                            // move the last tag node to the new line.
-                            if (line.childNodes.length > 2) {
-                                // var newLine = getNextLine(line) || createNewLine();
-                                // newLine.insertBefore(tagNode, newLine.firstChild);
-                                // fixLine(newLine);
-                                // setCaret(tagNode.firstChild);
-                                // var breakNode = document.createElement('div');
-                                // tagNode.parentNode.insertBefore(breakNode, tagNode);
-                                softWrapTag(tagNode);
-                            }
-                        }
-                    }
+            if (isLine(root)) {
+                var tagNodes = root.querySelectorAll('a');
+                var tagNode, tagNodeHeight;
+                for (var i=0; i < tagNodes.length; i++) {
+                    softWrapNode(tagNodes[i]);
                 }
             }
         };
@@ -529,11 +506,16 @@
             return range;
         };
 
-
-        var softWrapTag = function(node) {
-            var wrap = document.createElement('div');
-            node.parentNode.insertBefore(wrap, node);
-            return wrap;
+        var softWrapNode = function(node) {
+            if (node.getBoundingClientRect().height > 30) {
+                var wrap = node.previousSibling &&
+                    node.previousSibling.tagName === 'DIV';
+                if (!wrap) {
+                    var wrapNode = document.createElement('div');
+                    node.parentNode.insertBefore(wrapNode, node);
+                }
+            }
+            return node;
         };
 
         editor.addEventListener('click', function(e) {
@@ -548,7 +530,6 @@
             fixEditor();
         });
 
-
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
             processInputFlag = doBeforeKeypress(e);
@@ -562,7 +543,7 @@
                     e.preventDefault();
                     doOnReturnKey();
                 } else if (isPrintableKey(code)) {
-                    paragraphize();
+                    // paragraphize(getLine());
                 }
             }
         });
@@ -576,11 +557,14 @@
                     } else {
                         fixLine();
                     }
+                    paragraphize(getLine(), true);
+
                 } else if (isReturnKey(code)) {
                     processReturnKey();
                 } else if (isPrintableKey(code)) {
                     fixLine();
                     processInput();
+                    paragraphize(getLine());
                 }
                 doAfterKeypress();
             }
@@ -592,10 +576,6 @@
                 processPastedInput(e);
                 doAfterPaste();
             }
-        });
-
-        editor.addEventListener('mscontrolselect', function() {
-            return false;
         });
 
         // Thanks to IE, we have to initialize the editor.
