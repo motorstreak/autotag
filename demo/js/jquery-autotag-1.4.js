@@ -112,7 +112,6 @@
 
         var createBreakNode = function() {
             var node = document.createElement(tagNodeName);
-            node.setAttribute('class', 'autotag-break');
             node.appendChild(document.createElement('br'));
             return node;
         };
@@ -123,6 +122,7 @@
             setCaret(addPilotNodeToLine(line), 0);
             return line;
         };
+
 
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
@@ -151,7 +151,7 @@
                 var tags = node.querySelectorAll(tagNodeName);
                 if (tags.length > 0) {
                     var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
-                    setCaret(tags[tag].lastChild);
+                    setCaret(tag.lastChild);
                 }
             }
         };
@@ -364,21 +364,22 @@
                             'Line to text block right position');
 
                         if ((tagRightPos + threshold) >= lineRightPos) {
-                            var newLine = getNextLine(line) || createNewLine();
-                            // line.parentNode.insertBefore(newLine, line.nextSibling);
-
                             // If there are more than one tag node on the line,
                             // move the last tag node to the new line.
                             if (line.childNodes.length > 2) {
-                                newLine.insertBefore(tagNode, newLine.firstChild);
-                                setCaret(tagNode.firstChild);
+                                // var newLine = getNextLine(line) || createNewLine();
+                                // newLine.insertBefore(tagNode, newLine.firstChild);
+                                // fixLine(newLine);
+                                // setCaret(tagNode.firstChild);
+                                // var breakNode = document.createElement('div');
+                                // tagNode.parentNode.insertBefore(breakNode, tagNode);
+                                softWrapTag(tagNode);
                             }
                         }
                     }
                 }
             }
         };
-
 
         var processInput = function() {
             var range = getRange();
@@ -528,6 +529,13 @@
             return range;
         };
 
+
+        var softWrapTag = function(node) {
+            var wrap = document.createElement('div');
+            node.parentNode.insertBefore(wrap, node);
+            return wrap;
+        };
+
         editor.addEventListener('click', function(e) {
             if (doBeforeClick()) {
                 fixEditor();
@@ -553,6 +561,8 @@
                 } else if (isReturnKey(code) && ignoreReturnKey) {
                     e.preventDefault();
                     doOnReturnKey();
+                } else if (isPrintableKey(code)) {
+                    paragraphize();
                 }
             }
         });
@@ -569,6 +579,7 @@
                 } else if (isReturnKey(code)) {
                     processReturnKey();
                 } else if (isPrintableKey(code)) {
+                    fixLine();
                     processInput();
                 }
                 doAfterKeypress();

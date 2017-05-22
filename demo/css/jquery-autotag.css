@@ -8,18 +8,6 @@
 [contenteditable] > p > a {
     margin: 0;
     word-break: break-all;
-
-}
-
-@-moz-document url-prefix() {
-    [contenteditable] > p > a {
-        white-space: nowrap;
-    }
-}
-
-/* Required for chrome to be able display caret on an empty tag */
-[contenteditable] > p > a.autotag-break {
-    display: block;
 }
 
 /* Prevent outlines on contenteditable items in IE. */
