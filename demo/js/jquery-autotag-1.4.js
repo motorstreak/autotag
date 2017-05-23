@@ -123,7 +123,6 @@
             return line;
         };
 
-
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
             var tagNode = document.createElement(tagNodeName);
@@ -156,17 +155,18 @@
             }
         };
 
-        var fixEditor = function() {
-            if (!getFirstLine()) {
+        var fixEditor = function(clear) {
+            clear = (typeof clear === 'undefined') ? false : true;
+            if (clear || !getFirstLine()) {
                 removeAllChildNodes(editor);
                 createNewLine();
-            }
-
-            // IE adds
-            var lines = editor.childNodes;
-            for(var i=0; i < lines.length; i++) {
-                if (lines[i].tagName !== 'P') {
-                    removeNode(lines[i]);
+            } else {
+                // IE adds unwanted nodes sometimes.
+                var lines = editor.childNodes;
+                for(var i=0; i < lines.length; i++) {
+                    if (lines[i].tagName !== 'P') {
+                        removeNode(lines[i]);
+                    }
                 }
             }
         };
@@ -405,12 +405,21 @@
         var processPastedInput = function(e) {
             var content;
             if (e.clipboardData) {
-                content = (e.originalEvent || e).clipboardData.getData('text/plain');
+                content = (e.originalEvent || e)
+                    .clipboardData.getData('text/plain');
             } else if (window.clipboardData) {
                 content = window.clipboardData.getData('Text');
             }
 
             var container = getRange().endContainer;
+
+            // In IE, selecting full text (Ctrl + A) will position the caret
+            // on the editor element.
+            if (isEditor(container)) {
+                fixEditor(true);
+                container = getRange().endContainer;
+            }
+
             if (isText(container)) {
                 container.nodeValue = container.nodeValue + content;
                 setCaret(container);
@@ -542,11 +551,15 @@
                 } else if (isReturnKey(code) && ignoreReturnKey) {
                     e.preventDefault();
                     doOnReturnKey();
-                } else if (isPrintableKey(code)) {
-                    // paragraphize(getLine());
+                } else if (e.metaKey && isTextFormatKey(code)) {
+                    e.preventDefault();
+                    formatText(code);
                 }
             }
         });
+
+        var isTextFormatKey = function(code) {
+        };
 
         editor.addEventListener('keyup', function(e) {
             if (processInputFlag === true) {
@@ -564,7 +577,7 @@
                 } else if (isPrintableKey(code)) {
                     fixLine();
                     processInput();
-                    paragraphize(getLine());
+                    paragraphize(getLine(), true);
                 }
                 doAfterKeypress();
             }
