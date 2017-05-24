@@ -52,6 +52,12 @@
         // The wrapper element tagname.
         var tagNodeName = 'a';
 
+        var styleKeyMap = {
+            66: 'bold',
+            73: 'italic',
+            85: 'underline'
+        };
+
         function logToConsole(data, msg) {
             msg = (typeof msg === 'undefined') ? '' : msg;
             if (trace) {
@@ -126,7 +132,7 @@
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
             var tagNode = document.createElement(tagNodeName);
-            if (str)  {
+            if (str) {
                 tagNode.appendChild(createTextNode(str));
             }
             return tagNode;
@@ -144,7 +150,7 @@
             var node = range.endContainer;
             if (isBreakTag(node)) {
                 setCaret(node, 0);
-            } else if (isTag(node)){
+            } else if (isTag(node)) {
                 setCaret(node.lastChild);
             } else if (isLine(node)) {
                 var tags = node.querySelectorAll(tagNodeName);
@@ -163,7 +169,7 @@
             } else {
                 // IE adds unwanted nodes sometimes.
                 var lines = editor.childNodes;
-                for(var i=0; i < lines.length; i++) {
+                for (var i = 0; i < lines.length; i++) {
                     if (lines[i].tagName !== 'P') {
                         removeNode(lines[i]);
                     }
@@ -352,7 +358,7 @@
             if (isLine(root)) {
                 var tagNodes = root.querySelectorAll('a');
                 var tagNode, tagNodeHeight;
-                for (var i=0; i < tagNodes.length; i++) {
+                for (var i = 0; i < tagNodes.length; i++) {
                     softWrapNode(tagNodes[i]);
                 }
             }
@@ -553,12 +559,62 @@
                     doOnReturnKey();
                 } else if (e.metaKey && isTextFormatKey(code)) {
                     e.preventDefault();
-                    formatText(code);
+                    formatSelection(code);
                 }
             }
         });
 
         var isTextFormatKey = function(code) {
+            return (code == 66 ||
+                code == 73 ||
+                code == 85);
+        };
+
+        var formatSelection = function(code) {
+            var className = styleKeyMap[code];
+            if (className) {
+                var tagNodes = getTagNodesInRange(getRange());
+                for (var i = 0; i < tagNodes.length; i++) {
+                    tagNodes[i].classList.toggle(className);
+                }
+            }
+        };
+
+        var getNextTag = function(node) {
+            var next;
+            if (node && !isEditor(node)) {
+                if (isLine(node)) {
+                    next = node.firstChild;
+                } else if (isTag(node)) {
+                    next = node.nextSibling ||
+                        getNextTag(node.parentNode.nextSibling);
+                }
+
+                if (!next) {
+                    next = getNextTag(node.parentNode.nextSibling);
+                }
+
+                if (isBreakTag(next)) {
+                    next = getNextTag(next.parentNode.nextSibling);
+                }
+            }
+            return next;
+        };
+
+        var getTagNodesInRange = function(range) {
+            var startNode = range.startContainer;
+            var endNode = range.endContainer;
+
+            var tag = isTag(startNode) && startNode ||
+                isText(startNode) && startNode.parentNode;
+            var endTag = isTag(endNode) && endNode ||
+                isText(endNode) && endNode.parentNode;
+
+            var tagNodes = [tag];
+            while (tag && (tag !== endTag)) {
+                tagNodes.push(tag = getNextTag(tag));
+            }
+            return tagNodes;
         };
 
         editor.addEventListener('keyup', function(e) {
