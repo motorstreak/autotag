@@ -207,6 +207,20 @@
             return node;
         };
 
+        var formatSelection = function(code) {
+            var className = styleKeyMap[code];
+            if (className) {
+                var tagNodes = getTagNodesInRange(getRange());
+                var tagNode;
+                for (var i = 0; i < tagNodes.length; i++) {
+                    tagNode = tagNodes[i];
+                    if (tagNode && tagNode.textContent.match(/\s+/g) == null) {
+                        tagNode.classList.toggle(className);
+                    }
+                }
+            }
+        };
+
         var getFirstLine = function() {
             return editor.querySelector('p:first-child');
         };
@@ -271,9 +285,46 @@
             return isLine(line) && line.nextSibling;
         };
 
+        var getNextTag = function(node) {
+            var next;
+            if (node && !isEditor(node)) {
+                if (isLine(node)) {
+                    next = node.firstChild;
+                } else if (isTag(node)) {
+                    next = node.nextSibling ||
+                        getNextTag(node.parentNode.nextSibling);
+                }
+
+                if (!next) {
+                    next = getNextTag(node.parentNode.nextSibling);
+                }
+
+                if (isBreakTag(next)) {
+                    next = getNextTag(next.parentNode.nextSibling);
+                }
+            }
+            return next;
+        };
+
         var getPreviousLine = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
             return isLine(line) && line.previousSibling;
+        };
+
+        var getTagNodesInRange = function(range) {
+            var startNode = range.startContainer;
+            var endNode = range.endContainer;
+
+            var tag = isTag(startNode) && startNode ||
+                isText(startNode) && startNode.parentNode;
+            var endTag = isTag(endNode) && endNode ||
+                isText(endNode) && endNode.parentNode;
+
+            var tagNodes = [tag];
+            while (tag && (tag !== endTag)) {
+                tagNodes.push(tag = getNextTag(tag));
+            }
+            return tagNodes;
         };
 
         var getTextNodes = function(node) {
@@ -317,6 +368,10 @@
 
         var isEditor = function(node) {
             return node && node.isSameNode(editor);
+        };
+
+        var isFormatKey = function(code) {
+            return (code == 66 || code == 73 || code == 85);
         };
 
         var isLine = function(node) {
@@ -557,65 +612,12 @@
                 } else if (isReturnKey(code) && ignoreReturnKey) {
                     e.preventDefault();
                     doOnReturnKey();
-                } else if (e.metaKey && isTextFormatKey(code)) {
+                } else if (e.metaKey && isFormatKey(code)) {
                     e.preventDefault();
                     formatSelection(code);
                 }
             }
         });
-
-        var isTextFormatKey = function(code) {
-            return (code == 66 ||
-                code == 73 ||
-                code == 85);
-        };
-
-        var formatSelection = function(code) {
-            var className = styleKeyMap[code];
-            if (className) {
-                var tagNodes = getTagNodesInRange(getRange());
-                for (var i = 0; i < tagNodes.length; i++) {
-                    tagNodes[i].classList.toggle(className);
-                }
-            }
-        };
-
-        var getNextTag = function(node) {
-            var next;
-            if (node && !isEditor(node)) {
-                if (isLine(node)) {
-                    next = node.firstChild;
-                } else if (isTag(node)) {
-                    next = node.nextSibling ||
-                        getNextTag(node.parentNode.nextSibling);
-                }
-
-                if (!next) {
-                    next = getNextTag(node.parentNode.nextSibling);
-                }
-
-                if (isBreakTag(next)) {
-                    next = getNextTag(next.parentNode.nextSibling);
-                }
-            }
-            return next;
-        };
-
-        var getTagNodesInRange = function(range) {
-            var startNode = range.startContainer;
-            var endNode = range.endContainer;
-
-            var tag = isTag(startNode) && startNode ||
-                isText(startNode) && startNode.parentNode;
-            var endTag = isTag(endNode) && endNode ||
-                isText(endNode) && endNode.parentNode;
-
-            var tagNodes = [tag];
-            while (tag && (tag !== endTag)) {
-                tagNodes.push(tag = getNextTag(tag));
-            }
-            return tagNodes;
-        };
 
         editor.addEventListener('keyup', function(e) {
             if (processInputFlag === true) {
