@@ -1,79 +1,84 @@
 <html>
+
 <head>
-  <!-- IE11 does support addEventListener(). Disable compatibility mode. -->
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- IE11 does support addEventListener(). Disable compatibility mode. -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
 
-  <!-- Load a custom font -->
-  <link href="https://fonts.googleapis.com/css?family=Caveat" rel="stylesheet">
+    <!-- Load a custom font -->
+    <link href="https://fonts.googleapis.com/css?family=Caveat" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,600" rel="stylesheet">
 
-  <!-- The main js library -->
-  <script src="./js/jquery-autotag-1.4.js"></script>
+    <!-- The main js library -->
+    <script src="./js/jquery-autotag-1.4.js"></script>
 
-  <!-- Required for input area to appear correctly across browsers -->
-  <link rel="stylesheet" type="text/css" href="./css/jquery-autotag.css">
+    <!-- Required for input area to appear correctly across browsers -->
+    <link rel="stylesheet" type="text/css" href="./css/jquery-autotag.css">
 
-  <!-- Demo page styles -->
-  <link rel="stylesheet" type="text/css" href="./css/demo.css">
-  <link rel="stylesheet" type="text/css" href="./css/tooltip.css">
-  <link rel="stylesheet" type="text/css" href="./css/notepad.css">
+    <!-- Demo page styles -->
+    <link rel="stylesheet" type="text/css" href="./css/demo.css">
+    <link rel="stylesheet" type="text/css" href="./css/tooltip.css">
+    <link rel="stylesheet" type="text/css" href="./css/notepad.css">
 
 </head>
+
 <body>
     <div class="page-header">
         <div class="page-title">jquery-autotag.js</div>
-        <div>This is a demo page. It is an eye sore. <br/>
-            But that <i style="color:black">is</i> besides the point!</div>
+        <div class="page-msg">
+            A simple and lightweight (~5kb) text formatter plugin built in pure Javascript.
+        </div>
     </div>
 
     <div class="demos">
-      <div class="demo-container">
-        <div class="demo-instructions">
-            <b>Demo</b> shows off a cool notepad. <br/>
-            It highlights pronouns in the text you type in.
+        <div class="demo-container">
+            <div id="demo-notepad" class="demo-input notepad" contentEditable="true">
+                <!-- This content was generated in the notepad -->
+                <p><a class="demo-pronoun" data-tooltip="Pronoun">This</a><a>&nbsp;</a><a>is</a><a>&nbsp;</a><a>a</a><a>&nbsp;</a><a>simple</a><a>&nbsp;</a><a>notepad</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">that</a><a>&nbsp;</a><a>highlights</a><a>&nbsp;</a><a>pronouns</a><a>&nbsp;</a><a>&amp;</a><a>&nbsp;</a><a>hashtags.</a><a>&nbsp;</a></p>
+                <p><a>Try</a><a>&nbsp;</a><a>typing</a><a>&nbsp;</a><a>in</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">something</a><a>&nbsp;</a><a>and</a><a>&nbsp;</a><a>see</a><a>&nbsp;</a><a>how</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">it</a><a>&nbsp;</a><a>works!</a></p>
+            </div>
         </div>
-        <div id="demo-notepad" class="demo-input notepad" contentEditable="true"></div>
-      </div>
-  </div>
+    </div>
 
-  <script type="text/javascript">
-    $(document).ready(function(){
-        var pronouns = [
-            'your','I','they','their','we','who','them','its','our','my',
-            'those','he','us','her','something','me','yourself','someone',
-            'everything','itself','everyone','themselves','anyone','him',
-            'whose','myself','everybody','ourselves','himself','somebody',
-            'yours','herself','whoever','you','that','it','this','what',
-            'which','these','his','she','lot','anything','whatever','nobody',
-            'none','mine','anybody'
-        ];
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var pronouns = [
+                'your', 'I', 'they', 'their', 'we', 'who', 'them', 'its', 'our', 'my',
+                'those', 'he', 'us', 'her', 'something', 'me', 'yourself', 'someone',
+                'everything', 'itself', 'everyone', 'themselves', 'anyone', 'him',
+                'whose', 'myself', 'everybody', 'ourselves', 'himself', 'somebody',
+                'yours', 'herself', 'whoever', 'you', 'that', 'it', 'this', 'what',
+                'which', 'these', 'his', 'she', 'lot', 'anything', 'whatever', 'nobody',
+                'none', 'mine', 'anybody'
+            ];
 
-        var demo_config = {
-            decorator: function(node, text) {
-                text = text.replace(/,$/, '').toLowerCase();
-                if (pronouns.indexOf(text) >= 0) {
+            var demo_config = {
+                decorator: function(node, text) {
+                    text = text.replace(/,$/, '').toLowerCase();
+                    if (pronouns.indexOf(text) >= 0) {
                         node.setAttribute('class', 'demo-pronoun');
                         node.setAttribute('data-tooltip', 'Pronoun');
 
-                } else if (text.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/)) {
-                    node.setAttribute('class', 'demo-url');
-                } else if (text.match(/^#[\w]{2}[\w]*$/)) {
-                    node.setAttribute('class', 'demo-hash-tag');
-                } else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
-                    node.setAttribute('class', 'demo-plus-sign');
-                } else {
-                    // Always remember to clean the node!
-                    node.removeAttribute('class');
-                    node.removeAttribute('data-tooltip');
-                }
-            },
-            trace: false,
-            ignoreReturnKey: false
-        };
+                    } else if (text.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/)) {
+                        node.setAttribute('class', 'demo-url');
+                    } else if (text.match(/^#[\w]{2}[\w]*$/)) {
+                        node.setAttribute('class', 'demo-hash-tag');
+                    } else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
+                        node.setAttribute('class', 'demo-plus-sign');
+                    } else {
+                        // Always remember to clean the node!
+                        node.removeAttribute('class');
+                        node.removeAttribute('data-tooltip');
+                    }
+                },
+                trace: false,
+                ignoreReturnKey: false
+            };
 
-        $('#demo-notepad').autotag(demo_config);
-    });
-  </script>
+            $('#demo-notepad').autotag(demo_config);
+        });
+    </script>
 </body>
+
 </html>

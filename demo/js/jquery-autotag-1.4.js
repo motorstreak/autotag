@@ -240,6 +240,12 @@
             return range;
         };
 
+        var getStylePropertyValue = function(node, property) {
+            return node &&
+                property &&
+                window.getComputedStyle(node, null).getPropertyValue(property);
+        };
+
         var getTextWalker = function(node) {
             return node &&
                 document.createTreeWalker(
@@ -577,12 +583,16 @@
         };
 
         var softWrapNode = function(node) {
-            if (node.getBoundingClientRect().height > 30) {
-                var wrap = node.previousSibling &&
-                    node.previousSibling.tagName === 'DIV';
-                if (!wrap) {
-                    var wrapNode = document.createElement('div');
-                    node.parentNode.insertBefore(wrapNode, node);
+            if (node) {
+                var fontSize = parseFloat(getStylePropertyValue(node, 'font-size'));
+                console.log(fontSize * 1.25);
+                if (node.getBoundingClientRect().height > fontSize * 1.3) {
+                    var wrap = node.previousSibling &&
+                        node.previousSibling.tagName === 'DIV';
+                    if (!wrap) {
+                        var wrapNode = document.createElement('div');
+                        node.parentNode.insertBefore(wrapNode, node);
+                    }
                 }
             }
             return node;

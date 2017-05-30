@@ -1,19 +1,42 @@
 body {
-    background-color : #EEE;
-    font-family : Arial, Helvetica, sans-serif;
+    background-color : #FFF;
+    margin: 0;
+    padding: 0;
+    font-family : 'Source Sans Pro', Arial, Helvetica, sans-serif;
+}
+
+.page-header:before {
+    background: rgba(75, 75, 93, 0.85);
 }
 .page-header {
-    margin-bottom : 20px;
-    padding : 20px 0;
-    text-align : center;
-    color : #999;
-    border-bottom : 1px solid #DDD;
+    margin-bottom: 60px;
+    padding: 200px 100px;
+    text-align: center;
+    color: #FFF;
+    height: 200px;
+    background-image: url(../images/background-full.jpg);
+    background-size: cover;
+    background-position: bottom;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    text-align: center;
+    position: relative;
 }
 .page-title {
-    font-size : 2em;
-    padding-bottom : 10px;
-    color : #555;
-    text-shadow : 1px 1px #FFF;
+    font-size: 4em;
+    font-weight: 600;
+    padding-bottom: 10px;
+    color: #524795;
+    z-index: 100000;
+    position: relative;
+    text-shadow: 0 0 20px #FFF;
+}
+
+.page-msg {
+    font-size: 1.6em;
+    font-weight: 300;
+    line-height: 1.4em;
+    color: #555;
 }
 .demos {
     display :         flex;
@@ -23,27 +46,16 @@ body {
     justify-content : space-around;
 }
 .demo-container {
-    width : 400px;
-}
-.demo-instructions {
-    font-size : 0.9em;
-    display : table-cell;
-    box-sizing : border-box;
-    width : 400px;
-    height : 100px;
-    padding : 20px 10px 10px;
-    text-align : center;
-    vertical-align : bottom;
-    color : #555;
+    width: 100%;
+    max-width: 1200px;
+    padding: 30px;
+    box-sizing: border-box;
 }
 .demo-input {
     box-sizing : border-box;
     height : auto;
-    min-height : 100px;
-    padding : 20px;
-    border : 1px solid #DDD;
-    border-radius : 5px;
-    background-color : #FFF;
+    padding : 100px;
+    height: 100%;
 }
 
 .demo-plus-sign {
@@ -72,7 +84,6 @@ body {
 
 .demo-pronoun {
     color: purple !important;
-    background-color: #BFF5AC;
 }
 
 .demo-pronoun:hover {
@@ -86,9 +97,9 @@ body {
 
 .demo-input {
     font-family: 'Caveat', cursive;
-    font-size: 20px;
+    font-size: 30px;
 }
 
 .demo-input > p {
-    line-height: 30px;
+    line-height: 40px;
 }
