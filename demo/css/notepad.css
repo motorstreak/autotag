@@ -1,6 +1,6 @@
 .notepad {
     margin: 0;
-    padding: 0 100px 20px 150px;
+    padding: 0 12%;
 	/* gradients - second red border, first red border, top white space, blue lines */
     background-image:
         -webkit-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
