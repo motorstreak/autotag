@@ -9,7 +9,6 @@ body {
     background: rgba(75, 75, 93, 0.85);
 }
 .page-header {
-    margin-bottom: 60px;
     padding: 200px 100px;
     text-align: center;
     color: #FFF;
@@ -38,17 +37,8 @@ body {
     line-height: 1.4em;
     color: #555;
 }
-.demos {
-    display :         flex;
-    display : -webkit-flex;
-    flex-flow : row wrap;
-    align-items : center;
-    justify-content : space-around;
-}
 .demo-container {
     width: 100%;
-    max-width: 1200px;
-    padding: 30px;
     box-sizing: border-box;
 }
 .demo-input {
@@ -56,6 +46,32 @@ body {
     height : auto;
     padding : 100px;
     height: 100%;
+}
+.demo-menu {
+    padding: 10px 0;
+    display: flex;
+    display : -webkit-flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #EEE;
+    margin-bottom: 33px;
+    background: #F5F5F5;
+}
+
+.demo-menu-icon {
+    font-size: 1.8em;
+    padding: 10px 6px;
+    flex: 0 1 40px;
+    text-align: center;
+    color: #555;
+}
+
+.demo-menu-icon:hover {
+    background: #FFF;
+    border-radius: 4px;
+    box-shadow: 0 0 1px #DDD;
+    color: #000;
 }
 
 .demo-plus-sign {

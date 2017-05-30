@@ -52,10 +52,12 @@
         // The wrapper element tagname.
         var tagNodeName = 'a';
 
+        var currentRange;
+
         var styleKeyMap = {
-            66: 'bold',
-            73: 'italic',
-            85: 'underline'
+            66: 'autotag-bold',
+            73: 'autotag-italic',
+            85: 'autotag-underline'
         };
 
         function logToConsole(data, msg) {
@@ -207,18 +209,45 @@
             return node;
         };
 
-        var formatSelection = function(code) {
-            var className = styleKeyMap[code];
+        // Applies the style corresponding to the key to the provided
+        // node. Key can either be a keyboard key code or a style key.
+        // Scope can be 'editor', 'line' or 'text'.
+        var formatSelection = function(key, range, scope) {
+            range = (typeof range === 'undefined') ? getRange() : range;
+            scope = (typeof scope === 'undefined') ? 'text' : scope;
+
+            var className = styleKeyMap[key] || 'autotag-' + key;
             if (className) {
-                var tagNodes = getTagNodesInRange(getRange());
-                var tagNode;
-                for (var i = 0; i < tagNodes.length; i++) {
-                    tagNode = tagNodes[i];
-                    if (tagNode && tagNode.textContent.match(/\s+/g) == null) {
-                        tagNode.classList.toggle(className);
-                    }
+                if (scope == 'editor') {
+                    formatEditor(className);
+                } else if (scope == 'line') {
+                    formatLine(className, getLinesInRange(range));
+                } else {
+                    formatText(className, getTagsInRange(range));
                 }
             }
+        };
+
+        var formatLine = function(className, lines) {
+            var line;
+            for (var i = 0; i < lines.length; i++) {
+                if (line = lines[i]) {
+                    line.setAttribute('class', className);
+                }
+            }
+        };
+
+        var formatText = function(className, tags) {
+            var tag;
+            for (var i = 0; i < tags.length; i++) {
+                tag = tags[i];
+                if (tag && !tag.textContent.match(/\s+/g)) {
+                    tag.classList.toggle(className);
+                }
+            }
+        };
+
+        var formatEditor = function(className) {
         };
 
         var getFirstLine = function() {
@@ -266,8 +295,8 @@
         // range's ancestor tree until we hit either a <p> node or
         // the editor node.
         var getLine = function(node) {
-            node = (typeof range === 'undefined') ? getRange().endContainer : node;
-            while (!isEditor(node) && !isLine(node)) {
+            node = (typeof node === 'undefined') ? getRange().endContainer : node;
+            while (node && !isEditor(node) && !isLine(node)) {
                 node = node.parentNode;
             }
             return isLine(node) ? node : getFirstLine();
@@ -284,6 +313,17 @@
                 }
             }
             return lineNumber;
+        };
+
+        var getLinesInRange = function(range) {
+            var line = getLine(range.startContainer);
+            var endLine = getLine(range.endContainer)
+
+            var lines = [line];
+            while (line && (line !== endLine)) {
+                lines.push(line = line.nextSibling);
+            }
+            return lines;
         };
 
         var getNextLine = function(line) {
@@ -317,7 +357,7 @@
             return isLine(line) && line.previousSibling;
         };
 
-        var getTagNodesInRange = function(range) {
+        var getTagsInRange = function(range) {
             var startNode = range.startContainer;
             var endNode = range.endContainer;
 
@@ -326,11 +366,11 @@
             var endTag = isTag(endNode) && endNode ||
                 isText(endNode) && endNode.parentNode;
 
-            var tagNodes = [tag];
+            var tags = [tag];
             while (tag && (tag !== endTag)) {
-                tagNodes.push(tag = getNextTag(tag));
+                tags.push(tag = getNextTag(tag));
             }
-            return tagNodes;
+            return tags;
         };
 
         var getTextNodes = function(node) {
@@ -585,7 +625,6 @@
         var softWrapNode = function(node) {
             if (node) {
                 var fontSize = parseFloat(getStylePropertyValue(node, 'font-size'));
-                console.log(fontSize * 1.25);
                 if (node.getBoundingClientRect().height > fontSize * 1.3) {
                     var wrap = node.previousSibling &&
                         node.previousSibling.tagName === 'DIV';
@@ -602,6 +641,7 @@
             if (doBeforeClick()) {
                 fixEditor();
                 fixCaret();
+                currentRange = getRange();
                 doAfterClick();
             }
         });
@@ -662,6 +702,10 @@
         // Thanks to IE, we have to initialize the editor.
         fixEditor();
 
-        return this;
+        return {
+            applyStyle: function(style, scope) {
+                formatSelection(style, currentRange, scope);
+            }
+        };
     };
 })(jQuery);

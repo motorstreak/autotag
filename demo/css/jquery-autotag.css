@@ -17,16 +17,32 @@
 }
 
 /* Styles that apply to words onkeys such as Cmd+b (Win+b) */
-a.bold {
+.autotag-bold {
     font-weight: bold;
 }
 
-a.italic {
+.autotag-italic {
     font-style: italic;
 }
 
-a.underline {
+.autotag-underlined {
     text-decoration: underline;
+}
+
+.autotag-align-left {
+    text-align: left;
+}
+
+.autotag-align-center {
+    text-align: center;
+}
+
+.autotag-align-right {
+    text-align: right;
+}
+
+.autotag-align-justify {
+    text-align: justify;
 }
 
 /* ---------- NOTICE END --------------- */

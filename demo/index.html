@@ -20,19 +20,30 @@
     <link rel="stylesheet" type="text/css" href="./css/demo.css">
     <link rel="stylesheet" type="text/css" href="./css/tooltip.css">
     <link rel="stylesheet" type="text/css" href="./css/notepad.css">
-
+    <link rel="stylesheet" type="text/css" href="./css/icons.css">
 </head>
 
 <body>
     <div class="page-header">
         <div class="page-title">jquery-autotag.js</div>
         <div class="page-msg">
-            A simple and lightweight (~5kb) text formatter plugin built in pure Javascript.
+            A simple and lightweight (~5kb) text formatter plugin in pure Javascript.
         </div>
     </div>
 
     <div class="demos">
         <div class="demo-container">
+            <div id="demo-menubar" class="demo-menu">
+                <span class="icon-bold demo-menu-icon"></span>
+                <span class="icon-italic demo-menu-icon"></span>
+                <span class="icon-underlined demo-menu-icon"></span>
+                <span class="icon-color-text demo-menu-icon"></span>
+                <span class="icon-color-fill demo-menu-icon"></span>
+                <span class="icon-align-left demo-menu-icon" data-autotag-scope="line"></span>
+                <span class="icon-align-center demo-menu-icon" data-autotag-scope="line"></span>
+                <span class="icon-align-right demo-menu-icon" data-autotag-scope="line"></span>
+                <span class="icon-align-justify demo-menu-icon" data-autotag-scope="line"></span>
+            </div>
             <div id="demo-notepad" class="demo-input notepad" contentEditable="true">
                 <!-- This content was generated in the notepad -->
                 <p><a class="demo-pronoun" data-tooltip="Pronoun">This</a><a>&nbsp;</a><a>is</a><a>&nbsp;</a><a>a</a><a>&nbsp;</a><a>simple</a><a>&nbsp;</a><a>notepad</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">that</a><a>&nbsp;</a><a>highlights</a><a>&nbsp;</a><a>pronouns</a><a>&nbsp;</a><a>&amp;</a><a>&nbsp;</a><a>hashtags.</a><a>&nbsp;</a></p>
@@ -76,7 +87,16 @@
                 ignoreReturnKey: false
             };
 
-            $('#demo-notepad').autotag(demo_config);
+            var $plugin = $('#demo-notepad').autotag(demo_config);
+
+            // Wire the menu in!
+            $('#demo-menubar').delegate('.demo-menu-icon', 'click', function() {
+                var style = this.className.split(' ')[0].replace('icon-', '');
+                var scope = $(this).data('autotag-scope');
+
+                // scope can be 'editor', 'line' or 'text'.
+                $plugin.applyStyle(style, scope);
+            });
         });
     </script>
 </body>
