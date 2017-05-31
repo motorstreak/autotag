@@ -4,18 +4,45 @@
 /* Make sure to include them in your CSS. */
 
 /* Deal with IE paragraph style within the editor. */
-[contenteditable] > p {
+[contenteditable] > p,
+[contenteditable] > p > a {
     margin: 0;
     word-break: break-all;
-    white-space: pre-line;
-}
-
-[contenteditable] > p > a {
-    /*display: inline-block;*/
 }
 
 /* Prevent outlines on contenteditable items in IE. */
-[contenteditable]:focus {
-    outline : none;
+[contenteditable]:focus,
+[contenteditable] > p > a:focus {
+    outline : 0;
 }
+
+/* Styles that apply to words onkeys such as Cmd+b (Win+b) */
+.autotag-bold {
+    font-weight: bold;
+}
+
+.autotag-italic {
+    font-style: italic;
+}
+
+.autotag-underlined {
+    text-decoration: underline;
+}
+
+.autotag-align-left {
+    text-align: left;
+}
+
+.autotag-align-center {
+    text-align: center;
+}
+
+.autotag-align-right {
+    text-align: right;
+}
+
+.autotag-align-justify {
+    text-align: justify;
+}
+
 /* ---------- NOTICE END --------------- */
