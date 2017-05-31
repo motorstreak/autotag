@@ -52,8 +52,6 @@
         // The wrapper element tagname.
         var tagNodeName = 'a';
 
-        var currentRange;
-
         var styleKeyMap = {
             66: 'autotag-bold',
             73: 'autotag-italic',
@@ -147,18 +145,20 @@
             return document.createTextNode(str);
         };
 
-        var fixCaret = function() {
+        var fixCaretPosition = function() {
             var range = getRange();
             var node = range.endContainer;
-            if (isBreakTag(node)) {
-                setCaret(node, 0);
-            } else if (isTag(node)) {
-                setCaret(node.lastChild);
-            } else if (isLine(node)) {
-                var tags = node.querySelectorAll(tagNodeName);
-                if (tags.length > 0) {
-                    var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
-                    setCaret(tag.lastChild);
+            if (node == range.startContainer) {
+                if (isBreakTag(node)) {
+                    setCaret(node, 0);
+                } else if (isTag(node)) {
+                    setCaret(node.lastChild);
+                } else if (isLine(node)) {
+                    var tags = node.querySelectorAll(tagNodeName);
+                    if (tags.length > 0) {
+                        var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
+                        setCaret(tag.lastChild);
+                    }
                 }
             }
         };
@@ -254,36 +254,7 @@
             return editor.querySelector('p:first-child');
         };
 
-        var getRange = function() {
-            var range;
-            var selection;
-            if (typeof window.getSelection != "undefined") {
-                selection = window.getSelection();
-                if (selection.rangeCount > 0) {
-                    range = selection.getRangeAt(0);
-                }
-            } else if ((selection = document.selection) &&
-                selection.type != "Control") {
-                range = selection.createRange();
-            }
-            return range;
-        };
 
-        var getStylePropertyValue = function(node, property) {
-            return node &&
-                property &&
-                window.getComputedStyle(node, null).getPropertyValue(property);
-        };
-
-        var getTextWalker = function(node) {
-            return node &&
-                document.createTreeWalker(
-                    node,
-                    NodeFilter.SHOW_TEXT,
-                    null,
-                    false
-                );
-        };
 
         var getKeyCode = function(e) {
             var code = e.which || e.keyCode || 0;
@@ -357,13 +328,43 @@
             return isLine(line) && line.previousSibling;
         };
 
+        var getRange = function() {
+            var selection, range;
+            if (typeof window.getSelection != "undefined") {
+                selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    range = selection.getRangeAt(0);
+                }
+            } else if ((selection = document.selection) &&
+                selection.type != "Control") {
+                range = selection.createRange();
+            }
+            return range;
+        };
+
+        var getStylePropertyValue = function(node, property) {
+            return node &&
+                property &&
+                window.getComputedStyle(node, null).getPropertyValue(property);
+        };
+
+        var findTagInLine = function(line, index) {
+            index = (typeof index === 'undefined' || index < 0) ? 0 : index;
+            return line.querySelector('a:nth-child(' + index + ')');
+        };
+
         var getTagsInRange = function(range) {
             var startNode = range.startContainer;
             var endNode = range.endContainer;
 
-            var tag = isTag(startNode) && startNode ||
+            var tag =
+                isLine(startNode) && findTagInLine(startNode, range.startOffset) ||
+                isTag(startNode) && startNode ||
                 isText(startNode) && startNode.parentNode;
-            var endTag = isTag(endNode) && endNode ||
+
+            var endTag =
+                isLine(endNode) && findTagInLine(endNode, range.endOffset) ||
+                isTag(endNode) && endNode ||
                 isText(endNode) && endNode.parentNode;
 
             var tags = [tag];
@@ -382,6 +383,16 @@
                 textNodes.push(text);
             }
             return textNodes;
+        };
+
+        var getTextWalker = function(node) {
+            return node &&
+                document.createTreeWalker(
+                    node,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
         };
 
         var gotoLine = function(line, wordPos) {
@@ -425,15 +436,12 @@
         };
 
         var isPrintableKey = function(code) {
-            var isPrintable =
-                code == 32 || // Spacebar key
-                // code == 13 || // Return key
-                (code > 47 && code < 58) || // Number keys
-                (code > 64 && code < 91) || // Alphabet keys
-                (code > 95 && code < 112) || // Numpad keys
-                (code > 185 && code < 193) || // ; = , - . / ` keys
-                (code > 218 && code < 223); // [ \ ] ' keys
-            return isPrintable;
+            return  (code == 32) || // Spacebar key
+                    (code > 47 && code < 58) || // Number keys
+                    (code > 64 && code < 91) || // Alphabet keys
+                    (code > 95 && code < 112) || // Numpad keys
+                    (code > 185 && code < 193) || // ; = , - . / ` keys
+                    (code > 218 && code < 223); // [ \ ] ' keys
         };
 
         var isReturnKey = function(code) {
@@ -606,13 +614,19 @@
         // Takes in the current node and sets the cursor location
         // on the first child, if the child is a Text node.
         var setCaret = function(node, offset) {
+            return setSelection(node, offset, node, offset);
+        };
+
+        var setSelection = function(startContainer, startOffset, endContainer, endOffset) {
             var range;
-            if (node !== null) {
-                offset = (typeof offset === 'undefined') ? node.length : offset;
+            if (startContainer && endContainer) {
+                startOffset = (typeof startOffset === 'undefined') ? 0 : startOffset;
+                endOffset = (typeof endOffset === 'undefined') ? endContainer.length : endOffset;
+
                 range = document.createRange();
                 try {
-                    range.setStart(node, offset);
-                    range.setEnd(node, offset);
+                    range.setStart(startContainer, startOffset);
+                    range.setEnd(endContainer, endOffset);
                 } catch (err) {
                     // Chrome does not like setting an offset of 1
                     // on an empty node.
@@ -620,7 +634,7 @@
                 resetCaret(range);
             }
             return range;
-        };
+        }
 
         var softWrapNode = function(node) {
             if (node) {
@@ -640,8 +654,6 @@
         editor.addEventListener('click', function(e) {
             if (doBeforeClick()) {
                 fixEditor();
-                fixCaret();
-                currentRange = getRange();
                 doAfterClick();
             }
         });
@@ -658,7 +670,7 @@
 
                 var code = getKeyCode(e);
                 if (isDeleteKey(code)) {
-                    fixCaret();
+                    fixCaretPosition();
                 } else if (isReturnKey(code) && ignoreReturnKey) {
                     e.preventDefault();
                     doOnReturnKey();
@@ -704,7 +716,7 @@
 
         return {
             applyStyle: function(style, scope) {
-                formatSelection(style, currentRange, scope);
+                formatSelection(style, getRange(), scope);
             }
         };
     };
