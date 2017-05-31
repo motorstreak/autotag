@@ -1,88 +1,121 @@
 body {
-    background-color : #EEE;
-    font-family : Arial, Helvetica, sans-serif;
+    background-color : #FFF;
+    margin: 0;
+    padding: 0;
+    font-family : 'Source Sans Pro', Arial, Helvetica, sans-serif;
+}
+
+.page-header:before {
+    background: rgba(75, 75, 93, 0.85);
 }
 .page-header {
-    margin-bottom : 20px;
-    padding : 20px 0;
-    text-align : center;
-    color : #999;
-    border-bottom : 1px solid #DDD;
+    padding: 200px 100px;
+    text-align: center;
+    color: #FFF;
+    height: 200px;
+    background-image: url(../images/background-full.jpg);
+    background-size: cover;
+    background-position: bottom;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    text-align: center;
+    position: relative;
 }
 .page-title {
-    font-size : 2em;
-    padding-bottom : 10px;
-    color : #555;
-    text-shadow : 1px 1px #FFF;
+    font-size: 4em;
+    font-weight: 600;
+    padding-bottom: 10px;
+    color: #524795;
+    z-index: 100000;
+    position: relative;
+    text-shadow: 0 0 20px #FFF;
 }
-.demos {
-    display :         flex;
-    display : -webkit-flex;
-    flex-flow : row wrap;
-    align-items : center;
-    justify-content : space-around;
+
+.page-msg {
+    font-size: 1.6em;
+    font-weight: 300;
+    line-height: 1.4em;
+    color: #555;
 }
 .demo-container {
-    width : 400px;
-}
-.demo-instructions {
-    font-size : 0.9em;
-    display : table-cell;
-    box-sizing : border-box;
-    width : 400px;
-    height : 100px;
-    padding : 20px 10px 10px;
-    text-align : center;
-    vertical-align : bottom;
-    color : #555;
+    width: 100%;
+    box-sizing: border-box;
 }
 .demo-input {
     box-sizing : border-box;
     height : auto;
-    min-height : 100px;
-    padding : 20px;
-    border : 1px solid #DDD;
-    border-radius : 5px;
-    background-color : #FFF;
+    padding : 100px;
+    height: 100%;
+}
+.demo-menu {
+    padding: 10px 0;
+    display: flex;
+    display : -webkit-flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #EEE;
+    margin-bottom: 33px;
+    background: #F5F5F5;
 }
 
-.demo-2-plus-sign {
+.demo-menu-icon {
+    font-size: 1.8em;
+    padding: 10px 6px;
+    flex: 0 1 40px;
+    text-align: center;
+    color: #555;
+}
+
+.demo-menu-icon:hover {
+    background: #FFF;
+    border-radius: 4px;
+    box-shadow: 0 0 1px #DDD;
+    color: #000;
+}
+
+.demo-plus-sign {
     color: brown;
-    background-color: lightyellow;
-    border: 1px solid yellow;
-    border-radius: 3px;
-    padding: 1px 4px;
-    font-size: 0.8em;
+    background-color: yellow;
+    border-radius: 14px;
+    padding: 0px 10px 0px 5px;
+    font-size: 0.95em;
 }
 
-.demo-2-hash-tag {
+.demo-hash-tag {
     color : red;
 }
 
-.demo-2-at-tag {
+.demo-at-tag {
     color : green;
 }
 
 /* Style underlines in demo 3 */
-.demo-3-underline {
+.demo-url {
     font-style : italic;
-    color : brown;
+    color : royalblue;
     box-shadow: 0px 2px;
     text-shadow : -1px 1px #FFF, 1px 1px #FFF, -2px -1px #FFF, 0 -1px #FFF;
 }
 
+.demo-pronoun {
+    color: purple !important;
+}
+
+.demo-pronoun:hover {
+    background-color: yellow;
+}
+
 /* Remove default link decoration. Its ugly as hell. */
-.demo-3-input > p > a[href],
-.demo-4-input > p > a[href] {
+.demo-input > p > a[href] {
     text-decoration : none;
 }
 
-.demo-4-input {
+.demo-input {
     font-family: 'Caveat', cursive;
-    font-size: 20px;
-    background: url(../img/notebook.png) repeat-y;
+    font-size: 30px;
 }
 
-.demo-4-input > p {
-    line-height: 30px;
+.demo-input > p {
+    line-height: 40px;
 }
