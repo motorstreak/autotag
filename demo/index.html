@@ -21,6 +21,7 @@
     <link rel="stylesheet" type="text/css" href="./css/tooltip.css">
     <link rel="stylesheet" type="text/css" href="./css/notepad.css">
     <link rel="stylesheet" type="text/css" href="./css/icons.css">
+    <link rel="stylesheet" type="text/css" href="./css/menu.css">
 </head>
 
 <body>
@@ -33,16 +34,42 @@
 
     <div class="demos">
         <div class="demo-container">
-            <div id="demo-menubar" class="demo-menu">
-                <span class="icon-bold demo-menu-icon"></span>
-                <span class="icon-italic demo-menu-icon"></span>
-                <span class="icon-underlined demo-menu-icon"></span>
-                <span class="icon-color-text demo-menu-icon"></span>
-                <span class="icon-color-fill demo-menu-icon"></span>
-                <span class="icon-align-left demo-menu-icon" data-autotag-scope="line"></span>
-                <span class="icon-align-center demo-menu-icon" data-autotag-scope="line"></span>
-                <span class="icon-align-right demo-menu-icon" data-autotag-scope="line"></span>
-                <span class="icon-align-justify demo-menu-icon" data-autotag-scope="line"></span>
+            <div id="demo-menubar" class="autotag-menu">
+                <span class="icon-bold autotag-menu-icon"
+                    data-autotag-scope="text"
+                    data-autotag-action="bold"></span>
+
+                <span class="icon-italic autotag-menu-icon"
+                    data-autotag-scope="text"
+                    data-autotag-action="italic"></span>
+
+                <span class="icon-underlined autotag-menu-icon"
+                    data-autotag-scope="text"
+                    data-autotag-action="underlined"></span>
+
+                <span class="icon-color-text autotag-menu-icon"
+                    data-autotag-scope="text"
+                    data-autotag-action="color"></span>
+
+                <span class="icon-color-fill autotag-menu-icon"
+                    data-autotag-scope="text"
+                    data-autotag-action="fill"></span>
+
+                <span class="icon-align-left autotag-menu-icon"
+                    data-autotag-scope="line"
+                    data-autotag-action="align-left"></span>
+
+                <span class="icon-align-center autotag-menu-icon"
+                    data-autotag-scope="line"
+                    data-autotag-action="align-center"></span>
+
+                <span class="icon-align-right autotag-menu-icon"
+                    data-autotag-scope="line"
+                    data-autotag-action="align-right"></span>
+
+                <span class="icon-align-justify autotag-menu-icon"
+                    data-autotag-scope="line"
+                    data-autotag-action="align-justify"></span>
             </div>
             <div id="demo-notepad" class="demo-input notepad" contentEditable="true">
                 <!-- This content was generated in the notepad -->
@@ -90,13 +117,14 @@
             var $plugin = $('#demo-notepad').autotag(demo_config);
 
             // Wire the menu in!
-            $('#demo-menubar').delegate('.demo-menu-icon', 'click', function() {
-                var style = this.className.split(' ')[0].replace('icon-', '');
+            $('#demo-menubar').delegate('.autotag-menu-icon', 'click', function() {
                 var scope = $(this).data('autotag-scope');
+                var action = $(this).data('autotag-action');
 
                 // scope can be 'editor', 'line' or 'text'.
-                $plugin.applyStyle(style, scope);
+                $plugin.applyStyle(this, action, scope);
             });
+
         });
     </script>
 </body>

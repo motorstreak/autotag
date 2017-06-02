@@ -52,6 +52,8 @@
         // The wrapper element tagname.
         var tagNodeName = 'a';
 
+        var selectionRange;
+
         var styleKeyMap = {
             66: 'autotag-bold',
             73: 'autotag-italic',
@@ -212,19 +214,20 @@
         // Applies the style corresponding to the key to the provided
         // node. Key can either be a keyboard key code or a style key.
         // Scope can be 'editor', 'line' or 'text'.
-        var formatSelection = function(key, range, scope) {
-            range = (typeof range === 'undefined') ? getRange() : range;
-            scope = (typeof scope === 'undefined') ? 'text' : scope;
-
-            var className = styleKeyMap[key] || 'autotag-' + key;
-            if (className) {
-                if (scope == 'editor') {
-                    formatEditor(className);
-                } else if (scope == 'line') {
-                    formatLine(className, getLinesInRange(range));
-                } else {
-                    formatText(className, getTagsInRange(range));
+        var formatSelection = function(key, scope) {
+            if (selectionRange) {
+                scope = (typeof scope === 'undefined') ? 'text' : scope;
+                var className = styleKeyMap[key] || 'autotag-' + key;
+                if (className) {
+                    if (scope == 'editor') {
+                        formatEditor(className);
+                    } else if (scope == 'line') {
+                        formatLine(className, getLinesInRange(selectionRange));
+                    } else {
+                        formatText(className, getTagsInRange(selectionRange));
+                    }
                 }
+                resetRange(selectionRange);
             }
         };
 
@@ -419,6 +422,11 @@
             return isTag(node) && isBreak(node.lastChild);
         };
 
+        var isCaret = function(range) {
+            return range.startContainer == range.endContainer &&
+                range.startOffset == range.endOffset;
+        };
+
         var isDeleteKey = function(code) {
             return code == 8;
         };
@@ -594,7 +602,7 @@
         };
 
         // Clears all existing ranges and sets it to the provided one.
-        var resetCaret = function(range) {
+        var resetRange = function(range) {
             if (range) {
                 if (window.getSelection) {
                     var selection = window.getSelection();
@@ -631,7 +639,7 @@
                     // Chrome does not like setting an offset of 1
                     // on an empty node.
                 }
-                resetCaret(range);
+                resetRange(range);
             }
             return range;
         }
@@ -650,6 +658,15 @@
             }
             return node;
         };
+
+        editor.addEventListener('dblclick', function(e) {
+            selectionRange = getRange();
+        });
+
+        document.addEventListener('selectionchange', function(e) {
+            var range = getRange();
+            selectionRange = !isCaret(range) && range || selectionRange;
+        });
 
         editor.addEventListener('click', function(e) {
             if (doBeforeClick()) {
@@ -715,8 +732,28 @@
         fixEditor();
 
         return {
-            applyStyle: function(style, scope) {
-                formatSelection(style, getRange(), scope);
+            applyStyle: function(source, action, scope) {
+                // console.log(getRange());
+                if (action === 'color') {
+                    var palette = document.createElement('div');
+                    palette.className = 'autotag-palette';
+                    source.parentNode.insertBefore(palette, source);
+
+                    for(var s=100, l=95; s >= 50; s += -5, l += -6) {
+                        var row = palette.appendChild(document.createElement('div'));
+                        for(var h=0; h<360; h += 18) {
+                            var cell = document.createElement('span');
+                            cell.style.background = 'hsla(' + h + ', ' + s + '%, ' +  l + '%, ' + '1.0)';
+                            // cell.innerHTML = '&#9608;';
+                            row.appendChild(cell);
+                        }
+                    }
+
+                } else if (action === 'fill') {
+
+                } else {
+                    formatSelection(action, scope);
+                }
             }
         };
     };

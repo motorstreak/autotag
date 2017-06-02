@@ -16,6 +16,27 @@
     outline : 0;
 }
 
+.autotag-palette {
+    padding: 10px;
+    background-color: #FFF;
+    position: absolute;
+    top: 70px;
+    z-index: 1000;
+    box-shadow: 1px 1px 3px #CCC;
+}
+
+.autotag-palette > div > span {
+    font: 12px/12px 'helvetica';
+    cursor: pointer;
+    padding: 7px;
+    display: inline-block;
+    margin: 1px;
+}
+
+.autotag-palette > div > span:hover {
+    box-shadow: 0px 0px 1px #000;
+}
+
 /* Styles that apply to words onkeys such as Cmd+b (Win+b) */
 .autotag-bold {
     font-weight: bold;
