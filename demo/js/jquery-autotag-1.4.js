@@ -42,6 +42,8 @@ Autotag = (function() {
 
     return function(editor, config) {
 
+        var activeSubmenu;
+
         // The line on which the input was captured. This is updated
         // each time a keyup event is triggered.
         var inputLineNumber;
@@ -53,6 +55,8 @@ Autotag = (function() {
         var selectionRange;
 
         var continuingStyle;
+
+        var editorMenubar;
 
         // The wrapper element tagname.
         var tagNodeName = 'a';
@@ -70,6 +74,25 @@ Autotag = (function() {
             if (trace) {
                 console.log('TRACE : ' + msg + ' : ' + data);
             }
+        }
+
+        function debounce(func, wait, immediate) {
+        	var timeout;
+        	return function() {
+        		var context = this, args = arguments;
+        		var later = function() {
+        			timeout = null;
+        			if (!immediate) func.apply(context, args);
+        		};
+
+        		var callNow = immediate && !timeout;
+        		clearTimeout(timeout);
+        		timeout = setTimeout(later, wait);
+
+        		if (callNow) {
+                    func.apply(context, args);
+                }
+        	};
         }
 
         // Initialize configuration.
@@ -358,7 +381,7 @@ Autotag = (function() {
             var endNode = range.endContainer;
 
             var tag =
-                isLine(startNode) && findTagInLine(startNode, range.startOffset) ||
+                isLine(startNode) && findTagInLine(startNode, range.startOffset + 1) ||
                 isTag(startNode) && startNode ||
                 isText(startNode) && startNode.parentNode;
 
@@ -486,14 +509,7 @@ Autotag = (function() {
                 var offset = range.endOffset;
                 fixText(container, offset);
 
-
                 var refTag = container.parentNode;
-
-                // if (continuingStyle) {
-                //     refTag.setAttribute('style', continuingStyle);
-                //     continuingStyle = null;
-                // }
-
                 var parts = splitter(container.nodeValue || '');
 
                 // Trim empty values from the array.
@@ -677,12 +693,19 @@ Autotag = (function() {
             selectionRange = getRange();
         });
 
-        document.addEventListener('selectionchange', function(e) {
+        document.addEventListener('selectionchange', debounce(function(e) {
             var range = getRange();
             selectionRange = !isCaret(range) && range || selectionRange;
-        });
+            if (selectionRange) {
+                editorMenubar.classList.add('autotag-menubar-active');
+            } else {
+                editorMenubar.classList.remove('autotag-menubar-active');
+            }
+        }, 250));
 
         editor.addEventListener('click', function(e) {
+            removeNode(activeSubmenu);
+            selectionRange = null;
             if (doBeforeClick()) {
                 fixEditor();
                 doAfterClick();
@@ -750,8 +773,9 @@ Autotag = (function() {
 
         var createPaletteCell = function(row, h, s, l) {
             var cell = document.createElement('span');
+            var hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
             cell.className = 'autotag-color';
-            cell.style.background = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
+            cell.style.color = cell.style.background = hsla;
             row.appendChild(cell);
         };
 
@@ -775,13 +799,15 @@ Autotag = (function() {
             for (l = 0; l <= 100; l += 9) {
                 createPaletteCell(row, 0, 0, l);
             }
+
+            activeSubmenu = palette;
         };
 
         var performMenuAction = function(menu) {
+            removeNode(activeSubmenu);
             var action = menu.dataset.autotagAction;
             if (action == 'color' || action == 'background') {
                 createPalette(menu);
-                resetRange(selectionRange);
             } else {
                 formatSelection(action, menu.dataset.autotagScope);
             }
@@ -789,18 +815,23 @@ Autotag = (function() {
 
         return {
             attachMenubar: function(menubar) {
-                menubar.addEventListener('click', function(e) {
-                    var target = e.target;
-                    if (target.classList.contains('autotag-menu')) {
-                        performMenuAction(target);
-                    } else if (target.classList.contains('autotag-color')) {
-                        var color = target.style.background;
-                        var palette = target.parentNode.parentNode;
-                        var action = palette.parentNode.dataset.autotagAction;
-                        removeNode(palette);
-                        formatSelection(action, 'text', color);
-                    }
-                });
+                if (menubar) {
+                    editorMenubar = menubar;
+                    editorMenubar.addEventListener('click', function(e) {
+                        if (selectionRange) {
+                            resetRange(selectionRange);
+                            var target = e.target;
+                            if (target.classList.contains('autotag-menu')) {
+                                performMenuAction(target);
+                            } else if (target.classList.contains('autotag-color')) {
+                                var color = target.style.color;
+                                var action = activeSubmenu.parentNode.dataset.autotagAction;
+                                removeNode(activeSubmenu);
+                                formatSelection(action, 'text', color);
+                            }
+                        }
+                    });
+                }
             }
         };
     };

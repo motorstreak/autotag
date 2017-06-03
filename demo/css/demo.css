@@ -106,6 +106,7 @@ body {
     margin-bottom: 33px;
     background: #F5F5F5;
     position: relative;
+    color: #999;
 }
 
 .demo-menu-icon {
@@ -113,14 +114,21 @@ body {
     padding: 10px 6px;
     flex: 0 1 40px;
     text-align: center;
-    color: #555;
 }
 
-.demo-menu-icon:hover {
-    background: #FFF;
+.autotag-menubar-active {
+    color: #000;
+    cursor: pointer;
     border-radius: 4px;
     box-shadow: 0 0 1px #DDD;
+}
+
+.autotag-menubar-active:hover {
     color: #000;
+}
+
+.autotag-menubar-active > .autotag-menu:hover {
+    background-color: #FFF;
 }
 
 .demo-notepad {

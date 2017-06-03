@@ -47,6 +47,14 @@
     box-shadow: 0px 0px 1px #000;
 }
 
+.autotag-menubar-active {
+    /* Added when a selection is present */
+}
+
+.autotag-menubar-active:hover {
+    /* If a selection is active, do on hover */
+}
+
 /* Styles that apply to words onkeys such as Cmd+b (Win+b) */
 .autotag-bold {
     font-weight: bold;
