@@ -6,7 +6,8 @@
  Licensed under MIT License http://www.opensource.org/licenses/mit-license
 */
 
-(function($) {
+var Autotag = Autotag || {};
+Autotag = (function() {
     // Configuration options
     //
     // splitter:    A callback function that can receive a string, split it and return
@@ -39,8 +40,7 @@
     //
     // trace:     Set this to true to see debug messages on the console.
 
-    $.fn.autotag = function(config) {
-        var editor = $(this)[0];
+    return function(editor, config) {
 
         // The line on which the input was captured. This is updated
         // each time a keyup event is triggered.
@@ -49,18 +49,21 @@
         // Store status of beforeKeypress callback return.
         var processInputFlag;
 
+        // Stores the last selection made in the editor.
+        var selectionRange;
+
         // The wrapper element tagname.
         var tagNodeName = 'a';
 
-        var selectionRange;
-
+        // Map keeyboard controls to format options since we override them.
         var styleKeyMap = {
-            66: 'autotag-bold',
-            73: 'autotag-italic',
-            85: 'autotag-underline'
+            66: 'bold',
+            73: 'italic',
+            85: 'underline'
         };
 
-        function logToConsole(data, msg) {
+        // Dump logs for testing.
+        function logToConsole (data, msg) {
             msg = (typeof msg === 'undefined') ? '' : msg;
             if (trace) {
                 console.log('TRACE : ' + msg + ' : ' + data);
@@ -102,20 +105,9 @@
             return breakNode;
         };
 
-        var appendNode = function(node, to) {
-            to.parentNode.insertBefore(node, to.nextSibling);
-            return node;
-        };
-
-        var prependNode = function(node, to) {
-            to.parentNode.insertBefore(node, to);
-            return node;
-        };
-
         // A Block node form a line element in the editor.
         var createBlockNode = function() {
-            var node = document.createElement('p');
-            return node;
+            return document.createElement('p');
         };
 
         var createBreakNode = function() {
@@ -201,8 +193,8 @@
                 var parentNode = node.parentNode;
                 if (isLine(parentNode)) {
                     var tagNode = createTagNode();
-                    parentNode.insertBefore(tagNode, node);
                     tagNode.appendChild(node);
+                    parentNode.insertBefore(tagNode, node);
                     setCaret(node, offset);
                 } else if (isTag(parentNode)) {
                     removeBreakNodes(parentNode);
@@ -214,55 +206,55 @@
         // Applies the style corresponding to the key to the provided
         // node. Key can either be a keyboard key code or a style key.
         // Scope can be 'editor', 'line' or 'text'.
-        var formatSelection = function(key, scope) {
+        var formatSelection = function(key, scope, value) {
             if (selectionRange) {
                 scope = (typeof scope === 'undefined') ? 'text' : scope;
-                var className = styleKeyMap[key] || 'autotag-' + key;
-                if (className) {
+                var action = styleKeyMap[key] || key;
+                if (action) {
                     if (scope == 'editor') {
                         formatEditor(className);
                     } else if (scope == 'line') {
-                        formatLine(className, getLinesInRange(selectionRange));
+                        formatLine(getLinesInRange(selectionRange), action, value);
                     } else {
-                        formatText(className, getTagsInRange(selectionRange));
+                        formatText(getTagsInRange(selectionRange), action, value);
                     }
                 }
                 resetRange(selectionRange);
             }
         };
 
-        var formatLine = function(className, lines) {
-            var line;
-            for (var i = 0; i < lines.length; i++) {
-                if (line = lines[i]) {
-                    line.setAttribute('class', className);
+        var formatLine = function(lines, action, value) {
+            for (var line, i = 0; i < lines.length; i++) {
+                if ((line = lines[i])) {
+                    if (value) {
+                        line.style[action] = value;
+                    } else {
+                        line.setAttribute('class', 'autotag-' + action);
+                    }
                 }
             }
         };
 
-        var formatText = function(className, tags) {
-            var tag;
-            for (var i = 0; i < tags.length; i++) {
-                tag = tags[i];
-                if (tag && !tag.textContent.match(/\s+/g)) {
-                    tag.classList.toggle(className);
+        var formatText = function(tags, action, value) {
+            for (var tag, i = 0; i < tags.length; i++) {
+                if ((tag = tags[i])) {
+                    if (value) {
+                        tag.style[action] = value;
+                    } else {
+                        tag.classList.toggle('autotag' + action);
+                    }
                 }
             }
         };
 
-        var formatEditor = function(className) {
-        };
+        var formatEditor = function(className) {};
 
         var getFirstLine = function() {
             return editor.querySelector('p:first-child');
         };
 
-
-
         var getKeyCode = function(e) {
-            var code = e.which || e.keyCode || 0;
-            logToConsole(code, 'Key');
-            return code;
+            return (e.which || e.keyCode || 0);
         };
 
         // Line is a <p> node within the editor. Navigate up the
@@ -291,7 +283,7 @@
 
         var getLinesInRange = function(range) {
             var line = getLine(range.startContainer);
-            var endLine = getLine(range.endContainer)
+            var endLine = getLine(range.endContainer);
 
             var lines = [line];
             while (line && (line !== endLine)) {
@@ -444,12 +436,12 @@
         };
 
         var isPrintableKey = function(code) {
-            return  (code == 32) || // Spacebar key
-                    (code > 47 && code < 58) || // Number keys
-                    (code > 64 && code < 91) || // Alphabet keys
-                    (code > 95 && code < 112) || // Numpad keys
-                    (code > 185 && code < 193) || // ; = , - . / ` keys
-                    (code > 218 && code < 223); // [ \ ] ' keys
+            return (code == 32) || // Spacebar key
+                (code > 47 && code < 58) || // Number keys
+                (code > 64 && code < 91) || // Alphabet keys
+                (code > 95 && code < 112) || // Numpad keys
+                (code > 185 && code < 193) || // ; = , - . / ` keys
+                (code > 218 && code < 223); // [ \ ] ' keys
         };
 
         var isReturnKey = function(code) {
@@ -642,7 +634,7 @@
                 resetRange(range);
             }
             return range;
-        }
+        };
 
         var softWrapNode = function(node) {
             if (node) {
@@ -731,30 +723,61 @@
         // Thanks to IE, we have to initialize the editor.
         fixEditor();
 
-        return {
-            applyStyle: function(source, action, scope) {
-                // console.log(getRange());
-                if (action === 'color') {
-                    var palette = document.createElement('div');
-                    palette.className = 'autotag-palette';
-                    source.parentNode.insertBefore(palette, source);
+        var createPaletteCell = function(row, h, s, l) {
+            var cell = document.createElement('span');
+            cell.className = 'autotag-color';
+            cell.style.background = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
+            row.appendChild(cell);
+        };
 
-                    for(var s=100, l=95; s >= 50; s += -5, l += -6) {
-                        var row = palette.appendChild(document.createElement('div'));
-                        for(var h=0; h<360; h += 18) {
-                            var cell = document.createElement('span');
-                            cell.style.background = 'hsla(' + h + ', ' + s + '%, ' +  l + '%, ' + '1.0)';
-                            // cell.innerHTML = '&#9608;';
-                            row.appendChild(cell);
-                        }
-                    }
+        var createPalette = function(menu) {
+            var palette = document.createElement('div');
+            palette.className = 'autotag-palette';
+            // menu.parentNode.insertBefore(palette, menu);
+            menu.appendChild(palette);
 
-                } else if (action === 'fill') {
-
-                } else {
-                    formatSelection(action, scope);
+            // Color palette
+            var row;
+            for (var s = 100, l = 96; s >= 50; s += -5, l += -6) {
+                row = palette.appendChild(document.createElement('div'));
+                for (var h = 0; h < 360; h += 32) {
+                    createPaletteCell(row, h, s, l);
                 }
+            }
+
+            // Grayscale palette
+            row = palette.appendChild(document.createElement('div'));
+            for (l = 0; l <= 100; l += 9) {
+                createPaletteCell(row, 0, 0, l);
+            }
+        };
+
+        var performMenuAction = function(menu) {
+            var scope = menu.dataset.autotagScope;
+            var action = menu.dataset.autotagAction;
+            if (action == 'color' || action == 'background') {
+                createPalette(menu);
+                resetRange(selectionRange);
+            } else {
+                formatSelection(action, scope);
+            }
+        };
+
+        return {
+            attachMenubar: function(menubar) {
+                menubar.addEventListener('click', function(e) {
+                    var target = e.target;
+                    if (target.classList.contains('autotag-menu')) {
+                        performMenuAction(target);
+                    } else if (target.classList.contains('autotag-color')) {
+                        var color = target.style.background;
+                        var palette = target.parentNode.parentNode;
+                        var action = palette.parentNode.dataset.autotagAction;
+                        removeNode(palette);
+                        formatSelection(action, 'text', color);
+                    }
+                });
             }
         };
     };
-})(jQuery);
+})();

@@ -33,45 +33,45 @@
     </div>
 
     <div class="demos">
-        <div class="demo-container">
-            <div id="demo-menubar" class="autotag-menu">
-                <span class="icon-bold autotag-menu-icon"
+        <div class="demo-container autotag-editor">
+            <div id="menubar" class="demo-menubar autotag-menubar">
+                <span class="icon-bold demo-menu-icon autotag-menu"
                     data-autotag-scope="text"
                     data-autotag-action="bold"></span>
 
-                <span class="icon-italic autotag-menu-icon"
+                <span class="icon-italic demo-menu-icon autotag-menu"
                     data-autotag-scope="text"
                     data-autotag-action="italic"></span>
 
-                <span class="icon-underlined autotag-menu-icon"
+                <span class="icon-underlined demo-menu-icon autotag-menu"
                     data-autotag-scope="text"
                     data-autotag-action="underlined"></span>
 
-                <span class="icon-color-text autotag-menu-icon"
+                <span class="icon-color-text demo-menu-icon autotag-menu"
                     data-autotag-scope="text"
                     data-autotag-action="color"></span>
 
-                <span class="icon-color-fill autotag-menu-icon"
+                <span class="icon-color-fill demo-menu-icon autotag-menu"
                     data-autotag-scope="text"
-                    data-autotag-action="fill"></span>
+                    data-autotag-action="background"></span>
 
-                <span class="icon-align-left autotag-menu-icon"
+                <span class="icon-align-left demo-menu-icon autotag-menu"
                     data-autotag-scope="line"
                     data-autotag-action="align-left"></span>
 
-                <span class="icon-align-center autotag-menu-icon"
+                <span class="icon-align-center demo-menu-icon autotag-menu"
                     data-autotag-scope="line"
                     data-autotag-action="align-center"></span>
 
-                <span class="icon-align-right autotag-menu-icon"
+                <span class="icon-align-right demo-menu-icon autotag-menu"
                     data-autotag-scope="line"
                     data-autotag-action="align-right"></span>
 
-                <span class="icon-align-justify autotag-menu-icon"
+                <span class="icon-align-justify demo-menu-icon autotag-menu"
                     data-autotag-scope="line"
                     data-autotag-action="align-justify"></span>
             </div>
-            <div id="demo-notepad" class="demo-input notepad" contentEditable="true">
+            <div id="notepad" class="demo-input demo-notepad autotag-textarea" contentEditable="true">
                 <!-- This content was generated in the notepad -->
                 <p><a class="demo-pronoun" data-tooltip="Pronoun">This</a><a>&nbsp;</a><a>is</a><a>&nbsp;</a><a>a</a><a>&nbsp;</a><a>simple</a><a>&nbsp;</a><a>notepad</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">that</a><a>&nbsp;</a><a>highlights</a><a>&nbsp;</a><a>pronouns</a><a>&nbsp;</a><a>&amp;</a><a>&nbsp;</a><a>hashtags.</a><a>&nbsp;</a></p>
                 <p><a>Try</a><a>&nbsp;</a><a>typing</a><a>&nbsp;</a><a>in</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">something</a><a>&nbsp;</a><a>and</a><a>&nbsp;</a><a>see</a><a>&nbsp;</a><a>how</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">it</a><a>&nbsp;</a><a>works!</a></p>
@@ -114,17 +114,9 @@
                 ignoreReturnKey: false
             };
 
-            var $plugin = $('#demo-notepad').autotag(demo_config);
-
-            // Wire the menu in!
-            $('#demo-menubar').delegate('.autotag-menu-icon', 'click', function() {
-                var scope = $(this).data('autotag-scope');
-                var action = $(this).data('autotag-action');
-
-                // scope can be 'editor', 'line' or 'text'.
-                $plugin.applyStyle(this, action, scope);
-            });
-
+            var notepad = document.getElementById('notepad');
+            var menubar = document.getElementById('menubar');
+            new Autotag(notepad, demo_config).attachMenubar(menubar);
         });
     </script>
 </body>
