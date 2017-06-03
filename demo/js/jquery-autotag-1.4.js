@@ -246,7 +246,7 @@ Autotag = (function() {
                     if (value) {
                         tag.style[action] = value;
                     } else {
-                        tag.classList.toggle('autotag' + action);
+                        tag.classList.toggle('autotag-' + action);
                     }
                 }
             }
@@ -726,7 +726,6 @@ Autotag = (function() {
                         fixLine();
                     }
                     paragraphize(getLine(), true);
-
                 } else if (isReturnKey(code)) {
                     processReturnKey();
                 } else if (isPrintableKey(code)) {
