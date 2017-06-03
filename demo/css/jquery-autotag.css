@@ -10,6 +10,16 @@
     word-break: break-all;
 }
 
+::-moz-selection {
+    color: #FFF;
+    background: rgb(81, 120, 225);
+}
+
+::selection {
+    color: #FFF;
+    background: rgb(81, 120, 225);
+}
+
 /* Prevent outlines on contenteditable items in IE. */
 [contenteditable]:focus,
 [contenteditable] > p > a:focus {

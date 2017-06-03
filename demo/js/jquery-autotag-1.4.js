@@ -52,6 +52,8 @@ Autotag = (function() {
         // Stores the last selection made in the editor.
         var selectionRange;
 
+        var continuingStyle;
+
         // The wrapper element tagname.
         var tagNodeName = 'a';
 
@@ -113,6 +115,9 @@ Autotag = (function() {
         var createBreakNode = function() {
             var node = document.createElement(tagNodeName);
             node.appendChild(document.createElement('br'));
+            if (continuingStyle) {
+                node.setAttribute('style', continuingStyle);
+            }
             return node;
         };
 
@@ -481,6 +486,14 @@ Autotag = (function() {
                 var offset = range.endOffset;
                 fixText(container, offset);
 
+
+                var refTag = container.parentNode;
+
+                // if (continuingStyle) {
+                //     refTag.setAttribute('style', continuingStyle);
+                //     continuingStyle = null;
+                // }
+
                 var parts = splitter(container.nodeValue || '');
 
                 // Trim empty values from the array.
@@ -489,7 +502,6 @@ Autotag = (function() {
 
                 logToConsole(parts, 'splitter');
 
-                var refTag = container.parentNode;
                 if (numparts > 1) {
                     // Prevent caret jump in Safari by hiding the original node.
                     refTag.style.display = 'none';
@@ -497,6 +509,8 @@ Autotag = (function() {
                     var newTag, length;
                     for (var i = 0; i < numparts; i++) {
                         newTag = createTagNode(parts[i]);
+                        newTag.setAttribute('style', refTag.getAttribute('style'));
+                        newTag.style.display = 'inline';
                         decorator(newTag, newTag.firstChild.nodeValue);
                         refTag.parentNode.insertBefore(newTag, refTag.nextSibling);
 
@@ -617,6 +631,14 @@ Autotag = (function() {
             return setSelection(node, offset, node, offset);
         };
 
+        var setContinuingStyle = function() {
+            var container = getRange().endContainer;
+            var tag = isTag(container) && container ||
+                isText(container) && container.parentNode;
+            continuingStyle =
+                tag && tag.getAttribute('style') || continuingStyle;
+        };
+
         var setSelection = function(startContainer, startOffset, endContainer, endOffset) {
             var range;
             if (startContainer && endContainer) {
@@ -680,9 +702,13 @@ Autotag = (function() {
                 var code = getKeyCode(e);
                 if (isDeleteKey(code)) {
                     fixCaretPosition();
-                } else if (isReturnKey(code) && ignoreReturnKey) {
-                    e.preventDefault();
-                    doOnReturnKey();
+                } else if (isReturnKey(code)) {
+                    if (ignoreReturnKey) {
+                        e.preventDefault();
+                        doOnReturnKey();
+                    } else {
+                        setContinuingStyle();
+                    }
                 } else if (e.metaKey && isFormatKey(code)) {
                     e.preventDefault();
                     formatSelection(code);
@@ -753,13 +779,12 @@ Autotag = (function() {
         };
 
         var performMenuAction = function(menu) {
-            var scope = menu.dataset.autotagScope;
             var action = menu.dataset.autotagAction;
             if (action == 'color' || action == 'background') {
                 createPalette(menu);
                 resetRange(selectionRange);
             } else {
-                formatSelection(action, scope);
+                formatSelection(action, menu.dataset.autotagScope);
             }
         };
 
