@@ -63,10 +63,20 @@ Autotag = (function() {
 
         // Map keeyboard controls to format options since we override them.
         var styleKeyMap = {
-            66: 'bold',
-            73: 'italic',
-            85: 'underline'
+            66: 'font-weight:bold',
+            73: 'font-style:italic',
+            85: 'text-decoration:underline'
         };
+
+        // var styleTypeMap = {
+        //     'align-left': 'textAlign',
+        //     'align-center': 'textAlign',
+        //     'align-right': 'textAlign',
+        //     'align-justify': 'textAlign',
+        //     'bold': 'fontWeight',
+        //     'italic': 'fontStyle',
+        //     'underline': 'textDecoration'
+        // };
 
         // Dump logs for testing.
         function logToConsole (data, msg) {
@@ -234,48 +244,40 @@ Autotag = (function() {
         // Applies the style corresponding to the key to the provided
         // node. Key can either be a keyboard key code or a style key.
         // Scope can be 'editor', 'line' or 'text'.
-        var formatSelection = function(key, scope, value) {
+        var formatSelection = function(scope, style, action) {
             if (selectionRange) {
                 scope = (typeof scope === 'undefined') ? 'text' : scope;
                 var action = styleKeyMap[key] || key;
                 if (action) {
+                    var nodes;
                     if (scope == 'editor') {
-                        formatEditor(className);
+                        // Do nothing for now.
                     } else if (scope == 'line') {
-                        formatLine(getLinesInRange(selectionRange), action, value);
-                    } else {
-                        formatText(getTagsInRange(selectionRange), action, value);
+                        // formatLine(getLinesInRange(selectionRange), action, value);
+                        nodes = getLinesInRange(selectionRange);
+                    } else if (scope == 'text') {
+                        // formatText(getTagsInRange(selectionRange), action, value);
+                        nodes = getTagsInRange(selectionRange);
+                    }
+
+                    for (var node, i = 0; i < nodes.length; i++) {
+                        if ((node = nodes[i])) {
+                            if (value) {
+                                node.style[action] = value;
+                            } else {
+                                var property = styleTypeMap[action];
+                                if (node.style[property] == action) {
+                                    node.style[property] = '';
+                                } else {
+                                    node.style[property] = action;
+                                }
+                            }
+                        }
                     }
                 }
                 resetRange(selectionRange);
             }
         };
-
-        var formatLine = function(lines, action, value) {
-            for (var line, i = 0; i < lines.length; i++) {
-                if ((line = lines[i])) {
-                    if (value) {
-                        line.style[action] = value;
-                    } else {
-                        line.setAttribute('class', 'autotag-' + action);
-                    }
-                }
-            }
-        };
-
-        var formatText = function(tags, action, value) {
-            for (var tag, i = 0; i < tags.length; i++) {
-                if ((tag = tags[i])) {
-                    if (value) {
-                        tag.style[action] = value;
-                    } else {
-                        tag.classList.toggle('autotag-' + action);
-                    }
-                }
-            }
-        };
-
-        var formatEditor = function(className) {};
 
         var getFirstLine = function() {
             return editor.querySelector('p:first-child');
@@ -694,18 +696,12 @@ Autotag = (function() {
         });
 
         document.addEventListener('selectionchange', debounce(function(e) {
-            var range = getRange();
-            selectionRange = !isCaret(range) && range || selectionRange;
-            if (selectionRange) {
-                editorMenubar.classList.add('autotag-menubar-active');
-            } else {
-                editorMenubar.classList.remove('autotag-menubar-active');
-            }
+            selectionRange = getRange();
         }, 250));
 
         editor.addEventListener('click', function(e) {
             removeNode(activeSubmenu);
-            selectionRange = null;
+            selectionRange = getRange();
             if (doBeforeClick()) {
                 fixEditor();
                 doAfterClick();
@@ -713,6 +709,7 @@ Autotag = (function() {
         });
 
         editor.addEventListener('focus', function(e) {
+            selectionRange = getRange();
             fixEditor();
         });
 
@@ -734,7 +731,7 @@ Autotag = (function() {
                     }
                 } else if (e.metaKey && isFormatKey(code)) {
                     e.preventDefault();
-                    formatSelection(code);
+                    formatSelection('text', styleKeyMap[code]);
                 }
             }
         });
@@ -782,7 +779,6 @@ Autotag = (function() {
         var createPalette = function(menu) {
             var palette = document.createElement('div');
             palette.className = 'autotag-palette';
-            // menu.parentNode.insertBefore(palette, menu);
             menu.appendChild(palette);
 
             // Color palette
@@ -806,10 +802,14 @@ Autotag = (function() {
         var performMenuAction = function(menu) {
             removeNode(activeSubmenu);
             var action = menu.dataset.autotagAction;
-            if (action == 'color' || action == 'background') {
+            if (action == 'submenu') {
                 createPalette(menu);
             } else {
-                formatSelection(action, menu.dataset.autotagScope);
+                formatSelection(
+                    menu.dataset.autotagStyle,
+                    menu.dataset.autotagScope,
+                    action
+                );
             }
         };
 
@@ -820,14 +820,15 @@ Autotag = (function() {
                     editorMenubar.addEventListener('click', function(e) {
                         if (selectionRange) {
                             resetRange(selectionRange);
+
                             var target = e.target;
                             if (target.classList.contains('autotag-menu')) {
                                 performMenuAction(target);
                             } else if (target.classList.contains('autotag-color')) {
-                                var color = target.style.color;
-                                var action = activeSubmenu.parentNode.dataset.autotagAction;
+                                var color = target.style.backgroundColor;
+                                var style = activeSubmenu.parentNode.dataset.autotagStyle;
                                 removeNode(activeSubmenu);
-                                formatSelection(action, 'text', color);
+                                formatSelection(style + ':' + color, 'text', 'set');
                             }
                         }
                     });

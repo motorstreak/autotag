@@ -106,29 +106,19 @@ body {
     margin-bottom: 33px;
     background: #F5F5F5;
     position: relative;
-    color: #999;
+    color: #000;
 }
 
-.demo-menu-icon {
+.demo-menu {
     font-size: 1.8em;
     padding: 10px 6px;
     flex: 0 1 40px;
     text-align: center;
-}
-
-.autotag-menubar-active {
-    color: #000;
-    cursor: pointer;
     border-radius: 4px;
-    box-shadow: 0 0 1px #DDD;
 }
 
-.autotag-menubar-active:hover {
-    color: #000;
-}
-
-.autotag-menubar-active > .autotag-menu:hover {
-    background-color: #FFF;
+.demo-menu:hover {
+    box-shadow: 0 0 2px 0px #999;
 }
 
 .demo-notepad {
