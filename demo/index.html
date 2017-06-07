@@ -4,31 +4,28 @@
     <!-- IE11 does support addEventListener(). Disable compatibility mode. -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-
     <!-- Load a custom font -->
     <link href="https://fonts.googleapis.com/css?family=Caveat" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,600" rel="stylesheet">
 
     <!-- The main js library -->
-    <script src="./js/jquery-autotag-1.4.js"></script>
+    <script src="../src/js/jquery-autotag-1.4.js"></script>
 
     <!-- Required for input area to appear correctly across browsers -->
-    <link rel="stylesheet" type="text/css" href="./css/jquery-autotag.css">
+    <link rel="stylesheet" type="text/css" href="./../src/css/jquery-autotag.css">
+    <link rel="stylesheet" type="text/css" href="./css/icons.css">
 
     <!-- Demo page styles -->
     <link rel="stylesheet" type="text/css" href="./css/demo.css">
     <link rel="stylesheet" type="text/css" href="./css/tooltip.css">
-    <link rel="stylesheet" type="text/css" href="./css/notepad.css">
-    <link rel="stylesheet" type="text/css" href="./css/icons.css">
-    <link rel="stylesheet" type="text/css" href="./css/menu.css">
+
 </head>
 
 <body>
     <div class="page-header">
-        <div class="page-title">jquery-autotag.js</div>
+        <div class="page-title">autotag.js</div>
         <div class="page-msg">
-            A simple and lightweight (~5kb) text formatter plugin in pure Javascript.
+            A simple and lightweight (~8kb) text formatter built in plain Javascript.
         </div>
     </div>
 
@@ -62,19 +59,39 @@
 
                 <span class="icon-align-left demo-menu autotag-menu"
                     data-autotag-scope="line"
-                    data-autotag-style="text-align:left"></span>
+                    data-autotag-style="text-align: left"></span>
 
                 <span class="icon-align-center demo-menu autotag-menu"
                     data-autotag-scope="line"
-                    data-autotag-style="text-align:center"></span>
+                    data-autotag-style="text-align: center"></span>
 
                 <span class="icon-align-right demo-menu autotag-menu"
                     data-autotag-scope="line"
-                    data-autotag-style="text-align:right"></span>
+                    data-autotag-style="text-align: right"></span>
 
                 <span class="icon-align-justify demo-menu autotag-menu"
                     data-autotag-scope="line"
-                    data-autotag-style="text-align:justify"></span>
+                    data-autotag-style="text-align: justify"></span>
+
+                <span class="icon-indent-right demo-menu autotag-menu"
+                    data-autotag-scope="line"
+                    data-autotag-action="increment"
+                    data-autotag-style="margin-left: 20px"></span>
+
+                <span class="icon-indent-left demo-menu autotag-menu"
+                    data-autotag-scope="line"
+                    data-autotag-action="decrement"
+                    data-autotag-style="margin-left: 20px"></span>
+
+                <span class="icon-list-bulleted demo-menu autotag-menu"
+                    data-autotag-scope="line"
+                    data-autotag-action="toggle"
+                    data-autotag-style="display:list-item; list-style-type:disc; margin-left: 60px;"></span>
+
+                <span class="icon-list-numbered demo-menu autotag-menu"
+                    data-autotag-scope="line"
+                    data-autotag-action="toggle"
+                    data-autotag-style="display: list-item; list-style-type: decimal; margin-left: 60px;"></span>
             </div>
             <div id="notepad" class="demo-input demo-notepad autotag-textarea" contentEditable="true">
                 <!-- This content was generated in the notepad -->
@@ -85,44 +102,43 @@
     </div>
 
     <script type="text/javascript">
-        $(document).ready(function() {
-            var pronouns = [
-                'your', 'I', 'they', 'their', 'we', 'who', 'them', 'its', 'our', 'my',
-                'those', 'he', 'us', 'her', 'something', 'me', 'yourself', 'someone',
-                'everything', 'itself', 'everyone', 'themselves', 'anyone', 'him',
-                'whose', 'myself', 'everybody', 'ourselves', 'himself', 'somebody',
-                'yours', 'herself', 'whoever', 'you', 'that', 'it', 'this', 'what',
-                'which', 'these', 'his', 'she', 'lot', 'anything', 'whatever', 'nobody',
-                'none', 'mine', 'anybody'
-            ];
+          var pronouns = [
+              'your', 'I', 'they', 'their', 'we', 'who', 'them', 'its', 'our', 'my',
+              'those', 'he', 'us', 'her', 'something', 'me', 'yourself', 'someone',
+              'everything', 'itself', 'everyone', 'themselves', 'anyone', 'him',
+              'whose', 'myself', 'everybody', 'ourselves', 'himself', 'somebody',
+              'yours', 'herself', 'whoever', 'you', 'that', 'it', 'this', 'what',
+              'which', 'these', 'his', 'she', 'lot', 'anything', 'whatever', 'nobody',
+              'none', 'mine', 'anybody'
+          ];
 
-            var demo_config = {
-                decorator: function(node, text) {
-                    text = text.replace(/,$/, '').toLowerCase();
-                    if (pronouns.indexOf(text) >= 0) {
-                        node.setAttribute('class', 'demo-pronoun');
-                        node.setAttribute('data-tooltip', 'Pronoun');
+          var demo_config = {
+              decorator: function(node, text) {
+                  text = text.replace(/,$/, '').toLowerCase();
+                  if (pronouns.indexOf(text) >= 0) {
+                      node.setAttribute('class', 'demo-pronoun');
+                      node.setAttribute('data-tooltip', 'Pronoun');
 
-                    } else if (text.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/)) {
-                        node.setAttribute('class', 'demo-url');
-                    } else if (text.match(/^#[\w]{2}[\w]*$/)) {
-                        node.setAttribute('class', 'demo-hash-tag');
-                    } else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
-                        node.setAttribute('class', 'demo-plus-sign');
-                    } else {
-                        // Always remember to clean the node!
-                        node.removeAttribute('class');
-                        node.removeAttribute('data-tooltip');
-                    }
-                },
-                trace: false,
-                ignoreReturnKey: false
-            };
+                  } else if (text.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/)) {
+                      node.setAttribute('class', 'demo-url');
+                  } else if (text.match(/^#[\w]{2}[\w]*$/)) {
+                      node.setAttribute('class', 'demo-hash-tag');
+                  } else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
+                      node.setAttribute('class', 'demo-plus-sign');
+                  } else {
+                      // Always remember to clean the node!
+                      node.removeAttribute('class');
+                      node.removeAttribute('data-tooltip');
+                  }
+              },
+              trace: false,
+              ignoreReturnKey: false
+          };
 
-            var notepad = document.getElementById('notepad');
-            var menubar = document.getElementById('menubar');
-            new Autotag(notepad, demo_config).attachMenubar(menubar);
-        });
+          var notepad = document.getElementById('notepad');
+          var menubar = document.getElementById('menubar');
+
+          new Autotag(notepad, demo_config).attachMenubar(menubar);
     </script>
 </body>
 

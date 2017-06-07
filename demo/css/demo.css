@@ -125,7 +125,7 @@ body {
     margin: 0;
     padding: 0 12%;
 	/* gradients - second red border, first red border, top white space, blue lines */
-    background-image:
+    /*background-image:
         -webkit-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
         -webkit-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
         -webkit-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
@@ -150,7 +150,33 @@ body {
         linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
         repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
 
+    -webkit-background-size: 1px, 1px, auto, auto 40px;
+    -moz-background-size: 1px, 1px, auto, auto 40px;
     background-size: 1px, 1px, auto, auto 40px;
+
     background-repeat: repeat-y, repeat-y, no-repeat, repeat;
-    background-position: 90% 0px, 10% 0px, 0px 0px, 0px 0px;
+    background-position: 90% 0px, 10% 0px, 0px 0px, 0px 0px;*/
+
+  background-image:
+    -webkit-linear-gradient(0deg, transparent 5em, rgba(255,0,0,.2) 0, transparent 5.1em),
+    -webkit-linear-gradient(rgba(200,200,200,.3) 1px, transparent 0);
+  background-image:
+   -moz-linear-gradient(0deg, transparent 5em, rgba(255,0,0,.2) 0, transparent 5.1em),
+   -moz-linear-gradient(rgba(200,200,200,.3) 1px, transparent 0);
+  background-image:
+   -o-linear-gradient(0deg, transparent 5em, rgba(255,0,0,.2) 0, transparent 5.1em),
+   -o-linear-gradient(rgba(200,200,200,.3) 1px, transparent 0);
+  background-image:
+   -ms-linear-gradient(0deg, transparent 5em, rgba(255,0,0,.2) 0, transparent 5.1em),
+   -ms-linear-gradient(rgba(200,200,200,.3) 1px, transparent 0);
+
+  -webkit-background-size: 100% 40px;
+  -moz-background-size: 100% 40px;
+
+  /* In a perfect world... */
+  background-image:
+    linear-gradient(0deg, transparent 5em, rgba(255,0,0,.2) 0, transparent 5.1em),
+    linear-gradient(rgba(200,200,200,.3) 1px, transparent 0);
+
+  background-size: 100% 40px;
 }

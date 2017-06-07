@@ -1,13 +1,19 @@
 
-/* ------------- NOTICE ----------------- */
-/* The below are browser specific hacks.  */
-/* Make sure to include them in your CSS. */
-
 /* Deal with IE paragraph style within the editor. */
 [contenteditable] > p,
 [contenteditable] > p > a {
     margin: 0;
     word-break: break-all;
+}
+
+::-moz-selection {
+    color: #FFF;
+    background: rgb(81, 120, 225);
+}
+
+::selection {
+    color: #FFF;
+    background: rgb(81, 120, 225);
 }
 
 /* Prevent outlines on contenteditable items in IE. */
@@ -16,33 +22,23 @@
     outline : 0;
 }
 
-/* Styles that apply to words onkeys such as Cmd+b (Win+b) */
-.autotag-bold {
-    font-weight: bold;
+.autotag-palette {
+    padding: 10px;
+    background-color: #FFF;
+    position: absolute;
+    top: 70px;
+    z-index: 1000;
+    box-shadow: 1px 1px 3px #CCC;
 }
 
-.autotag-italic {
-    font-style: italic;
+.autotag-palette > div > span {
+    font: 12px/12px 'helvetica';
+    cursor: pointer;
+    padding: 7px;
+    display: inline-block;
+    margin: 1px;
 }
 
-.autotag-underlined {
-    text-decoration: underline;
+.autotag-palette > div > span:hover {
+    box-shadow: 0px 0px 1px #000;
 }
-
-.autotag-align-left {
-    text-align: left;
-}
-
-.autotag-align-center {
-    text-align: center;
-}
-
-.autotag-align-right {
-    text-align: right;
-}
-
-.autotag-align-justify {
-    text-align: justify;
-}
-
-/* ---------- NOTICE END --------------- */

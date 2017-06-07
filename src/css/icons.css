@@ -45,8 +45,20 @@
 .icon-color-text:before {
   content: "\e23c";
 }
+.icon-indent-left:before {
+  content: "\e23d";
+}
+.icon-indent-right:before {
+  content: "\e23e";
+}
 .icon-italic:before {
   content: "\e23f";
+}
+.icon-list-bulleted:before {
+  content: "\e241";
+}
+.icon-list-numbered:before {
+  content: "\e242";
 }
 .icon-underlined:before {
   content: "\e249";
