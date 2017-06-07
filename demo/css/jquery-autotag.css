@@ -10,10 +10,49 @@
     word-break: break-all;
 }
 
+::-moz-selection {
+    color: #FFF;
+    background: rgb(81, 120, 225);
+}
+
+::selection {
+    color: #FFF;
+    background: rgb(81, 120, 225);
+}
+
 /* Prevent outlines on contenteditable items in IE. */
 [contenteditable]:focus,
 [contenteditable] > p > a:focus {
     outline : 0;
+}
+
+.autotag-palette {
+    padding: 10px;
+    background-color: #FFF;
+    position: absolute;
+    top: 70px;
+    z-index: 1000;
+    box-shadow: 1px 1px 3px #CCC;
+}
+
+.autotag-palette > div > span {
+    font: 12px/12px 'helvetica';
+    cursor: pointer;
+    padding: 7px;
+    display: inline-block;
+    margin: 1px;
+}
+
+.autotag-palette > div > span:hover {
+    box-shadow: 0px 0px 1px #000;
+}
+
+.autotag-menubar-active {
+    /* Added when a selection is present */
+}
+
+.autotag-menubar-active:hover {
+    /* If a selection is active, do on hover */
 }
 
 /* Styles that apply to words onkeys such as Cmd+b (Win+b) */
@@ -25,7 +64,7 @@
     font-style: italic;
 }
 
-.autotag-underlined {
+.autotag-underline {
     text-decoration: underline;
 }
 

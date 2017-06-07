@@ -21,6 +21,7 @@
     <link rel="stylesheet" type="text/css" href="./css/tooltip.css">
     <link rel="stylesheet" type="text/css" href="./css/notepad.css">
     <link rel="stylesheet" type="text/css" href="./css/icons.css">
+    <link rel="stylesheet" type="text/css" href="./css/menu.css">
 </head>
 
 <body>
@@ -32,19 +33,50 @@
     </div>
 
     <div class="demos">
-        <div class="demo-container">
-            <div id="demo-menubar" class="demo-menu">
-                <span class="icon-bold demo-menu-icon"></span>
-                <span class="icon-italic demo-menu-icon"></span>
-                <span class="icon-underlined demo-menu-icon"></span>
-                <span class="icon-color-text demo-menu-icon"></span>
-                <span class="icon-color-fill demo-menu-icon"></span>
-                <span class="icon-align-left demo-menu-icon" data-autotag-scope="line"></span>
-                <span class="icon-align-center demo-menu-icon" data-autotag-scope="line"></span>
-                <span class="icon-align-right demo-menu-icon" data-autotag-scope="line"></span>
-                <span class="icon-align-justify demo-menu-icon" data-autotag-scope="line"></span>
+        <div class="demo-container autotag-editor">
+            <div id="menubar" class="demo-menubar autotag-menubar">
+                <span class="icon-bold demo-menu autotag-menu"
+                    data-autotag-scope="text"
+                    data-autotag-action="toggle"
+                    data-autotag-style="font-weight:bold"></span>
+
+                <span class="icon-italic demo-menu autotag-menu"
+                    data-autotag-scope="text"
+                    data-autotag-action="toggle"
+                    data-autotag-style="font-style:italic"></span>
+
+                <span class="icon-underlined demo-menu autotag-menu"
+                    data-autotag-scope="text"
+                    data-autotag-action="toggle"
+                    data-autotag-style="text-decoration:underline"></span>
+
+                <span class="icon-color-text demo-menu autotag-menu"
+                    data-autotag-scope="text"
+                    data-autotag-action="submenu"
+                    data-autotag-style="color"></span>
+
+                <span class="icon-color-fill demo-menu autotag-menu"
+                    data-autotag-scope="text"=
+                    data-autotag-action="submenu"
+                    data-autotag-style="background-color"></span>
+
+                <span class="icon-align-left demo-menu autotag-menu"
+                    data-autotag-scope="line"
+                    data-autotag-style="text-align:left"></span>
+
+                <span class="icon-align-center demo-menu autotag-menu"
+                    data-autotag-scope="line"
+                    data-autotag-style="text-align:center"></span>
+
+                <span class="icon-align-right demo-menu autotag-menu"
+                    data-autotag-scope="line"
+                    data-autotag-style="text-align:right"></span>
+
+                <span class="icon-align-justify demo-menu autotag-menu"
+                    data-autotag-scope="line"
+                    data-autotag-style="text-align:justify"></span>
             </div>
-            <div id="demo-notepad" class="demo-input notepad" contentEditable="true">
+            <div id="notepad" class="demo-input demo-notepad autotag-textarea" contentEditable="true">
                 <!-- This content was generated in the notepad -->
                 <p><a class="demo-pronoun" data-tooltip="Pronoun">This</a><a>&nbsp;</a><a>is</a><a>&nbsp;</a><a>a</a><a>&nbsp;</a><a>simple</a><a>&nbsp;</a><a>notepad</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">that</a><a>&nbsp;</a><a>highlights</a><a>&nbsp;</a><a>pronouns</a><a>&nbsp;</a><a>&amp;</a><a>&nbsp;</a><a>hashtags.</a><a>&nbsp;</a></p>
                 <p><a>Try</a><a>&nbsp;</a><a>typing</a><a>&nbsp;</a><a>in</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">something</a><a>&nbsp;</a><a>and</a><a>&nbsp;</a><a>see</a><a>&nbsp;</a><a>how</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">it</a><a>&nbsp;</a><a>works!</a></p>
@@ -87,16 +119,9 @@
                 ignoreReturnKey: false
             };
 
-            var $plugin = $('#demo-notepad').autotag(demo_config);
-
-            // Wire the menu in!
-            $('#demo-menubar').delegate('.demo-menu-icon', 'click', function() {
-                var style = this.className.split(' ')[0].replace('icon-', '');
-                var scope = $(this).data('autotag-scope');
-
-                // scope can be 'editor', 'line' or 'text'.
-                $plugin.applyStyle(style, scope);
-            });
+            var notepad = document.getElementById('notepad');
+            var menubar = document.getElementById('menubar');
+            new Autotag(notepad, demo_config).attachMenubar(menubar);
         });
     </script>
 </body>

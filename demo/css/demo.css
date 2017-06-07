@@ -47,32 +47,7 @@ body {
     padding : 100px;
     height: 100%;
 }
-.demo-menu {
-    padding: 10px 0;
-    display: flex;
-    display : -webkit-flex;
-    flex-flow: row wrap;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1px solid #EEE;
-    margin-bottom: 33px;
-    background: #F5F5F5;
-}
 
-.demo-menu-icon {
-    font-size: 1.8em;
-    padding: 10px 6px;
-    flex: 0 1 40px;
-    text-align: center;
-    color: #555;
-}
-
-.demo-menu-icon:hover {
-    background: #FFF;
-    border-radius: 4px;
-    box-shadow: 0 0 1px #DDD;
-    color: #000;
-}
 
 .demo-plus-sign {
     color: brown;
@@ -118,4 +93,64 @@ body {
 
 .demo-input > p {
     line-height: 40px;
+}
+
+.demo-menubar {
+    padding: 10px 0;
+    display: flex;
+    display : -webkit-flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #EEE;
+    margin-bottom: 33px;
+    background: #F5F5F5;
+    position: relative;
+    color: #000;
+}
+
+.demo-menu {
+    font-size: 1.8em;
+    padding: 10px 6px;
+    flex: 0 1 40px;
+    text-align: center;
+    border-radius: 4px;
+}
+
+.demo-menu:hover {
+    box-shadow: 0 0 2px 0px #999;
+}
+
+.demo-notepad {
+    margin: 0;
+    padding: 0 12%;
+	/* gradients - second red border, first red border, top white space, blue lines */
+    background-image:
+        -webkit-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
+        -webkit-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
+        -webkit-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
+
+    background-image:
+        -moz-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
+        -moz-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
+        -moz-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
+
+    background-image:
+        -ms-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
+        -ms-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
+        -ms-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
+
+    background-image:
+        -o-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
+        -o-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
+        -o-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
+
+    background-image:
+        linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
+        linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
+        repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
+
+    background-size: 1px, 1px, auto, auto 40px;
+    background-repeat: repeat-y, repeat-y, no-repeat, repeat;
+    background-position: 90% 0px, 10% 0px, 0px 0px, 0px 0px;
 }
