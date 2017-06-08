@@ -229,13 +229,10 @@ Autotag = (function() {
       return node;
     };
 
-    // Applies the style corresponding to the key to the provided
-    // node. Key can either be a keyboard key code or a style key.
-    // Scope can be 'editor', 'line' or 'text'.
-    var formatSelection = function(style, scope, action) {
-      if (selectionRange) {
-        scope = (typeof scope === 'undefined') ? 'text' : scope;
-        action = (typeof action === 'undefined') ? 'set' : action;
+    var formatSelection = function(dataset) {
+      if (selectionRange && dataset) {
+        scope = dataset.autotagScope || 'text';
+        // action = (typeof action === 'undefined') ? 'set' : action;
 
         var nodes;
         if (scope == 'editor') {
@@ -245,49 +242,56 @@ Autotag = (function() {
         } else if (scope == 'text') {
           nodes = getTagsInRange(selectionRange);
         }
-        applyStyle(nodes, style, action);
+
+        for (var key in dataset) {
+          if (dataset.hasOwnProperty(key) &&
+            key.match(/^autotag(Toggle|Set|Unset|Increment|Decrement|Initialize)/)) {
+            for (var i = 0; i < nodes.length; i++) {
+              applyStyle(nodes[i], dataset[key].split(/\s*;\s*/), key);
+            }
+          }
+        }
         resetRange(selectionRange);
       }
     };
 
     var getPixelAmount = function(value) {
-      return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0)
+      return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0);
     };
 
-    var applyStyle = function(nodes, style, action) {
-      for (var node, i = 0; i < nodes.length; i++) {
-        if ((node = nodes[i])) {
-          var declrations = style.split(/\s*;\s*/);
+    var applyStyle = function(node, declrations, action) {
 
-          for (var j = 0; j < declrations.length; j++) {
-            var declaration = declrations[j].split(/\s*:\s*/);
-            var property = declaration[0];
-            var value = declaration[1];
 
-            var curValue = node.style.getPropertyValue(property);
+      for (var j = 0; j < declrations.length; j++) {
+        var declaration = declrations[j].split(/\s*:\s*/);
+        var property = declaration[0];
+        var value = declaration[1];
 
-            if (action == 'unset' ||
-              action == 'toggle' && curValue.length > 0) {
-              node.style.removeProperty(property);
+        var curValue = node.style.getPropertyValue(property);
 
-            } else if (action == 'set' ||
-              action == 'toggle' && curValue.length === 0){
-              node.style.setProperty(property, value);
+        if (action == 'autotagUnset' ||
+          action == 'autotagToggle' && curValue.length > 0) {
+          node.style.removeProperty(property);
 
-            } else {
-              var amount = getPixelAmount(value);
-              var curAmount = getPixelAmount(curValue);
+        } else if (action == 'autotagSet' ||
+          (action == 'autotagInitialize' || action == 'autotagToggle') &&
+          curValue.length === 0) {
+          node.style.setProperty(property, value);
 
-              if (action == 'increment') {
-                curAmount += amount;
-              } else {
-                curAmount -= amount;
-              }
+        } else {
+          var amount = getPixelAmount(value);
+          var curAmount = getPixelAmount(curValue);
 
-              // Prevent the indentation from spilling out.
-              curAmount = curAmount < 0 ? 0 : curAmount;
-              node.style.setProperty(property, curAmount + 'px');
-            }
+          if (action == 'autotagIncrement') {
+            curAmount += amount;
+          } else if (action == 'autotagDecrement') {
+            curAmount -= amount;
+          }
+
+          if (curAmount <= 0) {
+            node.style.removeProperty(property);
+          } else {
+            node.style.setProperty(property, curAmount + 'px');
           }
         }
       }
@@ -315,7 +319,6 @@ Autotag = (function() {
 
     var getLineNumber = function(line) {
       line = (typeof line === 'undefined') ? getLine() : line;
-
       var lineNumber;
       if (isLine(line)) {
         lineNumber = 1;
@@ -746,7 +749,9 @@ Autotag = (function() {
           }
         } else if (e.metaKey && isFormatKey(code)) {
           e.preventDefault();
-          formatSelection(styleKeyMap[code], 'text');
+          formatSelection({
+            autotagToggle: styleKeyMap[code]
+          });
         }
       }
     });
@@ -817,14 +822,10 @@ Autotag = (function() {
     var performMenuAction = function(menu) {
       removeNode(activeSubmenu);
       var action = menu.dataset.autotagAction;
-      if (action == 'submenu') {
+      if (menu.dataset.autotagPalette) {
         createPalette(menu);
       } else {
-        formatSelection(
-          menu.dataset.autotagStyle,
-          menu.dataset.autotagScope,
-          action
-        );
+        formatSelection(menu.dataset);
 
         // MAke sure to adjust wraps as required.
         paragraphize(getLine(), true);
@@ -844,10 +845,20 @@ Autotag = (function() {
                 performMenuAction(target);
               } else if (target.classList.contains('autotag-color')) {
                 var color = target.style.backgroundColor;
-                var style = activeSubmenu.parentNode.dataset.autotagStyle;
+                var dataset = activeSubmenu.parentNode.dataset;
+
+                var declration;
+                if (dataset.autotagPalette == 'color') {
+                  declaration = 'color: ' + color;
+                } else if (dataset.autotagPalette == 'fill') {
+                  declaration = 'background-color: ' + color;
+                }
+                dataset.autotagSet = declaration;
+                formatSelection(dataset);
                 removeNode(activeSubmenu);
-                formatSelection(style + ':' + color, 'text', 'set');
               }
+            } else {
+              removeNode(activeSubmenu);
             }
           });
         }
