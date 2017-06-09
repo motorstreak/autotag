@@ -42,6 +42,8 @@ Autotag = (function() {
 
   return function(editor, config) {
 
+    var INDENT_SIZE_PX = 40;
+
     var activeSubmenu;
 
     // The line on which the input was captured. This is updated
@@ -60,6 +62,7 @@ Autotag = (function() {
 
     // Map keeyboard controls to format options since we override them.
     var styleKeyMap = {
+      9: 'padding-left: ' + INDENT_SIZE_PX + 'px',
       66: 'font-weight:bold',
       73: 'font-style:italic',
       85: 'text-decoration:underline'
@@ -142,6 +145,37 @@ Autotag = (function() {
       return node;
     };
 
+    var createPalette = function(menu) {
+      var palette = document.createElement('div');
+      palette.className = 'autotag-palette';
+      menu.appendChild(palette);
+
+      // Color palette
+      var row;
+      for (var s = 100, l = 96; s >= 50; s += -5, l += -6) {
+        row = palette.appendChild(document.createElement('div'));
+        for (var h = 0; h < 360; h += 32) {
+          createPaletteCell(row, h, s, l);
+        }
+      }
+
+      // Grayscale palette
+      row = palette.appendChild(document.createElement('div'));
+      for (l = 0; l <= 100; l += 9) {
+        createPaletteCell(row, 0, 0, l);
+      }
+
+      activeSubmenu = palette;
+    };
+
+    var createPaletteCell = function(row, h, s, l) {
+      var cell = document.createElement('span');
+      var hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
+      cell.className = 'autotag-color';
+      cell.style.color = cell.style.background = hsla;
+      row.appendChild(cell);
+    };
+
     var createNewLine = function() {
       var line = createBlockNode();
       editor.appendChild(line);
@@ -163,6 +197,19 @@ Autotag = (function() {
       // space in the element causing all sorts of headache.
       str = str && str.replace(/ /g, '\u00a0') || '';
       return document.createTextNode(str);
+    };
+
+    var deleteTab = function(code) {
+      var range = getRange();
+      if(isCaret(range)) {
+        var node = range.endContainer;
+        var padding = getPixelAmount(node.parentNode.style.paddingLeft);
+        if (padding > 0 && isText(node) && range.startOffset === 0) {
+          formatSelection({ autotagDecrement: styleKeyMap[9] });
+          return true
+        }
+      }
+      return false;
     };
 
     var fixCaretPosition = function() {
@@ -260,8 +307,6 @@ Autotag = (function() {
     };
 
     var applyStyle = function(node, declrations, action) {
-
-
       for (var j = 0; j < declrations.length; j++) {
         var declaration = declrations[j].split(/\s*:\s*/);
         var property = declaration[0];
@@ -396,19 +441,23 @@ Autotag = (function() {
       return line.querySelector('a:nth-child(' + index + ')');
     };
 
+    var getRangeStartTag = function(range) {
+      var node = range.startContainer;
+      return isLine(node) && findTagInLine(node, range.startOffset + 1) ||
+        isTag(node) && node ||
+        isText(node) && node.parentNode;
+    };
+
+    var getRangeEndTag = function(range) {
+      var node = range.endContainer;
+      return isLine(node) && findTagInLine(node, range.endOffset) ||
+        isTag(node) && node ||
+        isText(node) && node.parentNode;
+    };
+
     var getTagsInRange = function(range) {
-      var startNode = range.startContainer;
-      var endNode = range.endContainer;
-
-      var tag =
-        isLine(startNode) && findTagInLine(startNode, range.startOffset + 1) ||
-        isTag(startNode) && startNode ||
-        isText(startNode) && startNode.parentNode;
-
-      var endTag =
-        isLine(endNode) && findTagInLine(endNode, range.endOffset) ||
-        isTag(endNode) && endNode ||
-        isText(endNode) && endNode.parentNode;
+      var tag = getRangeStartTag(range);
+      var endTag = getRangeEndTag(range);
 
       var tags = [tag];
       while (tag && (tag !== endTag)) {
@@ -496,6 +545,10 @@ Autotag = (function() {
       return code == 13;
     };
 
+    var isTabKey = function(code) {
+      return code == 9;
+    };
+
     var isTag = function(node) {
       return node && node.tagName == 'A';
     };
@@ -518,6 +571,18 @@ Autotag = (function() {
         for (var i = 0; i < tagNodes.length; i++) {
           softWrapNode(tagNodes[i]);
         }
+      }
+    };
+
+    var performMenuAction = function(menu) {
+      removeNode(activeSubmenu);
+      var action = menu.dataset.autotagAction;
+      if (menu.dataset.autotagPalette) {
+        createPalette(menu);
+      } else {
+        formatSelection(menu.dataset);
+        // MAke sure to adjust wraps as required.
+        paragraphize(getLine(), true);
       }
     };
 
@@ -616,6 +681,16 @@ Autotag = (function() {
       }
     };
 
+    var processTabKey = function(code) {
+        var range = getRange();
+        if (isCaret(range)) {
+          var tag = range.endContainer.parentNode;
+          splitTag(tag, range.endOffset);
+          setCaret(tag.nextSibling.firstChild, 0);
+          formatSelection({ autotagIncrement: styleKeyMap[code] });
+        }
+    };
+
     var removeAllChildNodes = function(node) {
       while (node && node.hasChildNodes()) {
         node.removeChild(node.lastChild);
@@ -664,6 +739,7 @@ Autotag = (function() {
     // Takes in the current node and sets the cursor location
     // on the first child, if the child is a Text node.
     var setCaret = function(node, offset) {
+      offset = (typeof offset === 'undefined') ? node.length : offset;
       return setSelection(node, offset, node, offset);
     };
 
@@ -685,6 +761,7 @@ Autotag = (function() {
         try {
           range.setStart(startContainer, startOffset);
           range.setEnd(endContainer, endOffset);
+          selectionRange = range;
         } catch (err) {
           // Chrome does not like setting an offset of 1
           // on an empty node.
@@ -709,6 +786,17 @@ Autotag = (function() {
       return node;
     };
 
+    var splitTag = function(tag, index) {
+      var content = tag.textContent;
+      if (content.length > index) {
+        tag.textContent = content.substring(0, index);
+        var newTag = createTagNode(content.substring(index));
+        tag.parentNode.insertBefore(newTag, tag.nextSibling);
+        tag.removeAttribute('class');
+      }
+      return tag;
+    };
+
     editor.addEventListener('dblclick', function(e) {
       selectionRange = getRange();
     });
@@ -718,6 +806,7 @@ Autotag = (function() {
     }, 250));
 
     editor.addEventListener('click', function(e) {
+      console.log(getRange());
       removeNode(activeSubmenu);
       selectionRange = getRange();
       if (doBeforeClick()) {
@@ -740,6 +829,9 @@ Autotag = (function() {
         var code = getKeyCode(e);
         if (isDeleteKey(code)) {
           fixCaretPosition();
+          if (deleteTab(code)) {
+            e.preventDefault();
+          }
         } else if (isReturnKey(code)) {
           if (ignoreReturnKey) {
             e.preventDefault();
@@ -747,11 +839,12 @@ Autotag = (function() {
           } else {
             setContinuingStyle();
           }
+        } else if (isTabKey(code)) {
+          processTabKey(code);
+          e.preventDefault();
         } else if (e.metaKey && isFormatKey(code)) {
           e.preventDefault();
-          formatSelection({
-            autotagToggle: styleKeyMap[code]
-          });
+          formatSelection({ autotagToggle: styleKeyMap[code] });
         }
       }
     });
@@ -788,50 +881,6 @@ Autotag = (function() {
     // Thanks to IE, we have to initialize the editor.
     fixEditor();
 
-    var createPaletteCell = function(row, h, s, l) {
-      var cell = document.createElement('span');
-      var hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
-      cell.className = 'autotag-color';
-      cell.style.color = cell.style.background = hsla;
-      row.appendChild(cell);
-    };
-
-    var createPalette = function(menu) {
-      var palette = document.createElement('div');
-      palette.className = 'autotag-palette';
-      menu.appendChild(palette);
-
-      // Color palette
-      var row;
-      for (var s = 100, l = 96; s >= 50; s += -5, l += -6) {
-        row = palette.appendChild(document.createElement('div'));
-        for (var h = 0; h < 360; h += 32) {
-          createPaletteCell(row, h, s, l);
-        }
-      }
-
-      // Grayscale palette
-      row = palette.appendChild(document.createElement('div'));
-      for (l = 0; l <= 100; l += 9) {
-        createPaletteCell(row, 0, 0, l);
-      }
-
-      activeSubmenu = palette;
-    };
-
-    var performMenuAction = function(menu) {
-      removeNode(activeSubmenu);
-      var action = menu.dataset.autotagAction;
-      if (menu.dataset.autotagPalette) {
-        createPalette(menu);
-      } else {
-        formatSelection(menu.dataset);
-
-        // MAke sure to adjust wraps as required.
-        paragraphize(getLine(), true);
-      }
-    };
-
     return {
       attachMenubar: function(menubar) {
         if (menubar) {
@@ -843,6 +892,7 @@ Autotag = (function() {
               var target = e.target;
               if (target.classList.contains('autotag-menu')) {
                 performMenuAction(target);
+
               } else if (target.classList.contains('autotag-color')) {
                 var color = target.style.backgroundColor;
                 var dataset = activeSubmenu.parentNode.dataset;
@@ -853,6 +903,7 @@ Autotag = (function() {
                 } else if (dataset.autotagPalette == 'fill') {
                   declaration = 'background-color: ' + color;
                 }
+
                 dataset.autotagSet = declaration;
                 formatSelection(dataset);
                 removeNode(activeSubmenu);
