@@ -41,9 +41,6 @@ Autotag = (function() {
   // trace:     Set this to true to see debug messages on the console.
 
   return function(editor, config) {
-
-    var TAB_SIZE_PX = 40;
-
     var activeSubmenu;
 
     // The line on which the input was captured. This is updated
@@ -62,7 +59,6 @@ Autotag = (function() {
 
     // Map keeyboard controls to format options since we override them.
     var styleKeyMap = {
-      9: 'padding-right: ' + TAB_SIZE_PX + 'px',
       66: 'font-weight:bold',
       73: 'font-style:italic',
       85: 'text-decoration:underline'
@@ -193,22 +189,6 @@ Autotag = (function() {
       return document.createTextNode(str);
     };
 
-    var deleteTab = function(code) {
-      var range = getRange();
-      if (isCaret(range)) {
-        var node = range.endContainer;
-        var padding = getPixelAmount(node.parentNode.style.paddingRight);
-        if (padding > 0 && isText(node) && range.startOffset === 0) {
-          formatSelection({ autotagDecrement: styleKeyMap[9] });
-          padding = getPixelAmount(node.parentNode.style.paddingLeft);
-
-          if (padding === 0) removeNode(node.parentNode);
-          return true;
-        }
-      }
-      return false;
-    };
-
     var fixCaretPosition = function() {
       var range = getRange();
       var node = range.endContainer;
@@ -216,7 +196,7 @@ Autotag = (function() {
         if (isBreakTag(node)) {
           setCaret(node, 0);
         } else if (isTag(node)) {
-          setCaret(node.lastChild);
+          setCaret(node.lastChild, 0);
         } else if (isLine(node)) {
           var tags = node.querySelectorAll('a');
           if (tags.length > 0) {
@@ -664,6 +644,7 @@ Autotag = (function() {
         }
         fixEditor();
         processInput();
+        fixCaretPosition();
       }
     };
 
@@ -771,42 +752,15 @@ Autotag = (function() {
       return node;
     };
 
-    // var splitTag = function(tag, index, seperator) {
-    //   var content = tag.textContent;
-    //   if (content.length >= index) {
-    //     tag.textContent = content.substring(0, index);
-    //     tag.removeAttribute('class');
-    //
-    //     var parent = tag.parentNode;
-    //     var endTag;
-    //
-    //     if (seperator) {
-    //       endTag = parent.insertBefore(createTagNode(seperator), tag.nextSibling);
-    //     }
-    //
-    //     var next = content.substring(index);
-    //     if (next.length > 0) {
-    //       endTag = parent.insertBefore(createTagNode(next), tag.nextSibling);
-    //     }
-    //     return endTag;
-    //   }
-    // };
-
-
     var insertTab = function(node, index) {
       var content = node.textContent;
       var parent = node.parentNode;
       var sibling = node.nextSibling;
 
-      var tab = createTagNode(' ');
-      tab.style.paddingRight = TAB_SIZE_PX + 'px';
-
+      var tab = createTagNode('    ');
       if (index === 0) {
-        if (node.previousSibling) {
           parent.insertBefore(tab, node);
           setCaret(node.firstChild, 0);
-        }
-
       } else if (index === node.firstChild.length) {
         if (sibling) {
           parent.insertBefore(tab, sibling);
@@ -857,9 +811,6 @@ Autotag = (function() {
         var code = getKeyCode(e);
         if (isDeleteKey(code)) {
           fixCaretPosition();
-          if (deleteTab(code)) {
-            e.preventDefault();
-          }
         } else if (isReturnKey(code)) {
           if (ignoreReturnKey) {
             e.preventDefault();
@@ -898,6 +849,7 @@ Autotag = (function() {
         }
         doAfterKeypress();
       }
+      console.log(getRange());
     });
 
     editor.addEventListener('paste', function(e) {

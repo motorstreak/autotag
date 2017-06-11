@@ -70,25 +70,26 @@
 
                 <span class="icon-indent-right demo-menu autotag-menu"
                     data-autotag-scope="line"
-                    data-autotag-increment="margin-left: 20px"></span>
+                    data-autotag-increment="margin-left: 25px"></span>
 
                 <span class="icon-indent-left demo-menu autotag-menu"
                     data-autotag-scope="line"
-                    data-autotag-decrement="margin-left: 20px"></span>
+                    data-autotag-decrement="margin-left: 25px"></span>
 
                 <span class="icon-list-bulleted demo-menu autotag-menu"
                     data-autotag-scope="line"
-                    data-autotag-initialize="margin-left: 60px"
+                    data-autotag-initialize="margin-left: 50px"
                     data-autotag-toggle="display:list-item; list-style-type:disc"></span>
 
                 <span class="icon-list-numbered demo-menu autotag-menu"
                     data-autotag-scope="line"
-                    data-autotag-toggle="display: list-item; list-style-type: decimal; margin-left: 60px;"></span>
+                    data-autotag-initialize="margin-left: 50px"
+                    data-autotag-toggle="display: list-item; list-style-type: decimal;"></span>
             </div>
             <div id="notepad" class="demo-input demo-notepad autotag-textarea" contentEditable="true">
                 <!-- This content was generated in the notepad -->
-                <p><a class="demo-pronoun" data-tooltip="Pronoun">This</a><a>&nbsp;</a><a>is</a><a>&nbsp;</a><a>a</a><a>&nbsp;</a><a>simple</a><a>&nbsp;</a><a>notepad</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">that</a><a>&nbsp;</a><a>highlights</a><a>&nbsp;</a><a>pronouns</a><a>&nbsp;</a><a>&amp;</a><a>&nbsp;</a><a>hashtags.</a><a>&nbsp;</a></p>
-                <p><a>Try</a><a>&nbsp;</a><a>typing</a><a>&nbsp;</a><a>in</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">something</a><a>&nbsp;</a><a>and</a><a>&nbsp;</a><a>see</a><a>&nbsp;</a><a>how</a><a>&nbsp;</a><a class="demo-pronoun" data-tooltip="Pronoun">it</a><a>&nbsp;</a><a>works!</a></p>
+                <p><a class="demo-pronoun">This</a><a>&nbsp;</a><a>is</a><a>&nbsp;</a><a>a</a><a>&nbsp;</a><a>simple</a><a>&nbsp;</a><a>notepad</a><a>&nbsp;</a><a class="demo-pronoun">that</a><a>&nbsp;</a><a>highlights</a><a>&nbsp;</a><a>pronouns</a><a>&nbsp;</a><a>&amp;</a><a>&nbsp;</a><a>hashtags.</a><a>&nbsp;</a></p>
+                <p><a>Try</a><a>&nbsp;</a><a>typing</a><a>&nbsp;</a><a>in</a><a>&nbsp;</a><a class="demo-pronoun" >something</a><a>&nbsp;</a><a>and</a><a>&nbsp;</a><a>see</a><a>&nbsp;</a><a>how</a><a>&nbsp;</a><a class="demo-pronoun" >it</a><a>&nbsp;</a><a>works!</a></p>
             </div>
         </div>
     </div>
@@ -109,7 +110,7 @@
                   text = text.replace(/,$/, '').toLowerCase();
                   if (pronouns.indexOf(text) >= 0) {
                       node.setAttribute('class', 'demo-pronoun');
-                      node.setAttribute('data-tooltip', 'Pronoun');
+                      // node.setAttribute('data-tooltip', 'Pronoun');
 
                   } else if (text.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/)) {
                       node.setAttribute('class', 'demo-url');
@@ -120,7 +121,7 @@
                   } else {
                       // Always remember to clean the node!
                       node.removeAttribute('class');
-                      node.removeAttribute('data-tooltip');
+                      // node.removeAttribute('data-tooltip');
                   }
               },
               trace: false,
