@@ -125,6 +125,52 @@ Autotag = (function() {
       return breakNode;
     };
 
+    var applyInstruction = function(nodes, instruction, declarations) {
+      for (var i = 0; i < nodes.length; i++) {
+        if (instruction == 'autotagCommand') {
+          applyCommand(nodes[i], declarations);
+        } else {
+          applyStyle(nodes[i], instruction, declarations);
+        }
+      }
+    };
+
+    var applyStyle = function(node, instruction, declarations) {
+      for (var j = 0; j < declarations.length; j++) {
+        var declaration = declarations[j].split(/\s*:\s*/);
+        var property = declaration[0];
+        var value = declaration[1];
+
+        var curValue = node.style.getPropertyValue(property);
+
+        if (instruction == 'autotagUnset' ||
+          instruction == 'autotagToggle' && curValue.length > 0) {
+          node.style.removeProperty(property);
+
+        } else if (instruction == 'autotagSet' ||
+          (instruction == 'autotagInitialize' || instruction == 'autotagToggle') &&
+          curValue.length === 0) {
+          node.style.setProperty(property, value);
+
+        } else if (instruction.match(/^autotag(Increment|Decrement)/)) {
+          var amount = getPixelAmount(value);
+          var curAmount = getPixelAmount(curValue);
+
+          if (instruction == 'autotagIncrement') {
+            curAmount += amount;
+          } else if (instruction == 'autotagDecrement') {
+            curAmount -= amount;
+          }
+
+          if (curAmount <= 0) {
+            node.style.removeProperty(property);
+          } else {
+            node.style.setProperty(property, curAmount + 'px');
+          }
+        }
+      }
+    };
+
     // A Block node form a line element in the editor.
     var createBlockNode = function() {
       return document.createElement('p');
@@ -266,56 +312,21 @@ Autotag = (function() {
         }
 
         for (var key in dataset) {
-          if (dataset.hasOwnProperty(key) &&
-            key.match(/^autotag(Toggle|Set|Unset|Increment|Decrement|Initialize)/)) {
-            for (var i = 0; i < nodes.length; i++) {
-              applyStyle(nodes[i], dataset[key].split(/\s*;\s*/), key);
-            }
+          if (dataset.hasOwnProperty(key)) {
+            applyInstruction(nodes, key, dataset[key].split(/\s*;\s*/));
           }
         }
         resetRange(selectionRange);
       }
     };
 
+
+
     var getPixelAmount = function(value) {
       return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0);
     };
 
-    var applyStyle = function(node, declrations, action) {
-      for (var j = 0; j < declrations.length; j++) {
-        var declaration = declrations[j].split(/\s*:\s*/);
-        var property = declaration[0];
-        var value = declaration[1];
 
-        var curValue = node.style.getPropertyValue(property);
-
-        if (action == 'autotagUnset' ||
-          action == 'autotagToggle' && curValue.length > 0) {
-          node.style.removeProperty(property);
-
-        } else if (action == 'autotagSet' ||
-          (action == 'autotagInitialize' || action == 'autotagToggle') &&
-          curValue.length === 0) {
-          node.style.setProperty(property, value);
-
-        } else {
-          var amount = getPixelAmount(value);
-          var curAmount = getPixelAmount(curValue);
-
-          if (action == 'autotagIncrement') {
-            curAmount += amount;
-          } else if (action == 'autotagDecrement') {
-            curAmount -= amount;
-          }
-
-          if (curAmount <= 0) {
-            node.style.removeProperty(property);
-          } else {
-            node.style.setProperty(property, curAmount + 'px');
-          }
-        }
-      }
-    };
 
     var getFirstLine = function() {
       return editor.querySelector('p:first-child');
@@ -542,8 +553,8 @@ Autotag = (function() {
 
     var performMenuAction = function(menu) {
       removeNode(activeSubmenu);
-      var action = menu.dataset.autotagAction;
-      if (menu.dataset.autotagPalette) {
+      var palette = menu.dataset.autotagPalette;
+      if (palette && palette.match(/color|fill/)) {
         createPalette(menu);
       } else {
         formatSelection(menu.dataset);
@@ -744,8 +755,8 @@ Autotag = (function() {
           var wrap = node.previousSibling &&
             node.previousSibling.tagName === 'DIV';
           if (!wrap) {
-            var wrapNode = document.createElement('div');
-            node.parentNode.insertBefore(wrapNode, node);
+            node.parentNode.insertBefore(
+              document.createElement('div'), node);
           }
         }
       }
@@ -778,10 +789,6 @@ Autotag = (function() {
 
     document.addEventListener('selectionchange', debounce(function(e) {
       selectionRange = getRange();
-    }, 250));
-
-    window.addEventListener('resize', debounce(function(e) {
-      paragraphize(getLine(), true);
     }, 250));
 
     editor.addEventListener('dblclick', function(e) {
@@ -849,7 +856,6 @@ Autotag = (function() {
         }
         doAfterKeypress();
       }
-      console.log(getRange());
     });
 
     editor.addEventListener('paste', function(e) {
@@ -859,6 +865,10 @@ Autotag = (function() {
         doAfterPaste();
       }
     });
+
+    window.addEventListener('resize', debounce(function(e) {
+      paragraphize(getLine(), true);
+    }, 250));
 
     // Thanks to IE, we have to initialize the editor.
     fixEditor();
@@ -879,7 +889,7 @@ Autotag = (function() {
                 var color = target.style.backgroundColor;
                 var dataset = activeSubmenu.parentNode.dataset;
 
-                var declration;
+                var declaration;
                 if (dataset.autotagPalette == 'color') {
                   declaration = 'color: ' + color;
                 } else if (dataset.autotagPalette == 'fill') {

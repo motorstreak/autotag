@@ -48,7 +48,6 @@ body {
     height: 100%;
 }
 
-
 .demo-plus-sign {
     color: brown;
     background-color: yellow;
@@ -91,10 +90,6 @@ body {
     font-size: 30px;
 }
 
-.demo-input > p {
-    line-height: 40px;
-}
-
 .demo-menubar {
     padding: 10px 0;
     display: flex;
@@ -110,11 +105,12 @@ body {
 }
 
 .demo-menu {
-    font-size: 1.8em;
-    padding: 10px 6px;
-    flex: 0 1 40px;
-    text-align: center;
-    border-radius: 4px;
+  font-size: 1.6em;
+  padding: 8px 2px;
+  flex: 0 1 40px;
+  text-align: center;
+  border-radius: 4px;
+  margin: 0 1px;
 }
 
 .demo-menu:hover {
@@ -122,42 +118,10 @@ body {
 }
 
 .demo-notepad {
-    margin: 0;
-    padding: 0 12%;
-	/* gradients - second red border, first red border, top white space, blue lines */
-    /*background-image:
-        -webkit-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
-        -webkit-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
-        -webkit-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
+  margin: 0;
+  padding: 0 12%;
 
-    background-image:
-        -moz-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
-        -moz-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
-        -moz-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
-
-    background-image:
-        -ms-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
-        -ms-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
-        -ms-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
-
-    background-image:
-        -o-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
-        -o-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
-        -o-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
-
-    background-image:
-        linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
-        linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
-        repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
-
-    -webkit-background-size: 1px, 1px, auto, auto 40px;
-    -moz-background-size: 1px, 1px, auto, auto 40px;
-    background-size: 1px, 1px, auto, auto 40px;
-
-    background-repeat: repeat-y, repeat-y, no-repeat, repeat;
-    background-position: 90% 0px, 10% 0px, 0px 0px, 0px 0px;*/
-
-  background-image:
+  /*background-image:
     -webkit-linear-gradient(0deg, transparent 5em, rgba(255,0,0,.2) 0, transparent 5.1em),
     -webkit-linear-gradient(rgba(200,200,200,.3) 1px, transparent 0);
   background-image:
@@ -173,10 +137,9 @@ body {
   -webkit-background-size: 100% 40px;
   -moz-background-size: 100% 40px;
 
-  /* In a perfect world... */
   background-image:
     linear-gradient(0deg, transparent 5em, rgba(255,0,0,.2) 0, transparent 5.1em),
     linear-gradient(rgba(200,200,200,.3) 1px, transparent 0);
 
-  background-size: 100% 40px;
+  background-size: 100% 40px;*/
 }

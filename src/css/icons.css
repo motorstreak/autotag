@@ -1,10 +1,10 @@
 @font-face {
   font-family: 'autotag';
-  src:  url('../fonts/autotag.eot?dyygnl');
-  src:  url('../fonts/autotag.eot?dyygnl#iefix') format('embedded-opentype'),
-    url('../fonts/autotag.ttf?dyygnl') format('truetype'),
-    url('../fonts/autotag.woff?dyygnl') format('woff'),
-    url('../fonts/autotag.svg?dyygnl#autotag') format('svg');
+  src:  url('../fonts/autotag.eot?meyjqu');
+  src:  url('../fonts/autotag.eot?meyjqu#iefix') format('embedded-opentype'),
+    url('../fonts/autotag.ttf?meyjqu') format('truetype'),
+    url('../fonts/autotag.woff?meyjqu') format('woff'),
+    url('../fonts/autotag.svg?meyjqu#autotag') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -24,6 +24,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.icon-font_download:before {
+  content: "\e167";
+}
 .icon-align-center:before {
   content: "\e234";
 }
@@ -38,6 +41,9 @@
 }
 .icon-bold:before {
   content: "\e238";
+}
+.icon-clear:before {
+  content: "\e239";
 }
 .icon-color-fill:before {
   content: "\e23a";
@@ -54,11 +60,17 @@
 .icon-italic:before {
   content: "\e23f";
 }
+.icon-line-spacing:before {
+  content: "\e240";
+}
 .icon-list-bulleted:before {
   content: "\e241";
 }
 .icon-list-numbered:before {
   content: "\e242";
+}
+.icon-size:before {
+  content: "\e245";
 }
 .icon-underlined:before {
   content: "\e249";
