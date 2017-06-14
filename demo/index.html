@@ -7,6 +7,7 @@
     <!-- Load a custom font -->
     <link href="https://fonts.googleapis.com/css?family=Caveat" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,600" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:300, 700" rel="stylesheet">
 
     <!-- The main js library -->
     <script src="../src/js/jquery-autotag-1.4.js"></script>
@@ -25,7 +26,7 @@
     <div class="page-header">
         <div class="page-title">autotag.js</div>
         <div class="page-msg">
-            A simple and lightweight (~8kb) text formatter built in plain Javascript.
+            A simple and lightweight (~10kb) text formatter built in plain Javascript.
         </div>
     </div>
 
@@ -34,7 +35,23 @@
             <div id="menubar" class="demo-menubar autotag-menubar">
                 <span class="icon-size demo-menu autotag-menu"
                   data-autotag-scope="text"
-                  data-autotag-toggle="font-size:60px"></span>
+                  data-autotag-select="font-size">
+                  <div style="display:none; position:absolute; top: 70px;"
+                        class="demo-submenu autotag-submenu">
+                    <div class="demo-submenu-small"
+                      data-autotag-scope="text"
+                      data-autotag-set="font-size: 0.8em">Small</div>
+                    <div class="demo-submenu-normal"
+                      data-autotag-scope="text"
+                      data-autotag-set="font-size: 1em">Normal</div>
+                    <div class="demo-submenu-large"
+                      data-autotag-scope="text"
+                      data-autotag-set="font-size: 1.2em">Large</div>
+                    <div class="demo-submenu-huge"
+                      data-autotag-scope="text"
+                      data-autotag-set="font-size: 1.4em">Huge</div>
+                  </div>
+                </span>
 
                 <span class="icon-bold demo-menu autotag-menu"
                     data-autotag-scope="text"

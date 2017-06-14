@@ -184,25 +184,29 @@ Autotag = (function() {
     };
 
     var createPalette = function(menu) {
-      var palette = document.createElement('div');
-      palette.className = 'autotag-palette';
-      menu.appendChild(palette);
+      var palette = menu.getElementsByClassName('autotag-palette')[0];
+      if (palette) {
+        palette.style.display = '';
+      } else {
+        palette = document.createElement('div');
+        palette.className = 'autotag-palette';
+        menu.appendChild(palette);
 
-      // Color palette
-      var row;
-      for (var s = 100, l = 96; s >= 50; s += -5, l += -6) {
+        // Color palette
+        var row;
+        for (var s = 100, l = 96; s >= 50; s += -5, l += -6) {
+          row = palette.appendChild(document.createElement('div'));
+          for (var h = 0; h < 360; h += 32) {
+            createPaletteCell(row, h, s, l);
+          }
+        }
+
+        // Grayscale palette
         row = palette.appendChild(document.createElement('div'));
-        for (var h = 0; h < 360; h += 32) {
-          createPaletteCell(row, h, s, l);
+        for (l = 0; l <= 100; l += 9) {
+          createPaletteCell(row, 0, 0, l);
         }
       }
-
-      // Grayscale palette
-      row = palette.appendChild(document.createElement('div'));
-      for (l = 0; l <= 100; l += 9) {
-        createPaletteCell(row, 0, 0, l);
-      }
-
       activeSubmenu = palette;
     };
 
@@ -311,6 +315,7 @@ Autotag = (function() {
           nodes = getTagsInRange(selectionRange);
         }
 
+        nodes = nodes.filter(Boolean);
         for (var key in dataset) {
           if (dataset.hasOwnProperty(key)) {
             applyInstruction(nodes, key, dataset[key].split(/\s*;\s*/));
@@ -320,13 +325,9 @@ Autotag = (function() {
       }
     };
 
-
-
     var getPixelAmount = function(value) {
       return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0);
     };
-
-
 
     var getFirstLine = function() {
       return editor.querySelector('p:first-child');
@@ -379,8 +380,7 @@ Autotag = (function() {
       if (node && !isEditor(node)) {
         if (isLine(node)) {
           next = node.firstChild;
-
-        } else if (isTag(node)) {
+        } else if (isTag(node) || isSoftWrap(node)) {
           next = node.nextSibling || getNextTag(node.parentNode.nextSibling);
         }
 
@@ -522,6 +522,10 @@ Autotag = (function() {
       return code == 13;
     };
 
+    var isSoftWrap = function(node) {
+      return node && node.tagName == 'DIV';
+    };
+
     var isTabKey = function(code) {
       return code == 9;
     };
@@ -551,14 +555,29 @@ Autotag = (function() {
       }
     };
 
+    var hideSubmenu = function() {
+      if (activeSubmenu) {
+        activeSubmenu.style.display = 'none';
+      }
+    };
+
+    var toggleSubmenu = function() {
+      if (activeSubmenu) {
+        var style = window.getComputedStyle(activeSubmenu);
+        activeSubmenu.style.display = style.display === 'none' ? '' : 'none';
+      }
+    };
+
     var performMenuAction = function(menu) {
-      removeNode(activeSubmenu);
-      var palette = menu.dataset.autotagPalette;
-      if (palette && palette.match(/color|fill/)) {
+      hideSubmenu();
+      if (menu.dataset.autotagPalette) {
         createPalette(menu);
+      } else if (menu.dataset.autotagSelect) {
+        activeSubmenu = menu.getElementsByClassName('autotag-submenu')[0];
+        toggleSubmenu();
       } else {
         formatSelection(menu.dataset);
-        // MAke sure to adjust wraps as required.
+        // Make sure to adjust wraps as required.
         paragraphize(getLine(), true);
       }
     };
@@ -796,7 +815,7 @@ Autotag = (function() {
     });
 
     editor.addEventListener('click', function(e) {
-      removeNode(activeSubmenu);
+      hideSubmenu();
       selectionRange = getRange();
       if (doBeforeClick()) {
         fixEditor();
@@ -882,7 +901,8 @@ Autotag = (function() {
               resetRange(selectionRange);
 
               var target = e.target;
-              if (target.classList.contains('autotag-menu')) {
+              if (target.classList.contains('autotag-menu') ||
+                  target.parentNode.classList.contains('autotag-submenu')) {
                 performMenuAction(target);
 
               } else if (target.classList.contains('autotag-color')) {
@@ -898,10 +918,10 @@ Autotag = (function() {
 
                 dataset.autotagSet = declaration;
                 formatSelection(dataset);
-                removeNode(activeSubmenu);
+                hideSubmenu();
               }
             } else {
-              removeNode(activeSubmenu);
+              hideSubmenu();
             }
           });
         }
