@@ -30,6 +30,7 @@ Autotag = (function() {
   //      afterPaste
   //      beforeClick
   //      afterClick
+  //      afterSelection
   //
   // ignoreReturnKey: If set to true, return key presses will be
   //              ignored. False by default.
@@ -53,6 +54,8 @@ Autotag = (function() {
     // Stores the last selection made in the editor.
     var selectionRange;
 
+    // Continues the current text style to the next line and
+    // across line breaks.
     var continuingStyle;
 
     var editorMenubar;
@@ -107,6 +110,9 @@ Autotag = (function() {
     var doAfterKeypress = config.afterKeypress || function() {};
     var doAfterPaste = config.afterPaste || function() {};
 
+    // Returns the tags under the selection.
+    var doAfterSelection = config.afterSelection || function(tags) {};
+
     var doBeforeClick = config.beforeClick || function() {
       return true;
     };
@@ -120,9 +126,13 @@ Autotag = (function() {
     // A leading Tag node, required to maintain consistancy in behavior
     // across browsers.
     var addPilotNodeToLine = function(line) {
-      var breakNode = createBreakNode();
-      line.appendChild(breakNode);
-      return breakNode;
+      return line.appendChild(createBreakNode());
+    };
+
+    var applyCommand = function(node, commands) {
+      for (var j = 0; j < commands.length; j++) {
+        if (commands[j] == 'clear') node.setAttribute('style', '');
+      }
     };
 
     var applyInstruction = function(nodes, instruction, declarations) {
@@ -443,7 +453,7 @@ Autotag = (function() {
       var tag = getRangeStartTag(range);
       var endTag = getRangeEndTag(range);
 
-      var tags = [tag];
+      var tags = tag && [tag] || [];
       while (tag && (tag !== endTag)) {
         tags.push(tag = getNextTag(tag));
       }
@@ -808,7 +818,8 @@ Autotag = (function() {
 
     document.addEventListener('selectionchange', debounce(function(e) {
       selectionRange = getRange();
-    }, 250));
+      doAfterSelection(getTagsInRange(selectionRange));
+    }, 500));
 
     editor.addEventListener('dblclick', function(e) {
       selectionRange = getRange();
@@ -849,9 +860,7 @@ Autotag = (function() {
           e.preventDefault();
         } else if (e.metaKey && isFormatKey(code)) {
           e.preventDefault();
-          formatSelection({
-            autotagToggle: styleKeyMap[code]
-          });
+          formatSelection({ autotagToggle: styleKeyMap[code] });
         }
       }
     });
@@ -889,7 +898,6 @@ Autotag = (function() {
       paragraphize(getLine(), true);
     }, 250));
 
-    // Thanks to IE, we have to initialize the editor.
     fixEditor();
 
     return {
@@ -897,30 +905,26 @@ Autotag = (function() {
         if (menubar) {
           editorMenubar = menubar;
           editorMenubar.addEventListener('click', function(e) {
-            if (selectionRange) {
-              resetRange(selectionRange);
+            resetRange(selectionRange);
+            var target = e.target;
+            if (target.classList.contains('autotag-menu') ||
+                target.parentNode.classList.contains('autotag-submenu')) {
+              performMenuAction(target);
+            } else if (target.parentNode.classList.contains('autotag-menu')) {
+              performMenuAction(target.parentNode);
+            } else if (target.classList.contains('autotag-color')) {
+              var color = target.style.backgroundColor;
+              var dataset = activeSubmenu.parentNode.dataset;
 
-              var target = e.target;
-              if (target.classList.contains('autotag-menu') ||
-                  target.parentNode.classList.contains('autotag-submenu')) {
-                performMenuAction(target);
-
-              } else if (target.classList.contains('autotag-color')) {
-                var color = target.style.backgroundColor;
-                var dataset = activeSubmenu.parentNode.dataset;
-
-                var declaration;
-                if (dataset.autotagPalette == 'color') {
-                  declaration = 'color: ' + color;
-                } else if (dataset.autotagPalette == 'fill') {
-                  declaration = 'background-color: ' + color;
-                }
-
-                dataset.autotagSet = declaration;
-                formatSelection(dataset);
-                hideSubmenu();
+              var declaration;
+              if (dataset.autotagPalette == 'color') {
+                declaration = 'color: ' + color;
+              } else if (dataset.autotagPalette == 'fill') {
+                declaration = 'background-color: ' + color;
               }
-            } else {
+
+              dataset.autotagSet = declaration;
+              formatSelection(dataset);
               hideSubmenu();
             }
           });

@@ -33,45 +33,45 @@
     <div class="demos">
         <div class="demo-container autotag-editor">
             <div id="menubar" class="demo-menubar autotag-menubar">
-                <span class="icon-size demo-menu autotag-menu"
-                  data-autotag-scope="text"
-                  data-autotag-select="font-size">
-                  <div style="display:none; position:absolute; top: 70px;"
-                        class="demo-submenu autotag-submenu">
-                    <div class="demo-submenu-small"
-                      data-autotag-scope="text"
-                      data-autotag-set="font-size: 0.8em">Small</div>
-                    <div class="demo-submenu-normal"
-                      data-autotag-scope="text"
-                      data-autotag-set="font-size: 1em">Normal</div>
-                    <div class="demo-submenu-large"
-                      data-autotag-scope="text"
-                      data-autotag-set="font-size: 1.2em">Large</div>
-                    <div class="demo-submenu-huge"
-                      data-autotag-scope="text"
-                      data-autotag-set="font-size: 1.4em">Huge</div>
+                <span class="demo-menu autotag-menu"
+                      data-autotag-select="font-size">
+                  <span class="icon-size"></span>
+                  <span class="icon-drop-down"></span>
+
+                  <div style="display:none;" class="demo-submenu autotag-submenu">
+                    <div data-autotag-set="font-size: 20px">8</div>
+                    <div data-autotag-set="font-size: 22px">9</div>
+                    <div data-autotag-set="font-size: 24px">10</div>
+                    <div data-autotag-set="font-size: 26px">11</div>
+                    <div data-autotag-set="font-size: 28px">12</div>
+                    <div data-autotag-set="font-size: 32px">14</div>
+                    <div data-autotag-set="font-size: 40px">18</div>
+                    <div data-autotag-set="font-size: 52px">24</div>
+                    <div data-autotag-set="font-size: 64px">30</div>
+                    <div data-autotag-set="font-size: 84px">40</div>
                   </div>
                 </span>
 
+                <span class="demo-menu-sep"></span>
+
                 <span class="icon-bold demo-menu autotag-menu"
-                    data-autotag-scope="text"
                     data-autotag-toggle="font-weight:bold"></span>
 
                 <span class="icon-italic demo-menu autotag-menu"
-                    data-autotag-scope="text"
                     data-autotag-toggle="font-style:italic"></span>
 
                 <span class="icon-underlined demo-menu autotag-menu"
-                    data-autotag-scope="text"
                     data-autotag-toggle="text-decoration:underline"></span>
 
+                <span class="demo-menu-sep"></span>
+
                 <span class="icon-color-text demo-menu autotag-menu"
-                    data-autotag-scope="text"
                     data-autotag-palette="color"></span>
 
                 <span class="icon-color-fill demo-menu autotag-menu"
-                    data-autotag-scope="text"
                     data-autotag-palette="fill"></span>
+
+                <span class="demo-menu-sep"></span>
 
                 <span class="icon-align-left demo-menu autotag-menu"
                     data-autotag-scope="line"
@@ -89,9 +89,13 @@
                     data-autotag-scope="line"
                     data-autotag-set="text-align: justify"></span>
 
+                <span class="demo-menu-sep"></span>
+
                 <span class="icon-line-spacing demo-menu autotag-menu"
                     data-autotag-scope="line"
                     data-autotag-toggle="line-height: 60px"></span>
+
+                <span class="demo-menu-sep"></span>
 
                 <span class="icon-indent-right demo-menu autotag-menu"
                     data-autotag-scope="line"
@@ -100,6 +104,8 @@
                 <span class="icon-indent-left demo-menu autotag-menu"
                     data-autotag-scope="line"
                     data-autotag-decrement="margin-left: 25px"></span>
+
+                <span class="demo-menu-sep"></span>
 
                 <span class="icon-list-bulleted demo-menu autotag-menu"
                     data-autotag-scope="line"
@@ -111,8 +117,9 @@
                     data-autotag-initialize="margin-left: 50px"
                     data-autotag-toggle="display: list-item; list-style-type: decimal;"></span>
 
+                <span class="demo-menu-sep"></span>
+
                 <span class="icon-clear demo-menu autotag-menu"
-                    data-autotag-scope="text"
                     data-autotag-command="clear"></span>
             </div>
             <div id="notepad" class="demo-input demo-notepad autotag-textarea" contentEditable="true">
@@ -134,13 +141,45 @@
               'none', 'mine', 'anybody'
           ];
 
+          var notepad = document.getElementById('notepad');
+          var menubar = document.getElementById('menubar');
+
+          var getMenuClassList = function(className) {
+            return menubar.getElementsByClassName(className)[0].classList;
+          };
+
+          var boldMenuClassList = getMenuClassList('icon-bold');
+          var italicMenuClassList = getMenuClassList('icon-italic');
+          var underlinedMenuClassList = getMenuClassList('icon-underlined');
+
+          var setMenuIconState = function(classList, isActive) {
+            if (classList) {
+              if (isActive) {
+                classList.add('demo-menu-active');
+              } else {
+                classList.remove('demo-menu-active');
+              }
+            }
+          };
+
+          var isBold = function(tag) {
+            return tag.style.getPropertyValue('font-weight') == 'bold';
+          };
+
+          var isItalic = function(tag) {
+            return tag.style.getPropertyValue('font-style') == 'italic';
+          };
+
+          var isUnderlined = function(tag) {
+            return tag.style.getPropertyValue('text-decoration') == 'underline';
+          };
+
           var demo_config = {
               decorator: function(node, text) {
                   text = text.replace(/,$/, '').toLowerCase();
                   if (pronouns.indexOf(text) >= 0) {
                       node.setAttribute('class', 'demo-pronoun');
-                      // node.setAttribute('data-tooltip', 'Pronoun');
-
+                      node.setAttribute('data-tooltip', 'Pronoun');
                   } else if (text.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/)) {
                       node.setAttribute('class', 'demo-url');
                   } else if (text.match(/^#[\w]{2}[\w]*$/)) {
@@ -150,15 +189,22 @@
                   } else {
                       // Always remember to clean the node!
                       node.removeAttribute('class');
-                      // node.removeAttribute('data-tooltip');
+                      node.removeAttribute('data-tooltip');
                   }
               },
+
+              afterSelection: function(tags) {
+                var tag;
+                if (tags.length == 1 && (tag = tags[0])) {
+                  setMenuIconState(boldMenuClassList, isBold(tag));
+                  setMenuIconState(italicMenuClassList, isItalic(tag));
+                  setMenuIconState(underlinedMenuClassList, isUnderlined(tag));
+                }
+              },
+
               trace: false,
               ignoreReturnKey: false
           };
-
-          var notepad = document.getElementById('notepad');
-          var menubar = document.getElementById('menubar');
 
           new Autotag(notepad, demo_config).attachMenubar(menubar);
     </script>
