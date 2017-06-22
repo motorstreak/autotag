@@ -301,8 +301,8 @@ Autotag = (function() {
         var parentNode = node.parentNode;
         if (isLine(parentNode)) {
           var tagNode = createTagNode();
-          tagNode.appendChild(node);
           parentNode.insertBefore(tagNode, node);
+          tagNode.appendChild(node);
           setCaret(node, offset);
         } else if (isTag(parentNode)) {
           removeBreakNodes(parentNode);
