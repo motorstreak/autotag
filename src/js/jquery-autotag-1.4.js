@@ -617,7 +617,10 @@ Autotag = (function() {
           for (var i = 0; i < numparts; i++) {
             newTag = createTagNode(parts[i]);
             newTag.setAttribute('style', refTag.getAttribute('style'));
+
+            // newTag.style.removeProperty('display');
             newTag.style.display = 'inline';
+
             decorator(newTag, newTag.firstChild.nodeValue);
             refTag.parentNode.insertBefore(newTag, refTag.nextSibling);
 
