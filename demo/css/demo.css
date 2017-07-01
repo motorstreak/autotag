@@ -1,5 +1,5 @@
 body {
-    background-color : #000;
+    background-color : #EEE;
     margin: 0;
     padding: 0;
     font-family: Arial, Helvetica, sans-serif;
@@ -19,8 +19,12 @@ body {
     /*background-position: bottom;*/
     /*background-attachment: fixed;*/
     background-repeat: no-repeat;
-    text-align: center;
     position: relative;
+}
+
+.page-header,
+.page-about {
+    text-align: center;
     font-family: 'Source Sans Pro', Arial, Helvetica, sans-serif;
 }
 
@@ -36,6 +40,15 @@ body {
     font-weight: 300;
     line-height: 1.4em;
 }
+
+.page-about {
+    padding: 40px 20px;
+    background-color: #EEE;
+    font-size: 1.2em;
+    text-shadow: 1px 1px #FFF;
+    color: #333;
+}
+
 .demo-container {
     width: 100%;
     box-sizing: border-box;
