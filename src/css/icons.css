@@ -1,10 +1,10 @@
 @font-face {
   font-family: 'autotag';
-  src:  url('../fonts/autotag.eot?dyygnl');
-  src:  url('../fonts/autotag.eot?dyygnl#iefix') format('embedded-opentype'),
-    url('../fonts/autotag.ttf?dyygnl') format('truetype'),
-    url('../fonts/autotag.woff?dyygnl') format('woff'),
-    url('../fonts/autotag.svg?dyygnl#autotag') format('svg');
+  src:  url('../fonts/autotag.eot?vm7zpz');
+  src:  url('../fonts/autotag.eot?vm7zpz#iefix') format('embedded-opentype'),
+    url('../fonts/autotag.ttf?vm7zpz') format('truetype'),
+    url('../fonts/autotag.woff?vm7zpz') format('woff'),
+    url('../fonts/autotag.svg?vm7zpz#autotag') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -24,6 +24,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.icon-font_download:before {
+  content: "\e167";
+}
 .icon-align-center:before {
   content: "\e234";
 }
@@ -45,9 +48,42 @@
 .icon-color-text:before {
   content: "\e23c";
 }
+.icon-indent-left:before {
+  content: "\e23d";
+}
+.icon-indent-right:before {
+  content: "\e23e";
+}
 .icon-italic:before {
   content: "\e23f";
 }
+.icon-line-spacing:before {
+  content: "\e240";
+}
+.icon-list-bulleted:before {
+  content: "\e241";
+}
+.icon-list-numbered:before {
+  content: "\e242";
+}
+.icon-size:before {
+  content: "\e245";
+}
 .icon-underlined:before {
   content: "\e249";
+}
+.icon-chrome:before {
+  content: "\ead9";
+}
+.icon-firefox:before {
+  content: "\eada";
+}
+.icon-IE:before {
+  content: "\eadb";
+}
+.icon-edge:before {
+  content: "\eadc";
+}
+.icon-safari:before {
+  content: "\eadd";
 }

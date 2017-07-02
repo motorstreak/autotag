@@ -1,53 +1,111 @@
 body {
-    background-color : #FFF;
+    background-color : #EEE;
     margin: 0;
     padding: 0;
-    font-family : 'Source Sans Pro', Arial, Helvetica, sans-serif;
+    font-family: 'Source Sans Pro', Arial, Helvetica, sans-serif;
+    font-size: 16px;
 }
 
 .page-header:before {
     background: rgba(75, 75, 93, 0.85);
 }
 .page-header {
-    padding: 200px 100px;
+    padding: 120px 20px;
     text-align: center;
-    color: #FFF;
-    height: 200px;
-    background-image: url(../images/background-full.jpg);
+    color: #000;
+    background-image: url(../images/header.jpg);
     background-size: cover;
-    background-position: bottom;
-    background-attachment: fixed;
     background-repeat: no-repeat;
-    text-align: center;
     position: relative;
 }
+
+.page-header,
+.page-about {
+    text-align: center;
+}
+
 .page-title {
     font-size: 4em;
-    font-weight: 600;
-    padding-bottom: 10px;
-    color: #524795;
+    font-weight: bold;
+    line-height: 90px;
     z-index: 100000;
     position: relative;
-    text-shadow: 0 0 20px #FFF;
+    text-shadow: 0 0 8px #FFF;
 }
 
 .page-msg {
-    font-size: 1.6em;
     font-weight: 300;
     line-height: 1.4em;
-    color: #555;
+    font-size: 1.2em;
 }
+
+.page-section {
+    display: flex;
+    display : -webkit-flex;
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+}
+
+.section-text {
+    flex: 0 1 400px;
+    text-align: center;
+    padding: 40px;
+}
+
+.section-text-title {
+    font-size: 30px;
+    text-transform: uppercase;
+    padding-bottom: 20px;
+    border-bottom: 1px solid;
+    margin-bottom: 20px;
+}
+
+.section-build-editor {
+    background-color: #EEE;
+    font-size: 1.2em;
+    text-shadow: 1px 1px #FFF;
+    color: #333;
+    border-top: 1px solid #DDD;
+}
+
+.section-browser-support {
+    background: #524795;
+    color: #EEE;
+    font-size: 1.2em;
+}
+
+.section-image {
+    flex: 0 1 400px;
+    text-align: center
+}
+
+.browser-icon-list {
+    width: 100%;
+}
+
+.browser-icon {
+    font-size: 85px !important;
+    text-align: center;
+    color: #EEE;
+    padding: 50px 0;
+}
+
+.editor-image {
+    width: 100%;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+}
+
 .demo-container {
     width: 100%;
     box-sizing: border-box;
+    background-color: #FFF;
 }
 .demo-input {
     box-sizing : border-box;
     height : auto;
-    padding : 100px;
-    height: 100%;
 }
-
 
 .demo-plus-sign {
     color: brown;
@@ -88,69 +146,76 @@ body {
 
 .demo-input {
     font-family: 'Caveat', cursive;
-    font-size: 30px;
-}
-
-.demo-input > p {
-    line-height: 40px;
+    font-size: 2em;
 }
 
 .demo-menubar {
-    padding: 10px 0;
+    padding: 6px 0;
     display: flex;
     display : -webkit-flex;
     flex-flow: row wrap;
     align-items: center;
     justify-content: center;
     border-bottom: 1px solid #EEE;
-    margin-bottom: 33px;
     background: #F5F5F5;
     position: relative;
     color: #000;
 }
 
-.demo-menu {
-    font-size: 1.8em;
-    padding: 10px 6px;
-    flex: 0 1 40px;
-    text-align: center;
-    border-radius: 4px;
+[class^="icon-"], [class*=" icon-"] {
+    font-size: 25px;
 }
 
+.demo-menu {
+  /*font-size: 1.4em;*/
+  padding: 4px 6px;
+  /* flex: 0 1 40px; */
+  text-align: center;
+  border-radius: 4px;
+  margin: 2px;
+  /*line-height: 32px;*/
+  /*position: relative;*/
+}
+
+.demo-menu-active,
 .demo-menu:hover {
-    box-shadow: 0 0 2px 0px #999;
+  box-shadow: 0 0 2px 0px #DDD;
+  background-color: #FFF;
+}
+
+.demo-menu-sep {
+  border-right: 1px solid #DDD;
+  height: 36px;
+  width: 0px;
+  margin: 0 8px;
+}
+
+.autotag-palette,
+.demo-submenu {
+  padding: 10px;
+  background-color: #FFF;
+  position: absolute;
+  top: 50px;
+  z-index: 1000;
+  box-shadow: 1px 1px 3px #CCC;
+  font-family: 'Helvetica';
+  text-align: left;
+}
+
+.demo-submenu > div {
+  cursor: pointer;
+  padding: 0 10px;
+  line-height: 24px;
+  font-size: 16px;
+}
+
+.demo-submenu > div:hover {
+  background: #EEE;
 }
 
 .demo-notepad {
-    margin: 0;
-    padding: 0 12%;
-	/* gradients - second red border, first red border, top white space, blue lines */
-    background-image:
-        -webkit-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
-        -webkit-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
-        -webkit-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
-
-    background-image:
-        -moz-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
-        -moz-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
-        -moz-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
-
-    background-image:
-        -ms-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
-        -ms-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
-        -ms-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
-
-    background-image:
-        -o-linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
-        -o-linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
-        -o-repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
-
-    background-image:
-        linear-gradient(left, rgba(255,85,91, .2), rgba(255,85,91, .2)),
-        linear-gradient(left, rgba(255,85,91, .8), rgba(255,85,91, .8)),
-        repeating-linear-gradient(white 0px, white 38px, #EEE 39px, white 40px);
-
-    background-size: 1px, 1px, auto, auto 40px;
-    background-repeat: repeat-y, repeat-y, no-repeat, repeat;
-    background-position: 90% 0px, 10% 0px, 0px 0px, 0px 0px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    max-width: 800px;
+    min-height: 300px;
 }
