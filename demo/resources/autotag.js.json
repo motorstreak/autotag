@@ -1,8 +1,8 @@
 {
   "metadata": {
     "name": "autotag.js",
-    "lastOpened": 1418773394855,
-    "created": 1496104935960
+    "lastOpened": 1498956090007,
+    "created": 1498956087022
   },
   "iconSets": [
     {
@@ -18993,32 +18993,47 @@
         {
           "ligatures": "chrome, browser",
           "name": "chrome",
-          "order": 0,
-          "id": 474
+          "order": 22,
+          "id": 474,
+          "prevSize": 24,
+          "code": 60121,
+          "tempChar": ""
         },
         {
           "ligatures": "firefox, browser2",
           "name": "firefox",
-          "order": 0,
-          "id": 475
+          "order": 24,
+          "id": 475,
+          "prevSize": 24,
+          "code": 60122,
+          "tempChar": ""
         },
         {
           "ligatures": "IE, browser3",
           "name": "IE",
-          "order": 0,
-          "id": 476
+          "order": 25,
+          "id": 476,
+          "prevSize": 24,
+          "code": 60123,
+          "tempChar": ""
         },
         {
           "name": "edge",
           "ligatures": "edge, browser4",
-          "order": 0,
-          "id": 477
+          "order": 26,
+          "id": 477,
+          "prevSize": 24,
+          "code": 60124,
+          "tempChar": ""
         },
         {
           "ligatures": "safari, browser5",
           "name": "safari",
-          "order": 0,
-          "id": 478
+          "order": 21,
+          "id": 478,
+          "prevSize": 24,
+          "code": 60125,
+          "tempChar": ""
         },
         {
           "ligatures": "opera, browser6",
@@ -26589,7 +26604,7 @@
       ],
       "id": 1,
       "prevSize": 32,
-      "invisible": true
+      "invisible": false
     }
   ],
   "preferences": {
@@ -26631,6 +26646,5 @@
     "showCodes": true,
     "gridSize": 16
   },
-  "uid": -1,
-  "time": 1497191905766
+  "uid": -1
 }
