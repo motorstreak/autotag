@@ -1,0 +1,35 @@
+
+/* Deal with IE paragraph style within the editor. */
+[contenteditable] > p,
+[contenteditable] > p > autotag {
+    margin: 0;
+    word-break: break-all;
+}
+
+::-moz-selection {
+    color: #FFF;
+    background: rgb(81, 120, 225);
+}
+
+::selection {
+    color: #FFF;
+    background: rgb(81, 120, 225);
+}
+
+/* Prevent outlines on contenteditable items in IE. */
+[contenteditable]:focus,
+[contenteditable] > p > autotag:focus {
+    outline : 0;
+}
+
+.autotag-color {
+    font: 12px/12px 'helvetica';
+    cursor: pointer;
+    padding: 7px;
+    display: inline-block;
+    margin: 1px;
+}
+
+.autotag-color:hover {
+    box-shadow: 0px 0px 1px #000;
+}

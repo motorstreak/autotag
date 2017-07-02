@@ -1,8 +1,8 @@
-/*! jquery-autotag.js v1.4 https://github.com/motorstreak/jquery-autotag */
+/*! autotagjs.js v1.4 https://github.com/motorstreak/autotag */
 /*
  Version: 1.4
  Author: Navin Samuel
- Web: https://github.com/motorstreak/jquery-autotag
+ Web: https://github.com/motorstreak/autotag
  Licensed under MIT License http://www.opensource.org/licenses/mit-license
 */
 
