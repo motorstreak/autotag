@@ -24,9 +24,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.icon-drop-down:before {
-  content: "\e5c5";
-}
 .icon-font_download:before {
   content: "\e167";
 }
@@ -44,9 +41,6 @@
 }
 .icon-bold:before {
   content: "\e238";
-}
-.icon-clear:before {
-  content: "\e239";
 }
 .icon-color-fill:before {
   content: "\e23a";
@@ -77,4 +71,19 @@
 }
 .icon-underlined:before {
   content: "\e249";
+}
+.icon-chrome:before {
+  content: "\ead9";
+}
+.icon-firefox:before {
+  content: "\eada";
+}
+.icon-IE:before {
+  content: "\eadb";
+}
+.icon-edge:before {
+  content: "\eadc";
+}
+.icon-safari:before {
+  content: "\eadd";
 }
