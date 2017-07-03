@@ -1,8 +1,8 @@
 {
   "metadata": {
     "name": "autotag.js",
-    "lastOpened": 1498956090007,
-    "created": 1498956087022
+    "lastOpened": 0,
+    "created": 1499045299840
   },
   "iconSets": [
     {
@@ -1605,7 +1605,7 @@
         {
           "ligatures": "font_download",
           "id": 319,
-          "order": 19,
+          "order": 0,
           "prevSize": 24,
           "code": 57703,
           "name": "font_download",
@@ -1618,7 +1618,7 @@
           "prevSize": 24,
           "name": "align-center",
           "code": 57908,
-          "tempChar": ""
+          "tempChar": ""
         },
         {
           "ligatures": "format_align_justify",
@@ -1627,7 +1627,7 @@
           "prevSize": 24,
           "name": "align-justify",
           "code": 57909,
-          "tempChar": ""
+          "tempChar": ""
         },
         {
           "ligatures": "format_align_left",
@@ -1636,7 +1636,7 @@
           "prevSize": 24,
           "name": "align-left",
           "code": 57910,
-          "tempChar": ""
+          "tempChar": ""
         },
         {
           "ligatures": "format_align_right",
@@ -1645,7 +1645,7 @@
           "prevSize": 24,
           "name": "align-right",
           "code": 57911,
-          "tempChar": ""
+          "tempChar": ""
         },
         {
           "ligatures": "format_bold",
@@ -1654,12 +1654,16 @@
           "prevSize": 24,
           "name": "bold",
           "code": 57912,
-          "tempChar": ""
+          "tempChar": ""
         },
         {
           "ligatures": "format_clear",
           "id": 325,
-          "order": 0
+          "order": 27,
+          "prevSize": 24,
+          "code": 57913,
+          "name": "clear",
+          "tempChar": ""
         },
         {
           "ligatures": "format_color_fill",
@@ -19011,11 +19015,11 @@
         {
           "ligatures": "IE, browser3",
           "name": "IE",
-          "order": 25,
+          "order": 0,
           "id": 476,
           "prevSize": 24,
           "code": 60123,
-          "tempChar": ""
+          "tempChar": ""
         },
         {
           "name": "edge",
@@ -19024,7 +19028,7 @@
           "id": 477,
           "prevSize": 24,
           "code": 60124,
-          "tempChar": ""
+          "tempChar": ""
         },
         {
           "ligatures": "safari, browser5",
@@ -19033,7 +19037,7 @@
           "id": 478,
           "prevSize": 24,
           "code": 60125,
-          "tempChar": ""
+          "tempChar": ""
         },
         {
           "ligatures": "opera, browser6",
@@ -26615,7 +26619,7 @@
     "fontPref": {
       "prefix": "icon-",
       "metadata": {
-        "fontFamily": "autotag",
+        "fontFamily": "autotagjs",
         "majorVersion": 1,
         "minorVersion": 0
       },
