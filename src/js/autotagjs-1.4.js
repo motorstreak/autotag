@@ -522,12 +522,12 @@ Autotag = (function() {
         };
 
         var isPrintableKey = function(code) {
-            return (code == 32) || // Spacebar key
-                (code > 47 && code < 58) || // Number keys
-                (code > 64 && code < 91) || // Alphabet keys
-                (code > 95 && code < 112) || // Numpad keys
-                (code > 185 && code < 193) || // ; = , - . / ` keys
-                (code > 218 && code < 223); // [ \ ] ' keys
+            // return (code == 32) || // Spacebar key
+            //     (code > 47 && code < 58) || // Number keys
+            //     (code > 64 && code < 91) || // Alphabet keys
+            //     (code > 95 && code < 112) || // Numpad keys
+            //     (code > 185 && code < 193) || // ; = , - . / ` keys
+            //     (code > 218 && code < 223); // [ \ ] ' keys
         };
 
         var isReturnKey = function(code) {
@@ -841,6 +841,14 @@ Autotag = (function() {
             fixEditor();
         });
 
+        editor.addEventListener('textInput', function(e) {
+          if (processInputFlag === true) {
+            fixLine();
+            processInput();
+            paragraphize(getLine(), true);
+          }
+        });
+
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
             processInputFlag = doBeforeKeypress(e);
@@ -848,6 +856,7 @@ Autotag = (function() {
                 inputLineNumber = getLineNumber();
 
                 var code = getKeyCode(e);
+
                 if (isDeleteKey(code)) {
                     fixCaretPosition();
                 } else if (isReturnKey(code)) {
@@ -882,9 +891,7 @@ Autotag = (function() {
                 } else if (isReturnKey(code)) {
                     processReturnKey();
                 } else if (isPrintableKey(code)) {
-                    fixLine();
-                    processInput();
-                    paragraphize(getLine(), true);
+                  // processed under 'textInput' event.
                 }
                 doAfterKeypress();
             }

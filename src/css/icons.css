@@ -1,17 +1,17 @@
 @font-face {
-  font-family: 'autotag';
-  src:  url('../fonts/autotag.eot?vm7zpz');
-  src:  url('../fonts/autotag.eot?vm7zpz#iefix') format('embedded-opentype'),
-    url('../fonts/autotag.ttf?vm7zpz') format('truetype'),
-    url('../fonts/autotag.woff?vm7zpz') format('woff'),
-    url('../fonts/autotag.svg?vm7zpz#autotag') format('svg');
+  font-family: 'autotagjs';
+  src:  url('../fonts/autotagjs.eot?vm7zpz');
+  src:  url('../fonts/autotagjs.eot?vm7zpz#iefix') format('embedded-opentype'),
+    url('../fonts/autotagjs.ttf?vm7zpz') format('truetype'),
+    url('../fonts/autotagjs.woff?vm7zpz') format('woff'),
+    url('../fonts/autotagjs.svg?vm7zpz#autotag') format('svg');
   font-weight: normal;
   font-style: normal;
 }
 
 [class^="icon-"], [class*=" icon-"] {
   /* use !important to prevent issues with browser extensions that change fonts */
-  font-family: 'autotag' !important;
+  font-family: 'autotagjs' !important;
   speak: none;
   font-style: normal;
   font-weight: normal;
@@ -24,9 +24,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.icon-font_download:before {
-  content: "\e167";
-}
 .icon-align-center:before {
   content: "\e234";
 }
@@ -41,6 +38,9 @@
 }
 .icon-bold:before {
   content: "\e238";
+}
+.icon-clear:before {
+  content: "\e239";
 }
 .icon-color-fill:before {
   content: "\e23a";
@@ -77,9 +77,6 @@
 }
 .icon-firefox:before {
   content: "\eada";
-}
-.icon-IE:before {
-  content: "\eadb";
 }
 .icon-edge:before {
   content: "\eadc";

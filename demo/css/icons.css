@@ -24,9 +24,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.icon-font_download:before {
-  content: "\e167";
-}
 .icon-align-center:before {
   content: "\e234";
 }
@@ -41,6 +38,9 @@
 }
 .icon-bold:before {
   content: "\e238";
+}
+.icon-clear:before {
+  content: "\e239";
 }
 .icon-color-fill:before {
   content: "\e23a";
@@ -77,9 +77,6 @@
 }
 .icon-firefox:before {
   content: "\eada";
-}
-.icon-IE:before {
-  content: "\eadb";
 }
 .icon-edge:before {
   content: "\eadc";
