@@ -104,7 +104,7 @@ Autotag = (function() {
         var decorator = config.decorator || function(node, text) {};
         var doOnReturnKey = config.onReturnKey || function() {};
         var splitter = config.splitter || function(str) {
-            return str.match(/([^\s]+)|\s+/ig);
+            return str.match(/([^,\s\.]+)|[,\s\.]+/ig);
         };
 
         // Event callbacks
@@ -164,7 +164,7 @@ Autotag = (function() {
                     curValue.length === 0) {
                     node.style.setProperty(property, value);
 
-                } else if (instruction.match(/^autotag(Increment|Decrement)/)) {
+                } else if (instruction.match(/^autotagjs(Increment|Decrement)/)) {
                     var amount = getPixelAmount(value);
                     var curAmount = getPixelAmount(curValue);
 
@@ -201,21 +201,27 @@ Autotag = (function() {
                 palette.style.display = '';
             } else {
                 palette = document.createElement('div');
-                palette.className = 'autotagjs-submenu';
+                palette.className = 'autotagjs-submenu autotagjs-palette';
                 menu.appendChild(palette);
 
                 // Color palette
-                var row;
-                for (var s = 100, l = 96; s >= 50; s += -5, l += -6) {
-                    row = palette.appendChild(document.createElement('div'));
-                    for (var h = 0; h < 360; h += 32) {
+                var row, cell, maxCols = 10, maxRows = 4;
+                for (var s = 100, i=0, l = 96; i < maxRows; i++, s -= Math.round(50/maxRows), l -= Math.round(90/maxRows)) {
+                    // row = document.createElement('div');
+                    // cell.className = 'autotagjs-palette-row';
+                    // palette.appendChild(cell);
+                    row = createPaletteRow(palette);
+                    for (var h = 0, j=0; j < maxCols; j++, h += Math.round(360/maxCols)) {
                         createPaletteCell(row, h, s, l);
                     }
                 }
 
                 // Grayscale palette
-                row = palette.appendChild(document.createElement('div'));
-                for (l = 0; l <= 100; l += 9) {
+                // cell = document.createElement('div');
+                // cell.className = 'autotagjs-palette-row';
+                // palette.appendChild(cell);
+                row = createPaletteRow(palette);
+                for (i = 0, l = 0; i < maxCols; i++, l += Math.round(100/maxCols)) {
                     createPaletteCell(row, 0, 0, l);
                 }
             }
@@ -223,11 +229,17 @@ Autotag = (function() {
         };
 
         var createPaletteCell = function(row, h, s, l) {
-            var cell = document.createElement('span');
+            var cell = document.createElement('div');
             var hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
-            cell.className = 'autotagjs-color';
+            cell.className = 'autotagjs-palette-cell';
             cell.style.color = cell.style.background = hsla;
             row.appendChild(cell);
+        };
+
+        var createPaletteRow = function(palette) {
+            var row = document.createElement('div');
+            row.className = 'autotagjs-palette-row';
+            return palette.appendChild(row);
         };
 
         var createNewLine = function() {
@@ -315,7 +327,7 @@ Autotag = (function() {
 
         var formatSelection = function(dataset) {
             if (selectionRange && dataset) {
-                scope = dataset.autotagScope || 'text';
+                scope = dataset.autotagjsScope || 'text';
                 // action = (typeof action === 'undefined') ? 'set' : action;
 
                 var nodes;
@@ -582,9 +594,9 @@ Autotag = (function() {
 
         var performMenuAction = function(menu) {
             hideSubmenu();
-            if (menu.dataset.autotagPalette) {
+            if (menu.dataset.autotagjsPalette) {
                 createPalette(menu);
-            } else if (menu.dataset.autotagSelect) {
+            } else if (menu.dataset.autotagjsSelect) {
                 activeSubmenu = menu.getElementsByClassName('autotagjs-submenu')[0];
                 toggleSubmenu();
             } else {
@@ -872,7 +884,7 @@ Autotag = (function() {
                 } else if (e.metaKey && isFormatKey(code)) {
                     e.preventDefault();
                     formatSelection({
-                        autotagToggle: styleKeyMap[code]
+                        autotagjsToggle: styleKeyMap[code]
                     });
                 }
             }
@@ -923,18 +935,18 @@ Autotag = (function() {
                             performMenuAction(target);
                         } else if (target.parentNode.classList.contains('autotagjs-menu')) {
                             performMenuAction(target.parentNode);
-                        } else if (target.classList.contains('autotagjs-color')) {
+                        } else if (target.classList.contains('autotagjs-palette-cell')) {
                             var color = target.style.backgroundColor;
                             var dataset = activeSubmenu.parentNode.dataset;
 
                             var declaration;
-                            if (dataset.autotagPalette == 'color') {
+                            if (dataset.autotagjsPalette == 'color') {
                                 declaration = 'color: ' + color;
-                            } else if (dataset.autotagPalette == 'fill') {
+                            } else if (dataset.autotagjsPalette == 'fill') {
                                 declaration = 'background-color: ' + color;
                             }
 
-                            dataset.autotagSet = declaration;
+                            dataset.autotagjsSet = declaration;
                             formatSelection(dataset);
                             hideSubmenu();
                         }

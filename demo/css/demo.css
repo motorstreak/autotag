@@ -1,106 +1,105 @@
 body {
     background-color : #EEE;
-    margin: 0;
-    padding: 0;
-    font-family: 'Source Sans Pro', Arial, Helvetica, sans-serif;
-    font-size: 16px;
+    margin : 0;
+    padding : 0;
+    font-family : 'Source Sans Pro', Arial, Helvetica, sans-serif;
+    font-size : 16px;
 }
 
 .page-header:before {
-    background: rgba(75, 75, 93, 0.85);
+    background : rgba(75, 75, 93, 0.85);
 }
 .page-header {
-    padding: 120px 20px;
-    text-align: center;
-    color: #000;
-    background-image: url(../images/header.jpg);
-    background-size: cover;
-    background-repeat: no-repeat;
-    position: relative;
+    padding : 120px 20px;
+    text-align : center;
+    color : darkslateblue;
+    background-image : url(../images/header.jpg);
+    background-size : cover;
+    background-repeat : no-repeat;
+    position : relative;
 }
 
-.page-header,
-.page-about {
-    text-align: center;
+.page-header, .page-about {
+    text-align : center;
 }
 
 .page-title {
-    font-size: 4em;
-    font-weight: bold;
-    line-height: 90px;
-    z-index: 100000;
-    position: relative;
-    text-shadow: 0 0 8px #FFF;
+    font-size : 4em;
+    font-weight : bold;
+    line-height : 90px;
+    /*z-index: 100000;*/
+    position : relative;
+    text-shadow : 0 0 8px #FFF;
 }
 
 .page-msg {
-    font-weight: 300;
-    line-height: 1.4em;
-    font-size: 1.2em;
+    font-weight : 300;
+    line-height : 1.4em;
+    font-size : 1.2em;
 }
 
 .page-section {
-    display: flex;
+    display :         flex;
     display : -webkit-flex;
-    flex-flow: row wrap;
-    align-items: center;
-    justify-content: center;
-    padding: 60px;
+    flex-flow : row wrap;
+    align-items : center;
+    justify-content : center;
+    padding : 60px;
 }
 
 .section-text {
-    flex: 0 1 400px;
-    text-align: center;
-    padding: 40px;
+    flex : 0 1 400px;
+    text-align : center;
+    padding : 40px;
 }
 
 .section-text-title {
-    font-size: 30px;
-    text-transform: uppercase;
-    padding-bottom: 20px;
-    border-bottom: 1px solid;
-    margin-bottom: 20px;
+    font-size : 30px;
+    text-transform : uppercase;
+    padding-bottom : 20px;
+    border-bottom : 1px solid;
+    margin-bottom : 20px;
 }
 
 .section-build-editor {
-    background-color: #EEE;
-    font-size: 1.2em;
-    text-shadow: 1px 1px #FFF;
-    color: #333;
-    border-top: 1px solid #DDD;
+    background-color : #EEE;
+    font-size : 1.2em;
+    text-shadow : 1px 1px #FFF;
+    color : #333;
+    border-top : 1px solid #DDD;
 }
 
 .section-browser-support {
-    background: #524795;
-    color: #EEE;
-    font-size: 1.2em;
+    background : #524795;
+    color : #EEE;
+    font-size : 1.2em;
 }
 
 .section-image {
-    flex: 0 1 400px;
-    text-align: center
+    flex : 0 1 400px;
+    text-align : center;
 }
 
 .browser-icon-list {
-    width: 100%;
+    width : 100%;
 }
 
 .browser-icon {
-    font-size: 85px !important;
-    text-align: center;
-    color: #EEE;
-    padding: 50px 0;
+    font-size : 85px !important;
+    text-align : center;
+    color : #EEE;
+    padding : 40px 0;
 }
 
 .editor-image {
-    width: 100%;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+    width : 100%;
+    box-shadow : 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
 }
 
 .demo-container {
-    width: 100%;
-    box-sizing: border-box;
-    background-color: #FFF;
+    width : 100%;
+    box-sizing : border-box;
+    background-color : #FFF;
 }
 .demo-input {
     box-sizing : border-box;
@@ -108,11 +107,11 @@ body {
 }
 
 .demo-plus-sign {
-    color: brown;
-    background-color: yellow;
-    border-radius: 14px;
-    padding: 0px 10px 0px 5px;
-    font-size: 0.95em;
+    color : brown;
+    background-color : yellow;
+    border-radius : 14px;
+    padding : 0 10px 0 5px;
+    font-size : 0.95em;
 }
 
 .demo-hash-tag {
@@ -123,20 +122,12 @@ body {
     color : green;
 }
 
-/* Style underlines in demo 3 */
-.demo-url {
-    font-style : italic;
-    color : royalblue;
-    box-shadow: 0px 2px;
-    text-shadow : -1px 1px #FFF, 1px 1px #FFF, -2px -1px #FFF, 0 -1px #FFF;
-}
-
 .demo-pronoun {
-    color: purple !important;
+    color : purple !important;
 }
 
 .demo-pronoun:hover {
-    background-color: yellow;
+    background-color : yellow;
 }
 
 /* Remove default link decoration. Its ugly as hell. */
@@ -145,77 +136,71 @@ body {
 }
 
 .demo-input {
-    font-family: 'Caveat', cursive;
-    font-size: 2em;
+    font-family : 'Caveat', cursive;
+    font-size : 2em;
 }
 
 .demo-menubar {
-    padding: 6px 0;
-    display: flex;
+    padding : 6px 0;
+    display :         flex;
     display : -webkit-flex;
-    flex-flow: row wrap;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1px solid #EEE;
-    background: #F5F5F5;
-    position: relative;
-    color: #000;
+    flex-flow : row wrap;
+    align-items : center;
+    justify-content : center;
+    border-bottom : 1px solid #EEE;
+    background : #F5F5F5;
+    position : relative;
+    color : #000;
 }
 
-[class^="icon-"], [class*=" icon-"] {
-    font-size: 25px;
+[class^='icon-'], [class*=' icon-'] {
+    font-size : 25px;
 }
 
 .demo-menu {
-  /*font-size: 1.4em;*/
-  padding: 4px 6px;
-  /* flex: 0 1 40px; */
-  text-align: center;
-  border-radius: 4px;
-  margin: 2px;
-  /*line-height: 32px;*/
-  /*position: relative;*/
+    /*font-size: 1.4em;*/
+    padding : 4px 6px;
+    /* flex: 0 1 40px; */
+    text-align : center;
+    border-radius : 4px;
+    margin : 2px;
+    color : darkslategray;
+    /*line-height: 32px;*/
+    /*position: relative;*/
 }
 
-.demo-menu-active,
-.demo-menu:hover {
-  box-shadow: 0 0 2px 0px #DDD;
-  background-color: #FFF;
+.demo-menu-active, .demo-menu:hover {
+    box-shadow : 0 0 2px 0 #DDD;
+    background-color : #FFF;
 }
 
 .demo-menu-sep {
-  border-right: 1px solid #DDD;
-  height: 36px;
-  width: 0px;
-  margin: 0 8px;
-}
-
-.autotag-palette,
-.demo-submenu {
-  padding: 10px;
-  background-color: #FFF;
-  position: absolute;
-  top: 50px;
-  z-index: 1000;
-  box-shadow: 1px 1px 3px #CCC;
-  font-family: 'Helvetica';
-  text-align: left;
+    border-right : 1px solid #DDD;
+    height : 36px;
+    width : 0;
+    margin : 0 8px;
 }
 
 .demo-submenu > div {
-  cursor: pointer;
-  padding: 0 10px;
-  line-height: 24px;
-  font-size: 16px;
+    cursor : pointer;
+    padding : 0 10px;
+    line-height : 24px;
+    font-size : 16px;
 }
 
 .demo-submenu > div:hover {
-  background: #EEE;
+    background : #EEE;
 }
 
 .demo-notepad {
-    margin: 0 auto;
-    padding: 40px 20px;
-    max-width: 800px;
-    min-height: 300px;
+    margin : 0 auto;
+    padding : 40px 20px;
+    max-width : 800px;
+    min-height : 300px;
+}
+
+@media only screen and (max-width: 480px), only screen and (max-device-width: 480px) {
+    .page-section {
+        padding : 40px 20px !important;
+    }
 }

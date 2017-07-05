@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css?family=Nunito:300, 700" rel="stylesheet">
 
     <!-- The main js library -->
-    <script src="./js/autotagjs-1.4.min.js"></script>
+    <script src="./js/autotagjs-1.4.js"></script>
 
     <!-- Required for input area to appear correctly across browsers -->
     <link rel="stylesheet" type="text/css" href="./css/autotagjs.css">
@@ -32,100 +32,94 @@
     </div>
 
     <div class="page-notepad">
-        <div class="demo-container autotag-editor">
-            <div id="menubar" class="demo-menubar autotag-menubar">
-                <span class="demo-menu autotag-menu"
-                      data-autotag-select="font-size">
+        <div class="demo-container autotagjs-editor">
+            <div id="menubar" class="demo-menubar">
+                <span class="demo-menu autotagjs-menu" data-autotagjs-select="font-size">
                   <span class="icon-size"></span>
-                  <span class="icon-drop-down"></span>
-
-                  <div style="display:none;" class="demo-submenu autotag-submenu">
-                    <div data-autotag-set="font-size: 11px">8</div>
-                    <div data-autotag-set="font-size: 12px">9</div>
-                    <div data-autotag-set="font-size: 13px">10</div>
-                    <div data-autotag-set="font-size: 14px">11</div>
-                    <div data-autotag-set="font-size: 16px">12</div>
-                    <div data-autotag-set="font-size: 19px">14</div>
-                    <div data-autotag-set="font-size: 24px">18</div>
-                    <div data-autotag-set="font-size: 32px">24</div>
-                    <div data-autotag-set="font-size: 40px">30</div>
-                    <div data-autotag-set="font-size: 52px">40</div>
+                  <div style="display:none;" class="demo-submenu autotagjs-submenu">
+                    <div data-autotagjs-set="font-size: 11px">8</div>
+                    <div data-autotagjs-set="font-size: 12px">9</div>
+                    <div data-autotagjs-set="font-size: 13px">10</div>
+                    <div data-autotagjs-set="font-size: 14px">11</div>
+                    <div data-autotagjs-set="font-size: 16px">12</div>
+                    <div data-autotagjs-set="font-size: 19px">14</div>
+                    <div data-autotagjs-set="font-size: 24px">18</div>
+                    <div data-autotagjs-set="font-size: 32px">24</div>
+                    <div data-autotagjs-set="font-size: 40px">30</div>
+                    <div data-autotagjs-set="font-size: 52px">40</div>
                   </div>
                 </span>
 
                 <span class="demo-menu-sep"></span>
 
-                <span class="icon-bold demo-menu autotag-menu"
-                    data-autotag-toggle="font-weight:bold"></span>
-
-                <span class="icon-italic demo-menu autotag-menu"
-                    data-autotag-toggle="font-style:italic"></span>
-
-                <span class="icon-underlined demo-menu autotag-menu"
-                    data-autotag-toggle="text-decoration:underline"></span>
+                <span class="icon-bold demo-menu autotagjs-menu"
+                    data-autotagjs-toggle="font-weight:bold"></span>
+                <span class="icon-italic demo-menu autotagjs-menu"
+                    data-autotagjs-toggle="font-style:italic"></span>
+                <span class="icon-underlined demo-menu autotagjs-menu"
+                    data-autotagjs-toggle="text-decoration:underline"></span>
 
                 <span class="demo-menu-sep"></span>
 
-                <span class="icon-color-text demo-menu autotag-menu"
-                    data-autotag-palette="color"></span>
-
-                <span class="icon-color-fill demo-menu autotag-menu"
-                    data-autotag-palette="fill"></span>
-
-                <span class="demo-menu-sep"></span>
-
-                <span class="icon-align-left demo-menu autotag-menu"
-                    data-autotag-scope="line"
-                    data-autotag-set="text-align: left"></span>
-
-                <span class="icon-align-center demo-menu autotag-menu"
-                    data-autotag-scope="line"
-                    data-autotag-set="text-align: center"></span>
-
-                <span class="icon-align-right demo-menu autotag-menu"
-                    data-autotag-scope="line"
-                    data-autotag-set="text-align: right"></span>
-
-                <span class="icon-align-justify demo-menu autotag-menu"
-                    data-autotag-scope="line"
-                    data-autotag-set="text-align: justify"></span>
+                <span class="icon-color-text demo-menu autotagjs-menu"
+                    data-autotagjs-palette="color"></span>
+                <span class="icon-color-fill demo-menu autotagjs-menu"
+                    data-autotagjs-palette="fill"></span>
 
                 <span class="demo-menu-sep"></span>
 
-                <span class="icon-line-spacing demo-menu autotag-menu"
-                    data-autotag-scope="line"
-                    data-autotag-toggle="line-height: 60px"></span>
+                <span class="icon-align-left demo-menu autotagjs-menu"
+                    data-autotagjs-scope="line"
+                    data-autotagjs-set="text-align: left"></span>
+
+                <span class="icon-align-center demo-menu autotagjs-menu"
+                    data-autotagjs-scope="line"
+                    data-autotagjs-set="text-align: center"></span>
+
+                <span class="icon-align-right demo-menu autotagjs-menu"
+                    data-autotagjs-scope="line"
+                    data-autotagjs-set="text-align: right"></span>
+
+                <span class="icon-align-justify demo-menu autotagjs-menu"
+                    data-autotagjs-scope="line"
+                    data-autotagjs-set="text-align: justify"></span>
 
                 <span class="demo-menu-sep"></span>
 
-                <span class="icon-indent-right demo-menu autotag-menu"
-                    data-autotag-scope="line"
-                    data-autotag-increment="margin-left: 25px"></span>
-
-                <span class="icon-indent-left demo-menu autotag-menu"
-                    data-autotag-scope="line"
-                    data-autotag-decrement="margin-left: 25px"></span>
+                <span class="icon-line-spacing demo-menu autotagjs-menu"
+                    data-autotagjs-scope="line"
+                    data-autotagjs-toggle="line-height: 60px"></span>
 
                 <span class="demo-menu-sep"></span>
 
-                <span class="icon-list-bulleted demo-menu autotag-menu"
-                    data-autotag-scope="line"
-                    data-autotag-initialize="margin-left: 50px"
-                    data-autotag-toggle="display:list-item; list-style-type:disc"></span>
+                <span class="icon-indent-right demo-menu autotagjs-menu"
+                    data-autotagjs-scope="line"
+                    data-autotagjs-increment="margin-left: 25px"></span>
 
-                <span class="icon-list-numbered demo-menu autotag-menu"
-                    data-autotag-scope="line"
-                    data-autotag-initialize="margin-left: 50px"
-                    data-autotag-toggle="display: list-item; list-style-type: decimal;"></span>
+                <span class="icon-indent-left demo-menu autotagjs-menu"
+                    data-autotagjs-scope="line"
+                    data-autotagjs-decrement="margin-left: 25px"></span>
 
                 <span class="demo-menu-sep"></span>
 
-                <span class="icon-clear demo-menu autotag-menu"
-                    data-autotag-command="clear"></span>
+                <span class="icon-list-bulleted demo-menu autotagjs-menu"
+                    data-autotagjs-scope="line"
+                    data-autotagjs-initialize="margin-left: 50px"
+                    data-autotagjs-toggle="display:list-item; list-style-type:disc"></span>
+
+                <span class="icon-list-numbered demo-menu autotagjs-menu"
+                    data-autotagjs-scope="line"
+                    data-autotagjs-initialize="margin-left: 50px"
+                    data-autotagjs-toggle="display: list-item; list-style-type: decimal;"></span>
+
+                <span class="demo-menu-sep"></span>
+
+                <span class="icon-clear demo-menu autotagjs-menu"
+                    data-autotagjs-command="clear"></span>
             </div>
-            <div id="notepad" class="demo-input demo-notepad autotag-textarea" contentEditable="true">
-                <!-- This content was generated in the notepad -->
-                    <p style="text-align: center;"><autotag style="display: inline;"><br></autotag></p><p style="text-align: center;"><autotag style="display: inline;">Type</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;" class="demo-pronoun" data-tooltip="Pronoun">something</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">if</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;" class="demo-pronoun" data-tooltip="Pronoun">you</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">care!</autotag></p>
+            <div id="notepad" class="demo-input demo-notepad autotagjs-textarea" contentEditable="true">
+                <!-- This content was generated in the notepad. Note that we do not format the content. -->
+                <p style="text-align: center;"><autotag style="display: inline;"><br></autotag></p><p style="text-align: center;"><autotag style="display: inline;" class="demo-pronoun" data-tooltip="Pronoun">This</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline; font-style: italic; font-weight: bold;">cool</autotag><autotag style="display: inline; font-style: italic; font-weight: bold;">&nbsp;</autotag><autotag style="display: inline; font-style: italic; font-weight: bold;">e</autotag><autotag style="display: inline; font-style: italic; font-weight: bold;">ditor</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">wa</autotag><autotag style="display: inline;">s</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">built</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">using</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;" class="demo-hash-tag">#autotagjs</autotag><autotag style="display: inline;">.</autotag></p><p style="text-align: center;"><autotag style="display: inline;"><br></autotag></p><p style="text-align: center;"><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">Give</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">&nbsp;</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;" class="demo-pronoun" data-tooltip="Pronoun">it</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">&nbsp;</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">a</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">&nbsp;</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">go!</autotag></p>
                 <!-- End generated content -->
             </div>
         </div>
@@ -170,82 +164,104 @@
     </div>
 
     <script type="text/javascript">
-          var pronouns = [
-              'your', 'I', 'they', 'their', 'we', 'who', 'them', 'its', 'our', 'my',
-              'those', 'he', 'us', 'her', 'something', 'me', 'yourself', 'someone',
-              'everything', 'itself', 'everyone', 'themselves', 'anyone', 'him',
-              'whose', 'myself', 'everybody', 'ourselves', 'himself', 'somebody',
-              'yours', 'herself', 'whoever', 'you', 'that', 'it', 'this', 'what',
-              'which', 'these', 'his', 'she', 'lot', 'anything', 'whatever', 'nobody',
-              'none', 'mine', 'anybody'
-          ];
 
-          var notepad = document.getElementById('notepad');
-          var menubar = document.getElementById('menubar');
+            // A list of pronouns we want highlighted in the editor. Note that this
+            // is just for demonstration purposes only and is not a part of the plugin.
+            var pronouns = [
+                'your', 'I', 'they', 'their', 'we', 'who', 'them', 'its', 'our', 'my',
+                'those', 'he', 'us', 'her', 'something', 'me', 'yourself', 'someone',
+                'everything', 'itself', 'everyone', 'themselves', 'anyone', 'him',
+                'whose', 'myself', 'everybody', 'ourselves', 'himself', 'somebody',
+                'yours', 'herself', 'whoever', 'you', 'that', 'it', 'this', 'what',
+                'which', 'these', 'his', 'she', 'lot', 'anything', 'whatever', 'nobody',
+                'none', 'mine', 'anybody'
+            ];
 
-          var getMenuClassList = function(className) {
-            return menubar.getElementsByClassName(className)[0].classList;
-          };
+            // The element that we use as the editor in design mode.
+            var notepad = document.getElementById('notepad');
 
-          var boldMenuClassList = getMenuClassList('icon-bold');
-          var italicMenuClassList = getMenuClassList('icon-italic');
-          var underlinedMenuClassList = getMenuClassList('icon-underlined');
+            // We will build a menubar for the editor. Note that the plugin does not
+            // provide a default menubar. This is intentional.
+            var menubar = document.getElementById('menubar');
 
-          var setMenuIconState = function(classList, isActive) {
-            if (classList) {
-              if (isActive) {
-                classList.add('demo-menu-active');
-              } else {
-                classList.remove('demo-menu-active');
-              }
-            }
-          };
+            // All the code from here until the configuration options are required to
+            // highlight the appropriate menu item that correspnds to the style of
+            // the text or selection in the editor.
+            var getMenuClassList = function(className) {
+                return menubar.getElementsByClassName(className)[0].classList;
+            };
 
-          var isBold = function(tag) {
-            return tag.style.getPropertyValue('font-weight') == 'bold';
-          };
+            var boldMenuClassList = getMenuClassList('icon-bold');
+            var italicMenuClassList = getMenuClassList('icon-italic');
+            var underlinedMenuClassList = getMenuClassList('icon-underlined');
 
-          var isItalic = function(tag) {
-            return tag.style.getPropertyValue('font-style') == 'italic';
-          };
-
-          var isUnderlined = function(tag) {
-            return tag.style.getPropertyValue('text-decoration') == 'underline';
-          };
-
-          var demo_config = {
-              decorator: function(node, text) {
-                  text = text.replace(/,$/, '').toLowerCase();
-                  if (pronouns.indexOf(text) >= 0) {
-                      node.setAttribute('class', 'demo-pronoun');
-                      node.setAttribute('data-tooltip', 'Pronoun');
-                  } else if (text.match(/[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/)) {
-                      node.setAttribute('class', 'demo-url');
-                  } else if (text.match(/^#[\w]{2}[\w]*$/)) {
-                      node.setAttribute('class', 'demo-hash-tag');
-                  } else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
-                      node.setAttribute('class', 'demo-plus-sign');
-                  } else {
-                      // Always remember to clean the node!
-                      node.removeAttribute('class');
-                      node.removeAttribute('data-tooltip');
-                  }
-              },
-
-              afterSelection: function(tags) {
-                var tag;
-                if (tags.length == 1 && (tag = tags[0])) {
-                  setMenuIconState(boldMenuClassList, isBold(tag));
-                  setMenuIconState(italicMenuClassList, isItalic(tag));
-                  setMenuIconState(underlinedMenuClassList, isUnderlined(tag));
+            var setMenuIconState = function(classList, isActive) {
+                if (classList) {
+                    if (isActive) {
+                        classList.add('demo-menu-active');
+                    } else {
+                        classList.remove('demo-menu-active');
+                    }
                 }
-              },
+            };
 
-              trace: false,
-              ignoreReturnKey: false
-          };
+            var isBold = function(tag) {
+                return tag.style.getPropertyValue('font-weight') == 'bold';
+            };
 
-          new Autotag(notepad, demo_config).attachMenubar(menubar);
+            var isItalic = function(tag) {
+                return tag.style.getPropertyValue('font-style') == 'italic';
+            };
+
+            var isUnderlined = function(tag) {
+                return tag.style.getPropertyValue('text-decoration') == 'underline';
+            };
+
+
+            // Some configuration options for the editor.
+            var demo_config = {
+
+                // A callback that gets called when the splitter encounters a change.
+                // The callback contains the text (or autotagjs tag) being processed.
+                // In this demo, we use the decorator to apply custom styles based
+                // on the content in the tag.
+                decorator: function(node, text) {
+                    text = text.replace(/,$/, '').toLowerCase();
+                    if (pronouns.indexOf(text) >= 0) {
+                        node.setAttribute('class', 'demo-pronoun');
+                        node.setAttribute('data-tooltip', 'Pronoun');
+                    } else if (text.match(/^#[\w]{2}[\w]*$/)) {
+                        node.setAttribute('class', 'demo-hash-tag');
+                    } else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
+                        node.setAttribute('class', 'demo-plus-sign');
+                    } else {
+                        // Always remember to clean the node!
+                        node.removeAttribute('class');
+                        node.removeAttribute('data-tooltip');
+                    }
+                },
+
+                // Every caret move or selction change, a call is made to the function.
+                // In this demo, we use the callback to highlight the Bold, Italic & Underline menus
+                // if the style is applied to the text under the caret or selection.
+                afterSelection: function(tags) {
+                    var tag;
+                    if (tags.length == 1 && (tag = tags[0])) {
+                        setMenuIconState(boldMenuClassList, isBold(tag));
+                        setMenuIconState(italicMenuClassList, isItalic(tag));
+                        setMenuIconState(underlinedMenuClassList, isUnderlined(tag));
+                    }
+                },
+
+                // Set to true for debugging.
+                trace: false,
+
+                // You can disable the return key in the editor by setting this to true.
+                ignoreReturnKey: false
+            };
+
+            // Enable the notepad element with the provided config and attach the menubar.
+            new Autotag(notepad, demo_config).attachMenubar(menubar);
     </script>
 </body>
 
