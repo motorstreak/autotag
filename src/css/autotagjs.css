@@ -1,35 +1,69 @@
 
 /* Deal with IE paragraph style within the editor. */
-[contenteditable] > p,
-[contenteditable] > p > autotag {
-    margin: 0;
-    word-break: break-all;
+[contenteditable] > p, [contenteditable] > p > autotag {
+    margin : 0;
+    word-break : break-all;
 }
 
 ::-moz-selection {
-    color: #FFF;
-    background: rgb(81, 120, 225);
+    color : #FFF;
+    background : rgb(81, 120, 225);
 }
 
 ::selection {
-    color: #FFF;
-    background: rgb(81, 120, 225);
+    color : #FFF;
+    background : rgb(81, 120, 225);
 }
 
 /* Prevent outlines on contenteditable items in IE. */
-[contenteditable]:focus,
-[contenteditable] > p > autotag:focus {
+[contenteditable]:focus, [contenteditable] > p > autotag:focus {
     outline : 0;
 }
 
-.autotag-color {
-    font: 12px/12px 'helvetica';
-    cursor: pointer;
-    padding: 7px;
-    display: inline-block;
-    margin: 1px;
+.autotagjs-palette {
+    left : -132px;
 }
 
-.autotag-color:hover {
-    box-shadow: 0px 0px 1px #000;
+.autotagjs-palette-row {
+    display : flex;
+}
+
+.autotagjs-palette-cell {
+    cursor : pointer;
+    padding : 10px;
+    border-radius : 2px;
+    margin : 2px;
+}
+
+.autotagjs-palette-cell:hover {
+    box-shadow : 0 0 1px #000;
+}
+
+.autotagjs-menu {
+    position : relative;
+}
+
+.autotagjs-submenu {
+    padding : 10px;
+    background-color : #FFF;
+    position : absolute;
+    top : 50px;
+    z-index : 1000;
+    box-shadow : 1px 1px 3px #CCC;
+    font-family : 'Helvetica';
+    text-align : left;
+    border-radius : 2px;
+}
+
+@media only screen and (max-width: 480px), only screen and (max-device-width: 480px) {
+    .autotagjs-palette {
+        position : fixed !important;
+        left : 50%;
+        margin-left : -180px;
+        top : 220px !important;
+    }
+
+    .autotagjs-palette-cell {
+        padding : 15px;
+    }
 }
