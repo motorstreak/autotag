@@ -205,23 +205,22 @@ Autotag = (function() {
                 menu.appendChild(palette);
 
                 // Color palette
-                var row, cell, maxCols = 10, maxRows = 4;
-                for (var s = 100, i=0, l = 96; i < maxRows; i++, s -= Math.round(50/maxRows), l -= Math.round(90/maxRows)) {
-                    // row = document.createElement('div');
-                    // cell.className = 'autotagjs-palette-row';
-                    // palette.appendChild(cell);
+                var row, cell, maxCols = 10, maxRows = 5;
+                var hueStep = Math.round(360 / maxCols),
+                    saturationStep = Math.round(40 / maxRows),
+                    luminosityStep = Math.round(80 / maxRows);
+
+                for (var i = 0, s = 100, l = 94; i < maxRows; i++, s -= saturationStep, l -= luminosityStep) {
                     row = createPaletteRow(palette);
-                    for (var h = 0, j=0; j < maxCols; j++, h += Math.round(360/maxCols)) {
+                    for (var j = 0, h = 0; j < maxCols; j++, h += hueStep) {
                         createPaletteCell(row, h, s, l);
                     }
                 }
 
-                // Grayscale palette
-                // cell = document.createElement('div');
-                // cell.className = 'autotagjs-palette-row';
-                // palette.appendChild(cell);
                 row = createPaletteRow(palette);
-                for (i = 0, l = 0; i < maxCols; i++, l += Math.round(100/maxCols)) {
+                luminosityStep = Math.round(100 / maxCols);
+
+                for (i = 0, l = 10; i < maxCols; i++, l += luminosityStep) {
                     createPaletteCell(row, 0, 0, l);
                 }
             }
@@ -601,7 +600,6 @@ Autotag = (function() {
                 toggleSubmenu();
             } else {
                 formatSelection(menu.dataset);
-                // Make sure to adjust wraps as required.
                 paragraphize(getLine(), true);
             }
         };
@@ -795,11 +793,9 @@ Autotag = (function() {
             if (node) {
                 var fontSize = parseFloat(getStylePropertyValue(node, 'font-size'));
                 if (node.getBoundingClientRect().height > fontSize * 1.3) {
-                    var wrap = node.previousSibling &&
-                        node.previousSibling.tagName === 'DIV';
+                    var wrap = node.previousSibling && (node.previousSibling.tagName === 'DIV');
                     if (!wrap) {
-                        node.parentNode.insertBefore(
-                            document.createElement('div'), node);
+                        node.parentNode.insertBefore(document.createElement('div'), node);
                     }
                 }
             }
@@ -854,11 +850,11 @@ Autotag = (function() {
         });
 
         editor.addEventListener('textInput', function(e) {
-          if (processInputFlag === true) {
-            fixLine();
-            processInput();
-            paragraphize(getLine(), true);
-          }
+            if (processInputFlag === true) {
+                fixLine();
+                processInput();
+                paragraphize(getLine(), true);
+            }
         });
 
         // Start handling events.
@@ -903,7 +899,7 @@ Autotag = (function() {
                 } else if (isReturnKey(code)) {
                     processReturnKey();
                 } else if (isPrintableKey(code)) {
-                  // processed under 'textInput' event.
+                    // processed under 'textInput' event.
                 }
                 doAfterKeypress();
             }
