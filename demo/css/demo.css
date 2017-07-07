@@ -2,7 +2,7 @@ body {
     background-color : #EEE;
     margin : 0;
     padding : 0;
-    font-family : 'Source Sans Pro', Arial, Helvetica, sans-serif;
+    font-family : 'Varela Round', Arial, Helvetica, sans-serif;
     font-size : 16px;
 }
 
@@ -33,9 +33,11 @@ body {
 }
 
 .page-msg {
-    font-weight : 300;
-    line-height : 1.4em;
-    font-size : 1.2em;
+    font-weight: 300;
+    font-size: 20px;
+    line-height: 1.4em;
+    max-width: 600px;
+    margin: auto;
 }
 
 .page-section {
@@ -55,29 +57,43 @@ body {
 
 .section-text-title {
     font-size : 30px;
-    text-transform : uppercase;
+    font-weight: bold;
     padding-bottom : 20px;
-    border-bottom : 1px solid;
     margin-bottom : 20px;
 }
 
+.section-text-body {
+    font-size: 20px;
+    font-family: 'Montserrat', sans-serif;
+}
+
 .section-build-editor {
-    background-color : #EEE;
-    font-size : 1.2em;
-    text-shadow : 1px 1px #FFF;
+    background-color : #F5F5F5;
     color : #333;
-    border-top : 1px solid #DDD;
+    /*border-top : 1px solid #DDD;*/
 }
 
 .section-browser-support {
-    background : #524795;
-    color : #EEE;
-    font-size : 1.2em;
+    background-color: #F5F5F5;
+    color : #555;
+}
+
+.section-enhanced-input {
+    background: #FFF;
 }
 
 .section-image {
     flex : 0 1 400px;
     text-align : center;
+}
+
+.section-form {
+    flex : 0 1 400px;
+    text-align : left;
+    padding: 40px;
+    border: 1px dashed #999;
+    box-sizing: border-box;
+    border-radius: 6px;
 }
 
 .browser-icon-list {
@@ -87,7 +103,7 @@ body {
 .browser-icon {
     font-size : 85px !important;
     text-align : center;
-    color : #EEE;
+    color : #000;
     padding : 40px 0;
 }
 
@@ -106,12 +122,33 @@ body {
     height : auto;
 }
 
+.demo-inputplus {
+    background: #FFF;
+    padding: 5px 0 0;
+    text-align: left;
+    line-height: 2em;
+}
+
+.demo-inputplus-textbox {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #DDD;
+    padding-bottom: 40px;
+}
+
+.demo-inputplus-textarea {
+    height: 100px;
+}
+
+.demo-inputplus-label {
+    text-align: left;
+    font-size: 0.7em;
+    color: #999;
+}
+
 .demo-plus-sign {
-    color : brown;
-    background-color : yellow;
-    border-radius : 14px;
-    padding : 0 10px 0 5px;
-    font-size : 0.95em;
+    color: brown;
+    background-color: yellow;
+    font-style: italic;
 }
 
 .demo-hash-tag {

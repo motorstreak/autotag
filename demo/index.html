@@ -7,8 +7,7 @@
 
     <!-- Load a custom font -->
     <link href="https://fonts.googleapis.com/css?family=Caveat" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,600" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Nunito:300, 700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:300|Varela+Round" rel="stylesheet">
 
     <!-- The main js library -->
     <script src="./js/autotagjs-1.4.js"></script>
@@ -27,7 +26,7 @@
     <div class="page-header">
         <div class="page-title">autotag.js</div>
         <div class="page-msg">
-            A simple and lightweight (~10kb) text formatter built in plain Javascript.
+            A simple and lightweight (~10kb) open source text formatter plugin built in plain Javascript.
         </div>
     </div>
 
@@ -54,8 +53,10 @@
 
                 <span class="icon-bold demo-menu autotagjs-menu"
                     data-autotagjs-toggle="font-weight:bold"></span>
+
                 <span class="icon-italic demo-menu autotagjs-menu"
                     data-autotagjs-toggle="font-style:italic"></span>
+
                 <span class="icon-underlined demo-menu autotagjs-menu"
                     data-autotagjs-toggle="text-decoration:underline"></span>
 
@@ -63,6 +64,7 @@
 
                 <span class="icon-color-text demo-menu autotagjs-menu"
                     data-autotagjs-palette="color"></span>
+
                 <span class="icon-color-fill demo-menu autotagjs-menu"
                     data-autotagjs-palette="fill"></span>
 
@@ -117,7 +119,7 @@
                 <span class="icon-clear demo-menu autotagjs-menu"
                     data-autotagjs-command="clear"></span>
             </div>
-            <div id="notepad" class="demo-input demo-notepad autotagjs-textarea" contentEditable="true">
+            <div id="editor" class="demo-input demo-notepad autotagjs-textarea" contentEditable="true">
                 <!-- This content was generated in the notepad. Note that we do not format the content. -->
                 <p style="text-align: center;"><autotag style="display: inline;"><br></autotag></p><p style="text-align: center;"><autotag style="display: inline;" class="demo-pronoun" data-tooltip="Pronoun">This</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline; font-style: italic; font-weight: bold;">cool</autotag><autotag style="display: inline; font-style: italic; font-weight: bold;">&nbsp;</autotag><autotag style="display: inline; font-style: italic; font-weight: bold;">e</autotag><autotag style="display: inline; font-style: italic; font-weight: bold;">ditor</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">wa</autotag><autotag style="display: inline;">s</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">built</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">using</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;" class="demo-hash-tag">#autotagjs</autotag><autotag style="display: inline;">.</autotag></p><p style="text-align: center;"><autotag style="display: inline;"><br></autotag></p><p style="text-align: center;"><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">Give</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">&nbsp;</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;" class="demo-pronoun" data-tooltip="Pronoun">it</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">&nbsp;</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">a</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">&nbsp;</autotag><autotag style="display: inline; background-color: rgb(255, 235, 247); color: rgb(222, 33, 146); font-size: 52px;">go!</autotag></p>
                 <!-- End generated content -->
@@ -139,7 +141,43 @@
         </div>
     </div>
 
+    <div class="page-section section-enhanced-input">
+        <div class="section-form">
+            <div class="demo-inputplus-label">
+                Title
+            </div>
+            <div id="textbox" class="demo-inputplus demo-inputplus-textbox" contentEditable="true">
+<p><autotag style="display: inline;" class="demo-hash-tag">#awesome</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">text box!</autotag></p>
+            </div>
+
+            <div class="demo-inputplus-label">
+                Description
+            </div>
+            <div id="textarea" class="demo-inputplus demo-inputplus-textarea" contentEditable="true">
+<p><autotag style="display: inline;" class="demo-hash-tag">#awesome</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">text&nbsp;</autotag><autotag style="display: inline;">area</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;">on</autotag><autotag style="display: inline;">&nbsp;</autotag><autotag style="display: inline;" class="demo-plus-sign">+steroids.</autotag></p>            </div>
+        </div>
+        <div class="section-text">
+            <div class="section-text-title">
+                Supercharge your forms
+            </div>
+            <div class="section-text-body">
+                Highlight hashtags, validate text or perform other operation on user input with less code.
+            </div>
+        </div>
+    </div>
+
+
     <div class="page-section section-browser-support">
+        <div class="section-text">
+            <div class="section-text-title">
+                Supports all major browsers
+            </div>
+            <div class="section-text-body">
+                autotag.js works on all webkit based browsers (Chrome, Safari,
+                Vivaldi), Firefox, IE 11 and Edge, both on the desktop and mobile.
+            </div>
+        </div>
+
         <div class="section-image ">
             <table class="browser-icon-list">
                 <tr>
@@ -151,15 +189,6 @@
                     <td class="browser-icon icon-edge"></td>
                 </tr>
             </table>
-        </div>
-        <div class="section-text">
-            <div class="section-text-title">
-                Supports all major browsers
-            </div>
-            <div class="section-text-body">
-                autotag.js works on all webkit based browsers (Chrome, Safari,
-                Vivaldi), Firefox, IE 11 and Edge, both on the desktop and mobile.
-            </div>
         </div>
     </div>
 
@@ -178,7 +207,7 @@
             ];
 
             // The element that we use as the editor in design mode.
-            var notepad = document.getElementById('notepad');
+            var editor = document.getElementById('editor');
 
             // We will build a menubar for the editor. Note that the plugin does not
             // provide a default menubar. This is intentional.
@@ -219,7 +248,7 @@
 
 
             // Some configuration options for the editor.
-            var demo_config = {
+            var editorConfig = {
 
                 // A callback that gets called when the splitter encounters a change.
                 // The callback contains the text (or autotagjs tag) being processed.
@@ -230,10 +259,6 @@
                     if (pronouns.indexOf(text) >= 0) {
                         node.setAttribute('class', 'demo-pronoun');
                         node.setAttribute('data-tooltip', 'Pronoun');
-                    } else if (text.match(/^#[\w]{2}[\w]*$/)) {
-                        node.setAttribute('class', 'demo-hash-tag');
-                    } else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
-                        node.setAttribute('class', 'demo-plus-sign');
                     } else {
                         // Always remember to clean the node!
                         node.removeAttribute('class');
@@ -260,8 +285,24 @@
                 ignoreReturnKey: false
             };
 
-            // Enable the notepad element with the provided config and attach the menubar.
-            new Autotag(notepad, demo_config).attachMenubar(menubar);
+            // Enable the editor element with the provided config and attach the menubar.
+            new Autotag(editor, editorConfig).attachMenubar(menubar);
+
+
+            var inputConfig = {
+                decorator: function(node, text) {
+                    if (text.match(/^#[\w]{2}[\w]*$/)) {
+                        node.setAttribute('class', 'demo-hash-tag');
+                    } else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
+                        node.setAttribute('class', 'demo-plus-sign');
+                    }
+                },
+                ignoreReturnKey: true
+            };
+
+            new Autotag(document.getElementById('textbox'), inputConfig);
+            new Autotag(document.getElementById('textarea'), inputConfig);
+
     </script>
 </body>
 
