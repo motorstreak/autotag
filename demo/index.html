@@ -306,6 +306,8 @@
                         node.setAttribute('class', 'demo-hash-tag');
                     } else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
                         node.setAttribute('class', 'demo-plus-sign');
+                    } else {
+                        node.removeAttribute('class');
                     }
                 },
                 ignoreReturnKey: true
