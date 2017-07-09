@@ -42,25 +42,24 @@ Autotag = (function() {
     // trace:     Set this to true to see debug messages on the console.
 
     return function(editor, config) {
-        var activeSubmenu;
+        var activeSubmenu,
 
-        // The line on which the input was captured. This is updated
-        // each time a keyup event is triggered.
-        var inputLineNumber;
+            // The line on which the input was captured. This is updated
+            // each time a keyup event is triggered.
+            inputLineNumber,
 
-        // Store status of beforeKeypress callback return.
-        var processInputFlag;
+            // Store status of beforeKeypress callback return.
+            processInputFlag,
 
-        // Stores the last selection made in the editor.
-        var selectionRange;
+            // Stores the last selection made in the editor.
+            selectionRange,
 
-        // Continues the current text style to the next line and
-        // across line breaks.
-        var continuingStyle;
+            // Continues the current text style to the next line and
+            // across line breaks.
+            continuingStyle,
 
-        var editorMenubar;
-
-        var autoHtmlTag = 'autotag';
+            editorMenubar,
+            autoHtmlTag = 'autotag';
 
         // Map keeyboard controls to format options since we override them.
         var styleKeyMap = {
@@ -72,16 +71,15 @@ Autotag = (function() {
         // Dump logs for testing.
         function logToConsole(data, msg) {
             msg = (typeof msg === 'undefined') ? '' : msg;
-            if (trace) {
-                console.log('TRACE : ' + msg + ' : ' + data);
-            }
+            if (trace) console.log('TRACE : ' + msg + ' : ' + data);
         }
 
         function debounce(func, wait, immediate) {
             var timeout;
             return function() {
-                var context = this;
-                var args = arguments;
+                var context = this,
+                    args = arguments;
+
                 var later = function() {
                     timeout = null;
                     if (!immediate) func.apply(context, args);
@@ -103,6 +101,8 @@ Autotag = (function() {
         // Callbacks
         var decorator = config.decorator || function(node, text) {};
         var doOnReturnKey = config.onReturnKey || function() {};
+
+        // The default splitter splits on words.
         var splitter = config.splitter || function(str) {
             return str.match(/([^,\s\.]+)|[,\s\.]+/ig);
         };
@@ -118,9 +118,11 @@ Autotag = (function() {
         var doBeforeClick = config.beforeClick || function() {
             return true;
         };
+
         var doBeforeKeypress = config.beforeKeypress || function() {
             return true;
         };
+
         var doBeforePaste = config.beforePaste || function() {
             return true;
         };
@@ -133,7 +135,10 @@ Autotag = (function() {
 
         var applyCommand = function(node, commands) {
             for (var j = 0; j < commands.length; j++) {
-                if (commands[j] == 'clear') node.setAttribute('style', '');
+                if (commands[j] == 'clear') {
+                    continuingStyle = null;
+                    node.setAttribute('style', '');
+                }
             }
         };
 
@@ -149,9 +154,9 @@ Autotag = (function() {
 
         var applyStyle = function(node, instruction, declarations) {
             for (var j = 0; j < declarations.length; j++) {
-                var declaration = declarations[j].split(/\s*:\s*/);
-                var property = declaration[0];
-                var value = declaration[1];
+                var declaration = declarations[j].split(/\s*:\s*/),
+                    property = declaration[0],
+                    value = declaration[1];
 
                 var curValue = node.style.getPropertyValue(property);
 
@@ -165,8 +170,9 @@ Autotag = (function() {
                     node.style.setProperty(property, value);
 
                 } else if (instruction.match(/^autotagjs(Increment|Decrement)/)) {
-                    var amount = getPixelAmount(value);
-                    var curAmount = getPixelAmount(curValue);
+                    curValue = curValue || getComputedStyle(node).getPropertyValue(property);
+                    var amount = getPixelAmount(value),
+                        curAmount = getPixelAmount(curValue);
 
                     if (instruction == 'autotagjsIncrement') {
                         curAmount += amount;
@@ -191,7 +197,10 @@ Autotag = (function() {
         var createBreakNode = function() {
             var node = document.createElement(autoHtmlTag);
             node.appendChild(document.createElement('br'));
-            if (continuingStyle) node.setAttribute('style', continuingStyle);
+            if (continuingStyle) {
+                node.setAttribute('style', continuingStyle);
+            }
+
             return node;
         };
 
@@ -205,7 +214,9 @@ Autotag = (function() {
                 menu.appendChild(palette);
 
                 // Color palette
-                var row, cell, maxCols = 10, maxRows = 5;
+                var row, cell, maxCols = 10,
+                    maxRows = 5;
+
                 var hueStep = Math.round(360 / maxCols),
                     saturationStep = Math.round(40 / maxRows),
                     luminosityStep = Math.round(80 / maxRows);
@@ -228,8 +239,9 @@ Autotag = (function() {
         };
 
         var createPaletteCell = function(row, h, s, l) {
-            var cell = document.createElement('div');
-            var hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
+            var cell = document.createElement('div'),
+                hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
+
             cell.className = 'autotagjs-palette-cell';
             cell.style.color = cell.style.background = hsla;
             row.appendChild(cell);
@@ -251,7 +263,9 @@ Autotag = (function() {
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
             var tagNode = document.createElement(autoHtmlTag);
-            if (str) tagNode.appendChild(createTextNode(str));
+            if (str) {
+                tagNode.appendChild(createTextNode(str));
+            }
             return tagNode;
         };
 
@@ -265,6 +279,7 @@ Autotag = (function() {
         var fixCaretPosition = function() {
             var range = getRange();
             var node = range.endContainer;
+
             if (node == range.startContainer) {
                 if (isBreakTag(node)) {
                     setCaret(node, 0);
@@ -326,16 +341,22 @@ Autotag = (function() {
 
         var formatSelection = function(dataset) {
             if (selectionRange && dataset) {
-                scope = dataset.autotagjsScope || 'text';
-                // action = (typeof action === 'undefined') ? 'set' : action;
-
                 var nodes;
-                if (scope == 'editor') {
-                    // Do nothing for now.
-                } else if (scope == 'line') {
-                    nodes = getLinesInRange(selectionRange);
-                } else if (scope == 'text') {
-                    nodes = getTagsInRange(selectionRange);
+                switch(dataset.autotagjsScope) {
+                    case 'line':
+                        nodes = getLinesInRange(selectionRange);
+                        break;
+                    case 'selection':
+                        var tags = getTagsInRange(selectionRange);
+                        var lines = getLinesInRange(selectionRange);
+                        if (lines.length > 1 || tags.length == getTagsInLine().length) {
+                            nodes = tags.concat(lines);
+                        } else {
+                            nodes = tags;
+                        }
+                        break;
+                    default:
+                        nodes = getTagsInRange(selectionRange);
                 }
 
                 nodes = nodes.filter(Boolean);
@@ -366,6 +387,7 @@ Autotag = (function() {
         var getLine = function(node) {
             node = (typeof node === 'undefined') ?
                 getRange() && getRange().endContainer : node;
+
             while (node && !isEditor(node) && !isLine(node)) {
                 node = node.parentNode;
             }
@@ -374,17 +396,20 @@ Autotag = (function() {
 
         var getLineNumber = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
+
             var lineNumber;
             if (isLine(line)) {
                 lineNumber = 1;
-                while ((line = line.previousSibling)) lineNumber++;
+                while ((line = line.previousSibling)) {
+                    lineNumber++;
+                }
             }
             return lineNumber;
         };
 
         var getLinesInRange = function(range) {
-            var line = getLine(range.startContainer);
-            var endLine = getLine(range.endContainer);
+            var line = getLine(range.startContainer),
+                endLine = getLine(range.endContainer);
 
             var lines = [line];
             while (line && (line !== endLine)) {
@@ -415,6 +440,7 @@ Autotag = (function() {
                     next = getNextTag(next.parentNode.nextSibling);
                 }
             }
+
             return next;
         };
 
@@ -434,6 +460,7 @@ Autotag = (function() {
                 selection.type != "Control") {
                 range = selection.createRange();
             }
+
             return range;
         };
 
@@ -463,22 +490,29 @@ Autotag = (function() {
         };
 
         var getTagsInRange = function(range) {
-            var tag = getRangeStartTag(range);
-            var endTag = getRangeEndTag(range);
+            var tag = getRangeStartTag(range),
+                endTag = getRangeEndTag(range),
+                tags = tag && [tag] || [];
 
-            var tags = tag && [tag] || [];
             while (tag && (tag !== endTag)) {
                 tags.push(tag = getNextTag(tag));
             }
             return tags;
         };
 
-        var getTextNodes = function(node) {
-            var text;
-            var textNodes = [];
-            var walker = getTextWalker(node);
+        var getTagsInLine = function(line) {
+            line = (typeof line === 'undefined') ? getLine() : line;
+            return isLine(line) && line.getElementsByTagName(autoHtmlTag);
+        };
 
-            while ((text = walker.nextNode())) textNodes.push(text);
+        var getTextNodes = function(node) {
+            var text,
+                textNodes = [],
+                walker = getTextWalker(node);
+
+            while ((text = walker.nextNode())) {
+                textNodes.push(text);
+            }
             return textNodes;
         };
 
@@ -491,8 +525,7 @@ Autotag = (function() {
             wordPos = (typeof wordPos === 'undefined') ? 0 : wordPos;
             if (isLine(line)) {
                 if (wordPos === 0) {
-                    var first = line.querySelector('a:first-child');
-                    setCaret(first, 0);
+                    setCaret(line.querySelector('a:first-child'), 0);
 
                 } else {
                     var tags = line.querySelectorAll(autoHtmlTag);
@@ -612,8 +645,8 @@ Autotag = (function() {
                 var offset = range.endOffset;
                 fixText(container, offset);
 
-                var refTag = container.parentNode;
-                var parts = splitter(container.nodeValue || '');
+                var refTag = container.parentNode,
+                    parts = splitter(container.nodeValue || '');
 
                 // Trim empty values from the array.
                 parts = parts && parts.filter(Boolean) || '';
@@ -879,9 +912,7 @@ Autotag = (function() {
                     e.preventDefault();
                 } else if (e.metaKey && isFormatKey(code)) {
                     e.preventDefault();
-                    formatSelection({
-                        autotagjsToggle: styleKeyMap[code]
-                    });
+                    formatSelection({ autotagjsToggle: styleKeyMap[code] });
                 }
             }
         });

@@ -34,19 +34,23 @@
         <div class="demo-container autotagjs-editor">
             <div id="menubar" class="demo-menubar">
                 <span class="demo-menu autotagjs-menu" data-autotagjs-select="font-size">
-                  <span class="icon-size"></span>
-                  <div style="display:none;" class="demo-submenu autotagjs-submenu">
-                    <div data-autotagjs-set="font-size: 11px">8</div>
-                    <div data-autotagjs-set="font-size: 12px">9</div>
-                    <div data-autotagjs-set="font-size: 13px">10</div>
-                    <div data-autotagjs-set="font-size: 14px">11</div>
-                    <div data-autotagjs-set="font-size: 16px">12</div>
-                    <div data-autotagjs-set="font-size: 19px">14</div>
-                    <div data-autotagjs-set="font-size: 24px">18</div>
-                    <div data-autotagjs-set="font-size: 32px">24</div>
-                    <div data-autotagjs-set="font-size: 40px">30</div>
-                    <div data-autotagjs-set="font-size: 52px">40</div>
-                  </div>
+                    <span class="icon-size"></span>
+                    <div style="display:none;" class="demo-submenu autotagjs-submenu">
+                        <!-- 'selection' includes lines and tags -->
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 11px">8</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 12px">9</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 13px">10</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 14px">11</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 16px">12</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 19px">14</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 24px">18</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 32px">24</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 40px">30</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 52px">40</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-set="font-size: 93px">70</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-increment="font-size: 10px">Bigger</div>
+                        <div data-autotagjs-scope="selection" data-autotagjs-decrement="font-size: 10px">Smaller</div>
+                    </div>
                 </span>
 
                 <span class="demo-menu-sep"></span>
@@ -88,9 +92,15 @@
 
                 <span class="demo-menu-sep"></span>
 
-                <span class="icon-line-spacing demo-menu autotagjs-menu"
-                    data-autotagjs-scope="line"
-                    data-autotagjs-toggle="line-height: 60px"></span>
+                <span class="demo-menu autotagjs-menu" data-autotagjs-select="line-height">
+                    <span class="icon-line-spacing"></span>
+                    <div style="display:none;" class="demo-submenu autotagjs-submenu">
+                        <div data-autotagjs-scope="line" data-autotagjs-set="line-height: 1.5em">1.5</div>
+                        <div data-autotagjs-scope="line" data-autotagjs-set="line-height: 1em">Normal</div>
+                        <div data-autotagjs-scope="line" data-autotagjs-set="line-height: 2em">Double</div>
+                        <div data-autotagjs-scope="line" data-autotagjs-set="line-height: 3em">Correction</div>
+                    </div>
+                </span>
 
                 <span class="demo-menu-sep"></span>
 
@@ -107,16 +117,17 @@
                 <span class="icon-list-bulleted demo-menu autotagjs-menu"
                     data-autotagjs-scope="line"
                     data-autotagjs-initialize="margin-left: 50px"
-                    data-autotagjs-toggle="display:list-item; list-style-type:disc"></span>
+                    data-autotagjs-toggle="display:list-item; list-style-type:disc; list-style-position:inside;"></span>
 
                 <span class="icon-list-numbered demo-menu autotagjs-menu"
                     data-autotagjs-scope="line"
                     data-autotagjs-initialize="margin-left: 50px"
-                    data-autotagjs-toggle="display: list-item; list-style-type: decimal;"></span>
+                    data-autotagjs-toggle="display: list-item; list-style-type: decimal; list-style-position:inside;"></span>
 
                 <span class="demo-menu-sep"></span>
 
                 <span class="icon-clear demo-menu autotagjs-menu"
+                    data-autotagjs-scope="selection"
                     data-autotagjs-command="clear"></span>
             </div>
             <div id="editor" class="demo-input demo-notepad autotagjs-textarea" contentEditable="true">

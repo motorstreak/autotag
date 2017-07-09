@@ -195,15 +195,11 @@ body {
 }
 
 .demo-menu {
-    /*font-size: 1.4em;*/
     padding : 4px 6px;
-    /* flex: 0 1 40px; */
     text-align : center;
     border-radius : 4px;
     margin : 2px;
     color : darkslategray;
-    /*line-height: 32px;*/
-    /*position: relative;*/
 }
 
 .demo-menu-active, .demo-menu:hover {
@@ -220,7 +216,7 @@ body {
 
 .demo-submenu > div {
     cursor : pointer;
-    padding : 0 10px;
+    padding : 2px 10px;
     line-height : 24px;
     font-size : 16px;
 }
