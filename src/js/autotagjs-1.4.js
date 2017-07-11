@@ -1,3 +1,4 @@
+
 /*! autotagjs.js v1.4 https://github.com/motorstreak/autotag */
 /*
  Version: 1.4
@@ -127,6 +128,8 @@ Autotag = (function() {
             return true;
         };
 
+        var doOnMenuClick = config.onMenuClick || function() {};
+
         // A leading Tag node, required to maintain consistancy in behavior
         // across browsers.
         var addPilotNodeToLine = function(line) {
@@ -143,11 +146,15 @@ Autotag = (function() {
         };
 
         var applyInstruction = function(nodes, instruction, declarations) {
-            for (var i = 0; i < nodes.length; i++) {
-                if (instruction == 'autotagjsCommand') {
-                    applyCommand(nodes[i], declarations);
-                } else {
-                    applyStyle(nodes[i], instruction, declarations);
+            if (instruction == 'autotagjsCallback') {
+                doOnMenuClick(declarations, nodes);
+            } else {
+                for (var i = 0; i < nodes.length; i++) {
+                    if (instruction == 'autotagjsCommand') {
+                        applyCommand(nodes[i], declarations);
+                    } else {
+                        applyStyle(nodes[i], instruction, declarations);
+                    }
                 }
             }
         };
@@ -276,7 +283,7 @@ Autotag = (function() {
             return document.createTextNode(str);
         };
 
-        var fixCaretPosition = function() {
+        var fixCaret = function() {
             var range = getRange();
             var node = range.endContainer;
 
@@ -342,7 +349,7 @@ Autotag = (function() {
         var formatSelection = function(dataset) {
             if (selectionRange && dataset) {
                 var nodes;
-                switch(dataset.autotagjsScope) {
+                switch (dataset.autotagjsScope) {
                     case 'line':
                         nodes = getLinesInRange(selectionRange);
                         break;
@@ -521,19 +528,10 @@ Autotag = (function() {
                 document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false);
         };
 
-        var gotoLine = function(line, wordPos) {
-            wordPos = (typeof wordPos === 'undefined') ? 0 : wordPos;
+        var gotoLine = function(line) {
             if (isLine(line)) {
-                if (wordPos === 0) {
-                    setCaret(line.querySelector('a:first-child'), 0);
-
-                } else {
-                    var tags = line.querySelectorAll(autoHtmlTag);
-                    wordPos = (tags.length > wordPos) ? wordPos : (tags.length - 1);
-                    setCaret(tags[wordPos]);
-                }
+                setCaret(line.querySelector('a:first-child'), 0);
             }
-            return line;
         };
 
         var isBreak = function(node) {
@@ -716,20 +714,21 @@ Autotag = (function() {
             if (ignoreReturnKey === false) {
                 var current = getLine();
                 if (getLineNumber(current) == inputLineNumber) {
-                    var next = getNextLine(current);
-                    if (next !== null) {
-                        fixLine(next);
-                        gotoLine(next, 0);
+                    current = getNextLine(current);
+                    if (current !== null) {
+                        fixLine(current);
+                        gotoLine(current);
                     }
                 } else {
                     var prev = getPreviousLine(current);
                     fixLine(prev);
                     fixLine(current);
-                    gotoLine(current, 0);
+                    gotoLine(current);
                 }
+                current.style.removeProperty('counter-reset');
                 fixEditor();
                 processInput();
-                fixCaretPosition();
+                fixCaret();
             }
         };
 
@@ -787,6 +786,10 @@ Autotag = (function() {
             return range;
         };
 
+        var saveSelectionRange = function() {
+            selectionRange = getRange();
+        };
+
         // Takes in the current node and sets the cursor location
         // on the first child, if the child is a Text node.
         var setCaret = function(node, offset) {
@@ -796,10 +799,10 @@ Autotag = (function() {
 
         var setContinuingStyle = function() {
             var container = getRange().endContainer;
-            var tag = isTag(container) && container ||
-                isText(container) && container.parentNode;
-            continuingStyle =
-                tag && tag.getAttribute('style') || continuingStyle;
+            var tag = isTag(container) && container || isText(container) && container.parentNode;
+            if (tag) {
+                continuingStyle = tag.getAttribute('style');
+            }
         };
 
         var setSelection = function(startContainer, startOffset, endContainer, endOffset) {
@@ -860,29 +863,30 @@ Autotag = (function() {
         };
 
         document.addEventListener('selectionchange', debounce(function(e) {
-            selectionRange = getRange();
+            saveSelectionRange();
             doAfterSelection(getTagsInRange(selectionRange));
+            console.log("selectionchange");
         }, 500));
 
         editor.addEventListener('dblclick', function(e) {
-            selectionRange = getRange();
+            saveSelectionRange();
         });
 
         editor.addEventListener('click', function(e) {
             hideSubmenu();
-            selectionRange = getRange();
             if (doBeforeClick()) {
+                fixLine();
                 fixEditor();
                 doAfterClick();
             }
         });
 
         editor.addEventListener('focus', function(e) {
-            selectionRange = getRange();
+            saveSelectionRange();
             fixEditor();
         });
 
-        editor.addEventListener('textInput', function(e) {
+        editor.addEventListener('textinput', function(e) {
             if (processInputFlag === true) {
                 fixLine();
                 processInput();
@@ -897,24 +901,22 @@ Autotag = (function() {
                 inputLineNumber = getLineNumber();
 
                 var code = getKeyCode(e);
-
                 if (isDeleteKey(code)) {
-                    fixCaretPosition();
+                    fixCaret();
                 } else if (isReturnKey(code)) {
                     if (ignoreReturnKey) {
                         e.preventDefault();
                         doOnReturnKey();
+                        getLine().style.removeProperty('counter-reset');
                     } else {
                         setContinuingStyle();
                     }
                 } else if (isTabKey(code)) {
-                    processTabKey(code);
                     e.preventDefault();
+                    processTabKey(code);
                 } else if (e.metaKey && isFormatKey(code)) {
                     e.preventDefault();
-                    formatSelection({
-                        autotagjsToggle: styleKeyMap[code]
-                    });
+                    formatSelection({ autotagjsToggle: styleKeyMap[code] });
                 }
             }
         });

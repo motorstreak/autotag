@@ -121,8 +121,7 @@
 
                 <span class="icon-list-numbered demo-menu autotagjs-menu"
                     data-autotagjs-scope="line"
-                    data-autotagjs-initialize="margin-left: 50px"
-                    data-autotagjs-toggle="display: list-item; list-style-type: decimal; list-style-position:inside;"></span>
+                    data-autotagjs-callback="numbered-list"></span>
 
                 <span class="demo-menu-sep"></span>
 
@@ -286,6 +285,18 @@
                         setMenuIconState(boldMenuClassList, isBold(tag));
                         setMenuIconState(italicMenuClassList, isItalic(tag));
                         setMenuIconState(underlinedMenuClassList, isUnderlined(tag));
+                    }
+                },
+
+                //
+                onMenuClick: function(message, nodes) {
+                    if (message == 'numbered-list') {
+                        for (var i = 0; i < nodes.length; i++) {
+                            nodes[i].classList.toggle('demo-numbered-list');
+                            if (i == 0) {
+                                nodes[i].style.setProperty('counter-reset', 'demo-counter 0');
+                            }
+                        }
                     }
                 },
 
