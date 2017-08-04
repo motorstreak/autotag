@@ -681,6 +681,14 @@ Autotag = (function() {
             }
         };
 
+        var processKeyedInput = function() {
+            if (processInputFlag === true) {
+                fixLine();
+                processInput();
+                paragraphize(getLine(), true);
+            }
+        };
+
         var processPastedInput = function(e) {
             var content;
             if (e.clipboardData) {
@@ -865,7 +873,6 @@ Autotag = (function() {
         document.addEventListener('selectionchange', debounce(function(e) {
             saveSelectionRange();
             doAfterSelection(getTagsInRange(selectionRange));
-            console.log("selectionchange");
         }, 500));
 
         editor.addEventListener('dblclick', function(e) {
@@ -886,13 +893,11 @@ Autotag = (function() {
             fixEditor();
         });
 
-        editor.addEventListener('textinput', function(e) {
-            if (processInputFlag === true) {
-                fixLine();
-                processInput();
-                paragraphize(getLine(), true);
-            }
-        });
+        // IE 11 and Edge
+        editor.addEventListener('textinput', processKeyedInput);
+
+        // Webkit browsers!
+        editor.addEventListener('textInput', processKeyedInput);
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
