@@ -32,7 +32,6 @@
     cursor : pointer;
     width : 20px;
     height: 20px;
-    border-radius : 10px;
     margin : 2px;
 }
 
@@ -72,6 +71,5 @@
         height: 26px;
         width: 26px;
         margin: 4px;
-        border-radius: 13px;
     }
 }

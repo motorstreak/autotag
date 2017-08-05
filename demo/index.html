@@ -288,12 +288,10 @@
                     }
                 },
 
-                //
                 onMenuClick: function(message, nodes) {
                     if (message == 'numbered-list') {
                         for (var i = 0; i < nodes.length; i++) {
-                            nodes[i].classList.toggle('demo-numbered-list');
-                            if (i == 0) {
+                            if (nodes[i].classList.toggle('demo-numbered-list') && i == 0) {
                                 nodes[i].style.setProperty('counter-reset', 'demo-counter 0');
                             }
                         }

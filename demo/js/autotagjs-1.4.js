@@ -27,10 +27,6 @@ Autotag = (function() {
     //
     //      beforeKeypress(e) - called before processing a keydown event.
     //      afterKeypress - called after processing a keyup event.
-    //      beforePaste
-    //      afterPaste
-    //      beforeClick
-    //      afterClick
     //      afterSelection
     //
     // ignoreReturnKey: If set to true, return key presses will be
@@ -48,9 +44,6 @@ Autotag = (function() {
             // The line on which the input was captured. This is updated
             // each time a keyup event is triggered.
             inputLineNumber,
-
-            // Store status of beforeKeypress callback return.
-            processInputFlag,
 
             // Stores the last selection made in the editor.
             selectionRange,
@@ -109,24 +102,10 @@ Autotag = (function() {
         };
 
         // Event callbacks
-        var doAfterClick = config.afterClick || function() {};
         var doAfterKeypress = config.afterKeypress || function() {};
-        var doAfterPaste = config.afterPaste || function() {};
 
         // Returns the tags under the selection.
         var doAfterSelection = config.afterSelection || function(tags) {};
-
-        var doBeforeClick = config.beforeClick || function() {
-            return true;
-        };
-
-        var doBeforeKeypress = config.beforeKeypress || function() {
-            return true;
-        };
-
-        var doBeforePaste = config.beforePaste || function() {
-            return true;
-        };
 
         var doOnMenuClick = config.onMenuClick || function() {};
 
@@ -563,15 +542,6 @@ Autotag = (function() {
             return node && node.tagName == 'P';
         };
 
-        var isPrintableKey = function(code) {
-            // return (code == 32) || // Spacebar key
-            //     (code > 47 && code < 58) || // Number keys
-            //     (code > 64 && code < 91) || // Alphabet keys
-            //     (code > 95 && code < 112) || // Numpad keys
-            //     (code > 185 && code < 193) || // ; = , - . / ` keys
-            //     (code > 218 && code < 223); // [ \ ] ' keys
-        };
-
         var isReturnKey = function(code) {
             return code == 13;
         };
@@ -682,11 +652,9 @@ Autotag = (function() {
         };
 
         var processKeyedInput = function() {
-            if (processInputFlag === true) {
-                fixLine();
-                processInput();
-                paragraphize(getLine(), true);
-            }
+            fixLine();
+            processInput();
+            paragraphize(getLine(), true);
         };
 
         var processPastedInput = function(e) {
@@ -721,6 +689,7 @@ Autotag = (function() {
         var processReturnKey = function() {
             if (ignoreReturnKey === false) {
                 var current = getLine();
+                current.style.display = 'none';
                 if (getLineNumber(current) == inputLineNumber) {
                     current = getNextLine(current);
                     if (current !== null) {
@@ -734,6 +703,7 @@ Autotag = (function() {
                     gotoLine(current);
                 }
                 current.style.removeProperty('counter-reset');
+                current.style.display = 'block';
                 fixEditor();
                 processInput();
                 fixCaret();
@@ -881,11 +851,8 @@ Autotag = (function() {
 
         editor.addEventListener('click', function(e) {
             hideSubmenu();
-            if (doBeforeClick()) {
-                fixLine();
-                fixEditor();
-                doAfterClick();
-            }
+            fixLine();
+            fixEditor();
         });
 
         editor.addEventListener('focus', function(e) {
@@ -901,56 +868,46 @@ Autotag = (function() {
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
-            processInputFlag = doBeforeKeypress(e);
-            if (processInputFlag === true) {
-                inputLineNumber = getLineNumber();
+            inputLineNumber = getLineNumber();
 
-                var code = getKeyCode(e);
-                if (isDeleteKey(code)) {
-                    fixCaret();
-                } else if (isReturnKey(code)) {
-                    if (ignoreReturnKey) {
-                        e.preventDefault();
-                        doOnReturnKey();
-                        getLine().style.removeProperty('counter-reset');
-                    } else {
-                        setContinuingStyle();
-                    }
-                } else if (isTabKey(code)) {
+            var code = getKeyCode(e);
+            if (isDeleteKey(code)) {
+                fixCaret();
+            } else if (isReturnKey(code)) {
+                if (ignoreReturnKey) {
                     e.preventDefault();
-                    processTabKey(code);
-                } else if (e.metaKey && isFormatKey(code)) {
-                    e.preventDefault();
-                    formatSelection({ autotagjsToggle: styleKeyMap[code] });
+                    doOnReturnKey();
+                    // getLine().style.removeProperty('counter-reset');
+                } else {
+                    setContinuingStyle();
                 }
+            } else if (isTabKey(code)) {
+                e.preventDefault();
+                processTabKey(code);
+            } else if (e.metaKey && isFormatKey(code)) {
+                e.preventDefault();
+                formatSelection({ autotagjsToggle: styleKeyMap[code] });
             }
         });
 
         editor.addEventListener('keyup', function(e) {
-            if (processInputFlag === true) {
-                var code = getKeyCode(e);
-                if (isDeleteKey(code)) {
-                    if (isEditor(getRange().endContainer)) {
-                        fixEditor();
-                    } else {
-                        fixLine();
-                    }
-                    paragraphize(getLine(), true);
-                } else if (isReturnKey(code)) {
-                    processReturnKey();
-                } else if (isPrintableKey(code)) {
-                    // processed under 'textInput' event.
+            var code = getKeyCode(e);
+            if (isDeleteKey(code)) {
+                if (isEditor(getRange().endContainer)) {
+                    fixEditor();
+                } else {
+                    fixLine();
                 }
-                doAfterKeypress();
+                paragraphize(getLine(), true);
+            } else if (isReturnKey(code)) {
+                processReturnKey();
             }
+            doAfterKeypress();
         });
 
         editor.addEventListener('paste', function(e) {
-            if (doBeforePaste() === true) {
-                e.preventDefault();
-                processPastedInput(e);
-                doAfterPaste();
-            }
+            e.preventDefault();
+            processPastedInput(e);
         });
 
         window.addEventListener('resize', debounce(function(e) {
