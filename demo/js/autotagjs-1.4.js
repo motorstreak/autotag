@@ -53,7 +53,8 @@ Autotag = (function() {
             continuingStyle,
 
             editorMenubar,
-            autoHtmlTag = 'autotag';
+            autoWordTag = 'span';
+            autoLineTag = 'p';
 
         // Map keeyboard controls to format options since we override them.
         var styleKeyMap = {
@@ -177,11 +178,11 @@ Autotag = (function() {
 
         // A Block node form a line element in the editor.
         var createBlockNode = function() {
-            return document.createElement('p');
+            return document.createElement(autoLineTag);
         };
 
         var createBreakNode = function() {
-            var node = document.createElement(autoHtmlTag);
+            var node = document.createElement(autoWordTag);
             node.appendChild(document.createElement('br'));
             if (continuingStyle) {
                 node.setAttribute('style', continuingStyle);
@@ -248,7 +249,7 @@ Autotag = (function() {
 
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
-            var tagNode = document.createElement(autoHtmlTag);
+            var tagNode = document.createElement(autoWordTag);
             if (str) {
                 tagNode.appendChild(createTextNode(str));
             }
@@ -272,7 +273,7 @@ Autotag = (function() {
                 } else if (isTag(node)) {
                     setCaret(node.lastChild, 0);
                 } else if (isLine(node)) {
-                    var tags = node.querySelectorAll(autoHtmlTag);
+                    var tags = node.querySelectorAll(autoWordTag);
                     if (tags.length > 0) {
                         var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
                         setCaret(tag.lastChild);
@@ -290,7 +291,9 @@ Autotag = (function() {
                 // IE adds unwanted nodes sometimes.
                 var lines = editor.childNodes;
                 for (var i = 0; i < lines.length; i++) {
-                    if (lines[i].tagName !== 'P') removeNode(lines[i]);
+                    if (lines[i].tagName !== autoLineTag.toUpperCase()) {
+                        removeNode(lines[i]);
+                    }
                 }
             }
         };
@@ -439,7 +442,7 @@ Autotag = (function() {
             var selection, range;
             if (typeof window.getSelection != "undefined") {
                 selection = window.getSelection();
-                if (selection.rangeCount > 0) {
+                if (selection.rangeCount) {
                     range = selection.getRangeAt(0);
                 }
             } else if ((selection = document.selection) &&
@@ -488,7 +491,7 @@ Autotag = (function() {
 
         var getTagsInLine = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
-            return isLine(line) && line.getElementsByTagName(autoHtmlTag);
+            return isLine(line) && line.getElementsByTagName(autoWordTag);
         };
 
         var getTextNodes = function(node) {
@@ -539,7 +542,7 @@ Autotag = (function() {
         };
 
         var isLine = function(node) {
-            return node && node.tagName == 'P';
+            return node && node.tagName == autoLineTag.toUpperCase();
         };
 
         var isReturnKey = function(code) {
@@ -555,7 +558,7 @@ Autotag = (function() {
         };
 
         var isTag = function(node) {
-            return node && node.tagName == autoHtmlTag.toUpperCase();
+            return node && node.tagName == autoWordTag.toUpperCase();
         };
 
         var isText = function(node) {
@@ -571,7 +574,7 @@ Autotag = (function() {
             }
 
             if (isLine(root)) {
-                var tagNodes = root.querySelectorAll(autoHtmlTag);
+                var tagNodes = root.querySelectorAll(autoWordTag);
                 var tagNode, tagNodeHeight;
                 for (var i = 0; i < tagNodes.length; i++) {
                     softWrapNode(tagNodes[i]);
@@ -652,6 +655,7 @@ Autotag = (function() {
         };
 
         var processKeyedInput = function() {
+            console.log("processKeyedInput");
             fixLine();
             processInput();
             paragraphize(getLine(), true);
@@ -689,7 +693,7 @@ Autotag = (function() {
         var processReturnKey = function() {
             if (ignoreReturnKey === false) {
                 var current = getLine();
-                current.style.display = 'none';
+                // current.style.display = 'none';
                 if (getLineNumber(current) == inputLineNumber) {
                     current = getNextLine(current);
                     if (current !== null) {
@@ -703,7 +707,7 @@ Autotag = (function() {
                     gotoLine(current);
                 }
                 current.style.removeProperty('counter-reset');
-                current.style.display = 'block';
+                // current.style.display = 'block';
                 fixEditor();
                 processInput();
                 fixCaret();
@@ -765,7 +769,8 @@ Autotag = (function() {
         };
 
         var saveSelectionRange = function() {
-            selectionRange = getRange();
+            selectionRange = getRange() || selectionRange;
+            return selectionRange;
         };
 
         // Takes in the current node and sets the cursor location
@@ -776,10 +781,13 @@ Autotag = (function() {
         };
 
         var setContinuingStyle = function() {
-            var container = getRange().endContainer;
-            var tag = isTag(container) && container || isText(container) && container.parentNode;
-            if (tag) {
-                continuingStyle = tag.getAttribute('style');
+            var range = getRange();
+            if (range) {
+                var container = range.endContainer;
+                var tag = isTag(container) && container || isText(container) && container.parentNode;
+                if (tag) {
+                    continuingStyle = tag.getAttribute('style');
+                }
             }
         };
 
@@ -841,8 +849,9 @@ Autotag = (function() {
         };
 
         document.addEventListener('selectionchange', debounce(function(e) {
-            saveSelectionRange();
-            doAfterSelection(getTagsInRange(selectionRange));
+            if (saveSelectionRange()) {
+                doAfterSelection(getTagsInRange(selectionRange));
+            }
         }, 500));
 
         editor.addEventListener('dblclick', function(e) {
@@ -861,10 +870,12 @@ Autotag = (function() {
         });
 
         // IE 11 and Edge
-        editor.addEventListener('textinput', processKeyedInput);
+        // editor.addEventListener('textinput', processKeyedInput);
 
         // Webkit browsers!
-        editor.addEventListener('textInput', processKeyedInput);
+        // editor.addEventListener('textInput', processKeyedInput);
+
+        editor.addEventListener('input', processKeyedInput);
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {

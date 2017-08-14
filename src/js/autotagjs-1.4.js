@@ -53,7 +53,7 @@ Autotag = (function() {
             continuingStyle,
 
             editorMenubar,
-            autoHtmlTag = 'autotag';
+            autoWordTag = 'autotag';
 
         // Map keeyboard controls to format options since we override them.
         var styleKeyMap = {
@@ -181,7 +181,7 @@ Autotag = (function() {
         };
 
         var createBreakNode = function() {
-            var node = document.createElement(autoHtmlTag);
+            var node = document.createElement(autoWordTag);
             node.appendChild(document.createElement('br'));
             if (continuingStyle) {
                 node.setAttribute('style', continuingStyle);
@@ -248,7 +248,7 @@ Autotag = (function() {
 
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(str) {
-            var tagNode = document.createElement(autoHtmlTag);
+            var tagNode = document.createElement(autoWordTag);
             if (str) {
                 tagNode.appendChild(createTextNode(str));
             }
@@ -272,7 +272,7 @@ Autotag = (function() {
                 } else if (isTag(node)) {
                     setCaret(node.lastChild, 0);
                 } else if (isLine(node)) {
-                    var tags = node.querySelectorAll(autoHtmlTag);
+                    var tags = node.querySelectorAll(autoWordTag);
                     if (tags.length > 0) {
                         var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
                         setCaret(tag.lastChild);
@@ -488,7 +488,7 @@ Autotag = (function() {
 
         var getTagsInLine = function(line) {
             line = (typeof line === 'undefined') ? getLine() : line;
-            return isLine(line) && line.getElementsByTagName(autoHtmlTag);
+            return isLine(line) && line.getElementsByTagName(autoWordTag);
         };
 
         var getTextNodes = function(node) {
@@ -555,7 +555,7 @@ Autotag = (function() {
         };
 
         var isTag = function(node) {
-            return node && node.tagName == autoHtmlTag.toUpperCase();
+            return node && node.tagName == autoWordTag.toUpperCase();
         };
 
         var isText = function(node) {
@@ -571,7 +571,7 @@ Autotag = (function() {
             }
 
             if (isLine(root)) {
-                var tagNodes = root.querySelectorAll(autoHtmlTag);
+                var tagNodes = root.querySelectorAll(autoWordTag);
                 var tagNode, tagNodeHeight;
                 for (var i = 0; i < tagNodes.length; i++) {
                     softWrapNode(tagNodes[i]);

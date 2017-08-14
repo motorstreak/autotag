@@ -1,6 +1,7 @@
 
 /* Deal with IE paragraph style within the editor. */
-[contenteditable] > p, [contenteditable] > p > autotag {
+[contenteditable] p,
+[contenteditable] p > tag {
     margin : 0;
     word-break : break-all;
 }
@@ -16,7 +17,8 @@
 }
 
 /* Prevent outlines on contenteditable items in IE. */
-[contenteditable]:focus, [contenteditable] > p > autotag:focus {
+[contenteditable]:focus,
+[contenteditable] p > tag:focus {
     outline : 0;
 }
 
