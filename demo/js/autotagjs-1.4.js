@@ -116,61 +116,77 @@ Autotag = (function() {
             return line.appendChild(createBreakNode());
         };
 
-        var applyCommand = function(node, commands) {
-            for (var j = 0; j < commands.length; j++) {
-                if (commands[j] == 'clear') {
-                    continuingStyle = null;
-                    node.setAttribute('style', '');
+        var applyCommand = function(target, commands) {
+            if (Array.isArray(target)) {
+                for (var i = 0; i < target.length; i++) {
+                    applyCommand(target[i], commands);
+                }
+            } else {
+                for (var j = 0; j < commands.length; j++) {
+                    if (commands[j] == 'clear') {
+                        continuingStyle = null;
+                        target.setAttribute('style', '');
+                    } else if (commands[j] == 'rescope') {
+                        if (target.previousSibling) {
+                            target.previousSibling.appendChild(target);
+                        } else if (isEditor(target.parentNode)) {
+                            var newLine = createBlockNode();
+                            editor.insertBefore(newLine, target);
+                            newLine.appendChild(target);
+                        }
+                    }
                 }
             }
         };
 
         var applyInstruction = function(nodes, instruction, declarations) {
-            if (instruction == 'autotagjsCallback') {
+            if (instruction == 'autotagjsCommand') {
+                applyCommand(nodes, declarations);
+            } else if (instruction == 'autotagjsCallback') {
                 doOnMenuClick(declarations, nodes);
             } else {
-                for (var i = 0; i < nodes.length; i++) {
-                    if (instruction == 'autotagjsCommand') {
-                        applyCommand(nodes[i], declarations);
-                    } else {
-                        applyStyle(nodes[i], instruction, declarations);
-                    }
-                }
+                applyStyle(nodes, instruction, declarations);
             }
         };
 
-        var applyStyle = function(node, instruction, declarations) {
-            for (var j = 0; j < declarations.length; j++) {
-                var declaration = declarations[j].split(/\s*:\s*/),
-                    property = declaration[0],
-                    value = declaration[1];
+        var applyStyle = function(target, instruction, declarations) {
+            if (Array.isArray(target)) {
+                for (var i = 0; i < target.length; i++) {
+                    applyStyle(target[i], instruction, declarations);
+                }
+            } else {
+                for (var j = 0; j < declarations.length; j++) {
+                    var declaration = declarations[j].split(/\s*:\s*/),
+                        property = declaration[0],
+                        value = declaration[1];
 
-                var curValue = node.style.getPropertyValue(property);
+                    var curValue = target.style.getPropertyValue(property);
 
-                if (instruction == 'autotagjsUnset' ||
-                    instruction == 'autotagjsToggle' && curValue.length > 0) {
-                    node.style.removeProperty(property);
+                    if (instruction == 'autotagjsUnset' ||
+                        instruction == 'autotagjsToggle' && curValue.length > 0) {
+                        target.style.removeProperty(property);
 
-                } else if (instruction == 'autotagjsSet' ||
-                    (instruction == 'autotagjsInitialize' || instruction == 'autotagjsToggle') &&
-                    curValue.length === 0) {
-                    node.style.setProperty(property, value);
+                    } else if (instruction == 'autotagjsSet' ||
+                        (instruction == 'autotagjsInitialize' || instruction == 'autotagjsToggle') &&
+                        curValue.length === 0) {
+                        target.style.setProperty(property, value);
 
-                } else if (instruction.match(/^autotagjs(Increment|Decrement)/)) {
-                    curValue = curValue || getComputedStyle(node).getPropertyValue(property);
-                    var amount = getPixelAmount(value),
-                        curAmount = getPixelAmount(curValue);
+                    } else if (instruction.match(/^autotagjs(Increment|Decrement)/)) {
+                        curValue = curValue || getComputedStyle(target).getPropertyValue(property);
+                        var amount = getPixelAmount(value),
+                            curAmount = getPixelAmount(curValue);
 
-                    if (instruction == 'autotagjsIncrement') {
-                        curAmount += amount;
-                    } else if (instruction == 'autotagjsDecrement') {
-                        curAmount -= amount;
-                    }
+                        if (instruction == 'autotagjsIncrement') {
+                            curAmount += amount;
+                        } else if (instruction == 'autotagjsDecrement') {
+                            curAmount -= amount;
+                        }
 
-                    if (curAmount <= 0) {
-                        node.style.removeProperty(property);
-                    } else {
-                        node.style.setProperty(property, curAmount + 'px');
+                        if (curAmount <= 0) {
+                            target.style.removeProperty(property);
+                        } else {
+                            target.style.setProperty(property, curAmount + 'px');
+                        }
                     }
                 }
             }
@@ -566,7 +582,7 @@ Autotag = (function() {
         };
 
         var paragraphize = function(root, refresh) {
-            root = (typeof root === 'undefined') ? editor : root;
+            root = (root == null) ? editor : root;
             refresh = (typeof refresh === 'undefined') ? false : true;
 
             if (refresh) {
@@ -706,7 +722,7 @@ Autotag = (function() {
                     fixLine(current);
                     gotoLine(current);
                 }
-                current.style.removeProperty('counter-reset');
+                // current.style.removeProperty('counter-reset');
                 // current.style.display = 'block';
                 fixEditor();
                 processInput();
