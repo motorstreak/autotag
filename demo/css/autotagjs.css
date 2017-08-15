@@ -57,6 +57,32 @@
     border-radius : 2px;
 }
 
+.autotagjs-numbered-list,
+.autotagjs-bullet-list {
+    display: list-item;
+    list-style-position: outside;
+    list-style-type: none;
+    position: relative;
+    padding-left: 75px;
+}
+
+.autotagjs-numbered-list:before {
+    content: counter(autotagjs-counter) ".";
+    counter-increment: autotagjs-counter;
+    position: absolute;
+    left: 0;
+    width: 60px;
+    text-align: right;
+}
+
+.autotagjs-bullet-list:before {
+    content: "\25CF";
+    position: absolute;
+    left: 0;
+    width: 60px;
+    text-align: right;
+}
+
 @media only screen and (max-width: 480px), only screen and (max-device-width: 480px) {
 
     .page-header {

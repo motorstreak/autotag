@@ -53,7 +53,7 @@ Autotag = (function() {
             continuingStyle,
 
             editorMenubar,
-            autoWordTag = 'span';
+            autoWordTag = 'span',
             autoLineTag = 'p';
 
         // Map keeyboard controls to format options since we override them.
@@ -126,14 +126,51 @@ Autotag = (function() {
                     if (commands[j] == 'clear') {
                         continuingStyle = null;
                         target.setAttribute('style', '');
-                    } else if (commands[j] == 'rescope') {
-                        if (target.previousSibling) {
-                            target.previousSibling.appendChild(target);
-                        } else if (isEditor(target.parentNode)) {
-                            var newLine = createBlockNode();
-                            editor.insertBefore(newLine, target);
-                            newLine.appendChild(target);
+
+                    } else if (commands[j].match(/-list$/)) {
+                        var startContainer = selectionRange.startContainer,
+                            endContainer = selectionRange.endContainer,
+                            startOffset = selectionRange.startOffset,
+                            endOffset = selectionRange.endOffset;
+
+                        var next,
+                            parent = target.parentNode,
+                            prev = target.previousSibling;
+
+                        target.setAttribute('class',
+                            target.className.replace(/(^|\s)autotagjs(-\w+)+-list\s*/g, ''));
+
+                        if (isEditor(parent)) {
+                            // If this is the first line in the editor, create a new block
+                            // to nest the list.
+                            if (prev == null) {
+                                prev = createBlockNode();
+                                editor.insertBefore(prev, target);
+                                prev.appendChild(target);
+                            }
+
+                            prev.style.setProperty('counter-reset', 'autotagjs-counter 0');
+
+                            // Cleanup the target node since this may possibly hold a list.
+                            target.style.removeProperty('counter-reset');
+                            target.classList.add('autotagjs-' + commands[j]);
+                            prev.appendChild(target);
+
+                            // Move children of target under target's new parent node.
+                            var children = Array.prototype.slice.call(target.children);
+                            for(var k=0; k < children.length; k++) {
+                                if (children[k].tagName == autoLineTag.toUpperCase()) {
+                                    prev.appendChild(children[k]);
+                                }
+                            }
+                        } else {
+                            while((next = target.nextSibling)) {
+                                target.appendChild(next);
+                            }
+                            parent.parentNode.insertBefore(target, parent.nextSibling);
                         }
+
+                        setSelection(startContainer, startOffset, endContainer, endOffset);
                     }
                 }
             }
@@ -671,7 +708,6 @@ Autotag = (function() {
         };
 
         var processKeyedInput = function() {
-            console.log("processKeyedInput");
             fixLine();
             processInput();
             paragraphize(getLine(), true);

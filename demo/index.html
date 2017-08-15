@@ -116,17 +116,12 @@
 
                 <span class="icon-list-bulleted demo-menu autotagjs-menu"
                     data-autotagjs-scope="line"
-                    data-autotagjs-initialize="margin-left: 50px"
-                    data-autotagjs-toggle="display:list-item; list-style-type:disc; list-style-position:inside;"></span>
+                    data-autotagjs-command="bullet-list"></span>
 
-                    <span class="icon-list-bulleted demo-menu autotagjs-menu"
-                        data-autotagjs-scope="line"
-                        data-autotagjs-initialize="margin-left: 50px"
-                        data-autotagjs-toggle="display:list-item; list-style-type:decimal; list-style-position:inside;"></span>
-
+                <!-- Callback instruction for demonstration only. It does nothing. -->
                 <span class="icon-list-numbered demo-menu autotagjs-menu"
                     data-autotagjs-scope="line"
-                    data-autotagjs-command="rescope"
+                    data-autotagjs-command="numbered-list"
                     data-autotagjs-callback="numbered-list"></span>
 
                 <span class="demo-menu-sep"></span>
@@ -295,14 +290,9 @@
                 },
 
                 onMenuClick: function(message, nodes) {
-                    if (message == 'numbered-list') {
-                        for (var i = 0; i < nodes.length; i++) {
-                            if (nodes[i].classList.toggle('demo-numbered-list')) {
-                                // nodes[i].style.setProperty('counter-reset', 'demo-counter 0');
-                                nodes[i].parentNode.style.setProperty('counter-reset', 'demo-counter 0');
-                            }
-                        }
-                    }
+                    // if (message == 'num-list') {
+                    //  Do somethning with the nodes returned
+                    // }
                 },
 
                 // Set to true for debugging.
