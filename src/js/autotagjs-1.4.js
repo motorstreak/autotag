@@ -53,7 +53,8 @@ Autotag = (function() {
             continuingStyle,
 
             editorMenubar,
-            autoWordTag = 'autotag';
+            autoWordTag = 'span',
+            autoLineTag = 'p';
 
         // Map keeyboard controls to format options since we override them.
         var styleKeyMap = {
@@ -76,14 +77,14 @@ Autotag = (function() {
 
                 var later = function() {
                     timeout = null;
-                    if (!immediate) func.apply(context, args);
+                    if (!immediate) { func.apply(context, args); }
                 };
 
                 var callNow = immediate && !timeout;
                 clearTimeout(timeout);
                 timeout = setTimeout(later, wait);
 
-                if (callNow) func.apply(context, args);
+                if (callNow) { func.apply(context, args); }
             };
         }
 
@@ -115,61 +116,123 @@ Autotag = (function() {
             return line.appendChild(createBreakNode());
         };
 
-        var applyCommand = function(node, commands) {
-            for (var j = 0; j < commands.length; j++) {
-                if (commands[j] == 'clear') {
-                    continuingStyle = null;
-                    node.setAttribute('style', '');
+        var applyCommand = function(target, commands) {
+            if (Array.isArray(target)) {
+                for (var i = 0; i < target.length; i++) {
+                    applyCommand(target[i], commands);
+                }
+            } else {
+                for (var j = 0; j < commands.length; j++) {
+                    if (commands[j] == 'clear') {
+                        continuingStyle = null;
+                        target.setAttribute('style', '');
+
+                    } else if (commands[j].match(/^list(\s)+/)) {
+                        var listClassName = commands[j].split(/\s+/)[1];
+                        var startContainer = selectionRange.startContainer,
+                            endContainer = selectionRange.endContainer,
+                            startOffset = selectionRange.startOffset,
+                            endOffset = selectionRange.endOffset;
+
+                        var next,
+                            parent = target.parentNode,
+                            prev = target.previousSibling;
+
+                        var targetClassName = target.className;
+
+                        // Remove any autotagjs list styling before performing action.
+                        target.setAttribute('class',
+                            targetClassName.replace(/(\w+-)+list\s*/g, ''));
+
+                        if (isEditor(parent)) {
+                            // If this is the first line in the editor, create a new block
+                            // to nest the list.
+                            if (prev == null) {
+                                prev = createBlockNode();
+                                editor.insertBefore(prev, target);
+                                prev.appendChild(target);
+                            }
+
+                            prev.style.setProperty('counter-reset', 'autotagjs-counter 0');
+
+                            // Cleanup the target node since this may possibly hold a list.
+                            target.style.removeProperty('counter-reset');
+                            target.classList.add('autotagjs-list', listClassName);
+                            prev.appendChild(target);
+
+                            // Move children of target under target's new parent node.
+                            var children = Array.prototype.slice.call(target.children);
+                            for(var k=0; k < children.length; k++) {
+                                if (children[k].tagName == autoLineTag.toUpperCase()) {
+                                    prev.appendChild(children[k]);
+                                }
+                            }
+
+                        // Remove list if target has a list type same as the one to apply.
+                    } else if (targetClassName.match(new RegExp(listClassName, "g"))) {
+                            while((next = target.nextSibling)) {
+                                target.appendChild(next);
+                            }
+                            parent.parentNode.insertBefore(target, parent.nextSibling);
+
+                        // Apply the list otherwise
+                        } else {
+                            target.classList.add('autotagjs-list', listClassName);
+                        }
+                        setSelection(startContainer, startOffset, endContainer, endOffset);
+                    }
                 }
             }
         };
 
         var applyInstruction = function(nodes, instruction, declarations) {
-            if (instruction == 'autotagjsCallback') {
+            if (instruction == 'autotagjsCommand') {
+                applyCommand(nodes, declarations);
+            } else if (instruction == 'autotagjsCallback') {
                 doOnMenuClick(declarations, nodes);
             } else {
-                for (var i = 0; i < nodes.length; i++) {
-                    if (instruction == 'autotagjsCommand') {
-                        applyCommand(nodes[i], declarations);
-                    } else {
-                        applyStyle(nodes[i], instruction, declarations);
-                    }
-                }
+                applyStyle(nodes, instruction, declarations);
             }
         };
 
-        var applyStyle = function(node, instruction, declarations) {
-            for (var j = 0; j < declarations.length; j++) {
-                var declaration = declarations[j].split(/\s*:\s*/),
-                    property = declaration[0],
-                    value = declaration[1];
+        var applyStyle = function(target, instruction, declarations) {
+            if (Array.isArray(target)) {
+                for (var i = 0; i < target.length; i++) {
+                    applyStyle(target[i], instruction, declarations);
+                }
+            } else {
+                for (var j = 0; j < declarations.length; j++) {
+                    var declaration = declarations[j].split(/\s*:\s*/),
+                        property = declaration[0],
+                        value = declaration[1];
 
-                var curValue = node.style.getPropertyValue(property);
+                    var curValue = target.style.getPropertyValue(property);
 
-                if (instruction == 'autotagjsUnset' ||
-                    instruction == 'autotagjsToggle' && curValue.length > 0) {
-                    node.style.removeProperty(property);
+                    if (instruction == 'autotagjsUnset' ||
+                        instruction == 'autotagjsToggle' && curValue.length > 0) {
+                        target.style.removeProperty(property);
 
-                } else if (instruction == 'autotagjsSet' ||
-                    (instruction == 'autotagjsInitialize' || instruction == 'autotagjsToggle') &&
-                    curValue.length === 0) {
-                    node.style.setProperty(property, value);
+                    } else if (instruction == 'autotagjsSet' ||
+                        (instruction == 'autotagjsInitialize' || instruction == 'autotagjsToggle') &&
+                        curValue.length === 0) {
+                        target.style.setProperty(property, value);
 
-                } else if (instruction.match(/^autotagjs(Increment|Decrement)/)) {
-                    curValue = curValue || getComputedStyle(node).getPropertyValue(property);
-                    var amount = getPixelAmount(value),
-                        curAmount = getPixelAmount(curValue);
+                    } else if (instruction.match(/^autotagjs(Increment|Decrement)/)) {
+                        curValue = curValue || getComputedStyle(target).getPropertyValue(property);
+                        var amount = getPixelAmount(value),
+                            curAmount = getPixelAmount(curValue);
 
-                    if (instruction == 'autotagjsIncrement') {
-                        curAmount += amount;
-                    } else if (instruction == 'autotagjsDecrement') {
-                        curAmount -= amount;
-                    }
+                        if (instruction == 'autotagjsIncrement') {
+                            curAmount += amount;
+                        } else if (instruction == 'autotagjsDecrement') {
+                            curAmount -= amount;
+                        }
 
-                    if (curAmount <= 0) {
-                        node.style.removeProperty(property);
-                    } else {
-                        node.style.setProperty(property, curAmount + 'px');
+                        if (curAmount <= 0) {
+                            target.style.removeProperty(property);
+                        } else {
+                            target.style.setProperty(property, curAmount + 'px');
+                        }
                     }
                 }
             }
@@ -177,7 +240,7 @@ Autotag = (function() {
 
         // A Block node form a line element in the editor.
         var createBlockNode = function() {
-            return document.createElement('p');
+            return document.createElement(autoLineTag);
         };
 
         var createBreakNode = function() {
@@ -290,7 +353,9 @@ Autotag = (function() {
                 // IE adds unwanted nodes sometimes.
                 var lines = editor.childNodes;
                 for (var i = 0; i < lines.length; i++) {
-                    if (lines[i].tagName !== 'P') removeNode(lines[i]);
+                    if (lines[i].tagName !== autoLineTag.toUpperCase()) {
+                        removeNode(lines[i]);
+                    }
                 }
             }
         };
@@ -439,7 +504,7 @@ Autotag = (function() {
             var selection, range;
             if (typeof window.getSelection != "undefined") {
                 selection = window.getSelection();
-                if (selection.rangeCount > 0) {
+                if (selection.rangeCount) {
                     range = selection.getRangeAt(0);
                 }
             } else if ((selection = document.selection) &&
@@ -539,7 +604,7 @@ Autotag = (function() {
         };
 
         var isLine = function(node) {
-            return node && node.tagName == 'P';
+            return node && node.tagName == autoLineTag.toUpperCase();
         };
 
         var isReturnKey = function(code) {
@@ -563,7 +628,7 @@ Autotag = (function() {
         };
 
         var paragraphize = function(root, refresh) {
-            root = (typeof root === 'undefined') ? editor : root;
+            root = (root == null) ? editor : root;
             refresh = (typeof refresh === 'undefined') ? false : true;
 
             if (refresh) {
@@ -689,7 +754,7 @@ Autotag = (function() {
         var processReturnKey = function() {
             if (ignoreReturnKey === false) {
                 var current = getLine();
-                current.style.display = 'none';
+                // current.style.display = 'none';
                 if (getLineNumber(current) == inputLineNumber) {
                     current = getNextLine(current);
                     if (current !== null) {
@@ -702,8 +767,8 @@ Autotag = (function() {
                     fixLine(current);
                     gotoLine(current);
                 }
-                current.style.removeProperty('counter-reset');
-                current.style.display = 'block';
+                // current.style.removeProperty('counter-reset');
+                // current.style.display = 'block';
                 fixEditor();
                 processInput();
                 fixCaret();
@@ -765,7 +830,8 @@ Autotag = (function() {
         };
 
         var saveSelectionRange = function() {
-            selectionRange = getRange();
+            selectionRange = getRange() || selectionRange;
+            return selectionRange;
         };
 
         // Takes in the current node and sets the cursor location
@@ -776,10 +842,13 @@ Autotag = (function() {
         };
 
         var setContinuingStyle = function() {
-            var container = getRange().endContainer;
-            var tag = isTag(container) && container || isText(container) && container.parentNode;
-            if (tag) {
-                continuingStyle = tag.getAttribute('style');
+            var range = getRange();
+            if (range) {
+                var container = range.endContainer;
+                var tag = isTag(container) && container || isText(container) && container.parentNode;
+                if (tag) {
+                    continuingStyle = tag.getAttribute('style');
+                }
             }
         };
 
@@ -841,8 +910,9 @@ Autotag = (function() {
         };
 
         document.addEventListener('selectionchange', debounce(function(e) {
-            saveSelectionRange();
-            doAfterSelection(getTagsInRange(selectionRange));
+            if (saveSelectionRange()) {
+                doAfterSelection(getTagsInRange(selectionRange));
+            }
         }, 500));
 
         editor.addEventListener('dblclick', function(e) {
@@ -861,10 +931,12 @@ Autotag = (function() {
         });
 
         // IE 11 and Edge
-        editor.addEventListener('textinput', processKeyedInput);
+        // editor.addEventListener('textinput', processKeyedInput);
 
         // Webkit browsers!
-        editor.addEventListener('textInput', processKeyedInput);
+        // editor.addEventListener('textInput', processKeyedInput);
+
+        editor.addEventListener('input', processKeyedInput);
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {

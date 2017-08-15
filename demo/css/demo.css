@@ -190,21 +190,9 @@ body {
     color : #000;
 }
 
-.demo-numbered-list {
-    display: list-item;
-    list-style-type: none;
-    list-style-position: outside;
-    position: relative;
-    padding-left: 75px;
-}
-
-.demo-numbered-list:before {
-    content: counter(demo-counter) ".";
+.demo-lower-roman-list:before {
+    content: counter(demo-counter, lower-roman) ".";
     counter-increment: demo-counter;
-    position: absolute;
-    left: 0;
-    width: 60px;
-    text-align: right;
 }
 
 [class^='icon-'], [class*=' icon-'] {

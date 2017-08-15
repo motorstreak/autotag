@@ -1,6 +1,7 @@
 
 /* Deal with IE paragraph style within the editor. */
-[contenteditable] > p, [contenteditable] > p > autotag {
+[contenteditable] p,
+[contenteditable] p > tag {
     margin : 0;
     word-break : break-all;
 }
@@ -16,7 +17,8 @@
 }
 
 /* Prevent outlines on contenteditable items in IE. */
-[contenteditable]:focus, [contenteditable] > p > autotag:focus {
+[contenteditable]:focus,
+[contenteditable] p > tag:focus {
     outline : 0;
 }
 
@@ -32,7 +34,6 @@
     cursor : pointer;
     width : 20px;
     height: 20px;
-    border-radius : 10px;
     margin : 2px;
 }
 
@@ -56,6 +57,30 @@
     border-radius : 2px;
 }
 
+.autotagjs-list {
+    display: list-item;
+    list-style-position: outside;
+    list-style-type: none;
+    position: relative;
+    padding-left: 75px;
+}
+
+.autotagjs-list:before {
+    position: absolute;
+    left: 0;
+    width: 60px;
+    text-align: right;
+}
+
+.autotagjs-numbered-list:before {
+    content: counter(autotagjs-counter) ".";
+    counter-increment: autotagjs-counter;
+}
+
+.autotagjs-bullet-list:before {
+    content: "\25CF";
+}
+
 @media only screen and (max-width: 480px), only screen and (max-device-width: 480px) {
 
     .page-header {
@@ -72,6 +97,5 @@
         height: 26px;
         width: 26px;
         margin: 4px;
-        border-radius: 13px;
     }
 }
