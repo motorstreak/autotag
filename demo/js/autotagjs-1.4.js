@@ -137,8 +137,11 @@ Autotag = (function() {
                             parent = target.parentNode,
                             prev = target.previousSibling;
 
+                        var className = target.className;
+
+                        // Remove any autotagjs list styling before performing action.
                         target.setAttribute('class',
-                            target.className.replace(/(^|\s)autotagjs(-\w+)+-list\s*/g, ''));
+                            className.replace(/\s*autotagjs(-\w+)*-list\s*/g, ''));
 
                         if (isEditor(parent)) {
                             // If this is the first line in the editor, create a new block
@@ -153,7 +156,7 @@ Autotag = (function() {
 
                             // Cleanup the target node since this may possibly hold a list.
                             target.style.removeProperty('counter-reset');
-                            target.classList.add('autotagjs-' + commands[j]);
+                            target.classList.add('autotagjs-list', 'autotagjs-' + commands[j]);
                             prev.appendChild(target);
 
                             // Move children of target under target's new parent node.
@@ -163,13 +166,16 @@ Autotag = (function() {
                                     prev.appendChild(children[k]);
                                 }
                             }
-                        } else {
+
+                        // Remove list if list type is the same.
+                        } else if (className.match(new RegExp("autotagjs-" + commands[j], "g"))) {
                             while((next = target.nextSibling)) {
                                 target.appendChild(next);
                             }
                             parent.parentNode.insertBefore(target, parent.nextSibling);
+                        } else {
+                            target.classList.add('autotagjs-list', 'autotagjs-' + commands[j]);
                         }
-
                         setSelection(startContainer, startOffset, endContainer, endOffset);
                     }
                 }
