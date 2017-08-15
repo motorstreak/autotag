@@ -77,14 +77,14 @@ Autotag = (function() {
 
                 var later = function() {
                     timeout = null;
-                    if (!immediate) func.apply(context, args);
+                    if (!immediate) { func.apply(context, args); }
                 };
 
                 var callNow = immediate && !timeout;
                 clearTimeout(timeout);
                 timeout = setTimeout(later, wait);
 
-                if (callNow) func.apply(context, args);
+                if (callNow) { func.apply(context, args); }
             };
         }
 
@@ -127,7 +127,8 @@ Autotag = (function() {
                         continuingStyle = null;
                         target.setAttribute('style', '');
 
-                    } else if (commands[j].match(/-list$/)) {
+                    } else if (commands[j].match(/^list(\s)+/)) {
+                        var listClassName = commands[j].split(/\s+/)[1];
                         var startContainer = selectionRange.startContainer,
                             endContainer = selectionRange.endContainer,
                             startOffset = selectionRange.startOffset,
@@ -137,11 +138,11 @@ Autotag = (function() {
                             parent = target.parentNode,
                             prev = target.previousSibling;
 
-                        var className = target.className;
+                        var targetClassName = target.className;
 
                         // Remove any autotagjs list styling before performing action.
                         target.setAttribute('class',
-                            className.replace(/\s*autotagjs(-\w+)*-list\s*/g, ''));
+                            targetClassName.replace(/(\w+-)+list\s*/g, ''));
 
                         if (isEditor(parent)) {
                             // If this is the first line in the editor, create a new block
@@ -156,7 +157,7 @@ Autotag = (function() {
 
                             // Cleanup the target node since this may possibly hold a list.
                             target.style.removeProperty('counter-reset');
-                            target.classList.add('autotagjs-list', 'autotagjs-' + commands[j]);
+                            target.classList.add('autotagjs-list', listClassName);
                             prev.appendChild(target);
 
                             // Move children of target under target's new parent node.
@@ -167,14 +168,16 @@ Autotag = (function() {
                                 }
                             }
 
-                        // Remove list if list type is the same.
-                        } else if (className.match(new RegExp("autotagjs-" + commands[j], "g"))) {
+                        // Remove list if target has a list type same as the one to apply.
+                    } else if (targetClassName.match(new RegExp(listClassName, "g"))) {
                             while((next = target.nextSibling)) {
                                 target.appendChild(next);
                             }
                             parent.parentNode.insertBefore(target, parent.nextSibling);
+
+                        // Apply the list otherwise
                         } else {
-                            target.classList.add('autotagjs-list', 'autotagjs-' + commands[j]);
+                            target.classList.add('autotagjs-list', listClassName);
                         }
                         setSelection(startContainer, startOffset, endContainer, endOffset);
                     }
