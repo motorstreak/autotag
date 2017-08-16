@@ -114,15 +114,55 @@
 
                 <span class="demo-menu-sep"></span>
 
-                <span class="icon-list-bulleted demo-menu autotagjs-menu"
-                    data-autotagjs-scope="line"
-                    data-autotagjs-command="list autotagjs-bullet-list"></span>
+                <span class="demo-menu autotagjs-menu" data-autotagjs-select="bulleted-list">
+                    <span class="icon-list-bulleted"></span>
+                    <div style="display:none;" class="demo-submenu autotagjs-submenu">
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list autotagjs-bulleted-list">&nbsp;●&nbsp;</div>
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list demo-circle-list">&nbsp;○&nbsp;</div>
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list demo-square-list">&nbsp;▪&nbsp;</div>
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list demo-ballotbox-list">&nbsp;☐&nbsp;</div>
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list demo-diamond-cross-list">&nbsp;❖&nbsp;</div>          
+                    </div>
+                </span>
 
-                <!-- Callback instruction for demonstration only. It does nothing. -->
-                <span class="icon-list-numbered demo-menu autotagjs-menu"
-                    data-autotagjs-scope="line"
-                    data-autotagjs-command="list demo-lower-roman-list demo-counter"
-                    data-autotagjs-callback="numbered-list"></span>
+                <span class="demo-menu autotagjs-menu" data-autotagjs-select="numbered-list">
+                    <span class="icon-list-numbered"></span>
+                    <div style="display:none;" class="demo-submenu autotagjs-submenu">
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list autotagjs-numbered-list autotagjs-numbered-counter">
+                            1.,&nbsp;2.,&nbsp;3.&nbsp;...
+                        </div>
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list demo-leading-zero-list demo-leading-zero-counter">
+                            01.,&nbsp;02.,&nbsp;03.&nbsp;...
+                        </div>
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list demo-lower-roman-list demo-lower-roman-counter">
+                            i.,&nbsp;ii.,&nbsp;iii.&nbsp;...
+                        </div>
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list demo-upper-roman-list demo-upper-roman-counter">
+                            I.,&nbsp;II.,&nbsp;III.&nbsp;...
+                        </div>
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list demo-lower-latin-list demo-lower-latin-counter">
+                            a.,&nbsp;b.,&nbsp;c.&nbsp;...
+                        </div>
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list demo-upper-latin-list demo-upper-latin-counter">
+                            A.,&nbsp;B.,&nbsp;C.&nbsp;...
+                        </div>
+                        <div data-autotagjs-scope="line"
+                            data-autotagjs-command="list demo-lower-greek-list demo-lower-greek-counter">
+                            α.,&nbsp;β.,&nbsp;γ.&nbsp;...
+                        </div>
+                    </div>
+                </span>
 
                 <span class="demo-menu-sep"></span>
 

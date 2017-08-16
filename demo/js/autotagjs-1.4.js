@@ -162,7 +162,9 @@ Autotag = (function() {
 
                             // Cleanup the target node since this may possibly hold a list.
                             target.style.removeProperty('counter-reset');
-                            target.classList.add('autotagjs-list', listClassName);
+
+                            // IE classList.add() is buggy.
+                            target.className += 'autotagjs-list ' + listClassName;
                             prev.appendChild(target);
 
                             // Move children of target under target's new parent node.
@@ -180,9 +182,10 @@ Autotag = (function() {
                             }
                             parent.parentNode.insertBefore(target, parent.nextSibling);
 
-                        // Apply the list otherwise
+                        // Apply the list otherwise.
                         } else {
-                            target.classList.add('autotagjs-list', listClassName);
+                            // IE classList.add() is buggy.
+                            target.className += 'autotagjs-list ' + listClassName;
                         }
                         setSelection(startContainer, startOffset, endContainer, endOffset);
                     }

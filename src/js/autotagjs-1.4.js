@@ -123,12 +123,15 @@ Autotag = (function() {
                 }
             } else {
                 for (var j = 0; j < commands.length; j++) {
-                    if (commands[j] == 'clear') {
+                    var cmd = commands[j];
+                    if (cmd == 'clear') {
                         continuingStyle = null;
                         target.setAttribute('style', '');
 
-                    } else if (commands[j].match(/^list(\s)+/)) {
-                        var listClassName = commands[j].split(/\s+/)[1];
+                    } else if (cmd.match(/^list(\s+\w+(-\w+)*){1,2}/)) {
+                        var listClassName = cmd.split(/\s+/)[1],
+                            listCounterName = cmd.split(/\s+/)[2];
+
                         var startContainer = selectionRange.startContainer,
                             endContainer = selectionRange.endContainer,
                             startOffset = selectionRange.startOffset,
@@ -153,11 +156,15 @@ Autotag = (function() {
                                 prev.appendChild(target);
                             }
 
-                            prev.style.setProperty('counter-reset', 'autotagjs-counter 0');
+                            if (listCounterName) {
+                                prev.style.setProperty('counter-reset', listCounterName);
+                            }
 
                             // Cleanup the target node since this may possibly hold a list.
                             target.style.removeProperty('counter-reset');
-                            target.classList.add('autotagjs-list', listClassName);
+
+                            // IE classList.add() is buggy.
+                            target.className += 'autotagjs-list ' + listClassName;
                             prev.appendChild(target);
 
                             // Move children of target under target's new parent node.
@@ -175,9 +182,10 @@ Autotag = (function() {
                             }
                             parent.parentNode.insertBefore(target, parent.nextSibling);
 
-                        // Apply the list otherwise
+                        // Apply the list otherwise.
                         } else {
-                            target.classList.add('autotagjs-list', listClassName);
+                            // IE classList.add() is buggy.
+                            target.className += 'autotagjs-list ' + listClassName;
                         }
                         setSelection(startContainer, startOffset, endContainer, endOffset);
                     }

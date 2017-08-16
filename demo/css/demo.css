@@ -190,9 +190,64 @@ body {
     color : #000;
 }
 
+/* Set a color to the list */
+.autotagjs-list:before {
+    color: #555;
+}
+
+.demo-circle-list:before {
+    content: counter(demo-circle-counter, circle);
+}
+
+.demo-square-list:before {
+    content: counter(demo-square-counter, square);
+}
+
+.demo-ballotbox-list:before {
+    content: "\2610";
+}
+
+.demo-diamond-cross-list:before {
+    content: "\2756";
+}
+
+.autotagjs-list:before,
+.demo-circle-list:before,
+.demo-square-list:before,
+.demo-diamond-cross-list:before {
+    /* Custom adjust size and position of bullet a*/
+    font-size: 0.6em;
+    top: 22%;
+}
+
+.demo-leading-zero-list:before {
+    content: counter(demo-leading-zero-counter, decimal-leading-zero) ".";
+    counter-increment: demo-leading-zero-counter;
+}
+
 .demo-lower-roman-list:before {
-    content: counter(demo-counter, lower-roman) ".";
-    counter-increment: demo-counter;
+    content: counter(demo-lower-roman-counter, lower-roman) ".";
+    counter-increment: demo-lower-roman-counter;
+}
+
+.demo-upper-roman-list:before {
+    content: counter(demo-upper-roman-counter, upper-roman) ".";
+    counter-increment: demo-upper-roman-counter;
+}
+
+.demo-lower-greek-list:before {
+    content: counter(demo-lower-greek-counter, lower-greek) ".";
+    counter-increment: demo-lower-greek-counter;
+}
+
+.demo-lower-latin-list:before {
+    content: counter(demo-lower-latin-counter, lower-latin) ".";
+    counter-increment: demo-lower-latin-counter;
+}
+
+.demo-upper-latin-list:before {
+    content: counter(demo-upper-latin-counter, upper-latin) ".";
+    counter-increment: demo-upper-latin-counter;
 }
 
 [class^='icon-'], [class*=' icon-'] {

@@ -73,11 +73,11 @@
 }
 
 .autotagjs-numbered-list:before {
-    content: counter(autotagjs-counter) ".";
-    counter-increment: autotagjs-counter;
+    content: counter(autotagjs-numbered-counter) ".";
+    counter-increment: autotagjs-numbered-counter;
 }
 
-.autotagjs-bullet-list:before {
+.autotagjs-bulleted-list:before {
     content: "\25CF";
 }
 
