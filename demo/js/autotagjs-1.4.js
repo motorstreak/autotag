@@ -147,7 +147,17 @@ Autotag = (function() {
                         target.setAttribute('class',
                             targetClassName.replace(/(\w+-)+list\s*/g, ''));
 
-                        if (isEditor(parent)) {
+                        // Remove list if target has a list type same as the one to apply or if
+                        // the second option is 'clear'.
+                        if (listClassName == 'clear' || targetClassName.match(new RegExp(listClassName, "g"))) {
+                            if (!isEditor(parent)) {
+                                while((next = target.nextSibling)) {
+                                    target.appendChild(next);
+                                }
+                                parent.parentNode.insertBefore(target, parent.nextSibling);
+                            }
+                        // Apply the list otherwise.
+                        } else if (isEditor(parent)) {
                             // If this is the first line in the editor, create a new block
                             // to nest the list.
                             if (prev == null) {
@@ -174,13 +184,6 @@ Autotag = (function() {
                                     prev.appendChild(children[k]);
                                 }
                             }
-
-                        // Remove list if target has a list type same as the one to apply.
-                    } else if (targetClassName.match(new RegExp(listClassName, "g"))) {
-                            while((next = target.nextSibling)) {
-                                target.appendChild(next);
-                            }
-                            parent.parentNode.insertBefore(target, parent.nextSibling);
 
                         // Apply the list otherwise.
                         } else {

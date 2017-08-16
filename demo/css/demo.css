@@ -273,11 +273,15 @@ body {
     margin : 0 8px;
 }
 
+.demo-submenu-sep {
+    border-bottom: 1px solid #EEE;
+}
+
 .demo-submenu > div {
-    cursor : pointer;
-    padding : 2px 10px;
-    line-height : 24px;
-    font-size : 16px;
+    cursor: pointer;
+    padding: 4px 16px;
+    line-height: 20px;
+    font-size: 14px;
 }
 
 .demo-submenu > div:hover {
