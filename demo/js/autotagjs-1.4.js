@@ -116,6 +116,17 @@ Autotag = (function() {
             return line.appendChild(createBreakNode());
         };
 
+        var promoteLine = function(line) {
+            var parent = line.parentNode;
+            if (!isEditor(parent)) {
+                while((next = line.nextSibling)) {
+                    line.appendChild(next);
+                }
+                parent.parentNode.insertBefore(line, parent.nextSibling);
+            }
+            return line;
+        };
+
         var applyCommand = function(target, commands) {
             if (Array.isArray(target)) {
                 for (var i = 0; i < target.length; i++) {
@@ -132,10 +143,10 @@ Autotag = (function() {
                         var listClassName = cmd.split(/\s+/)[1],
                             listCounterName = cmd.split(/\s+/)[2];
 
-                        // var startContainer = selectionRange.startContainer,
-                        //     endContainer = selectionRange.endContainer,
-                        //     startOffset = selectionRange.startOffset,
-                        //     endOffset = selectionRange.endOffset;
+                        var startContainer = selectionRange.startContainer,
+                            endContainer = selectionRange.endContainer,
+                            startOffset = selectionRange.startOffset,
+                            endOffset = selectionRange.endOffset;
 
                         var next,
                             parent = target.parentNode,
@@ -150,12 +161,8 @@ Autotag = (function() {
                         // Remove list if target has a list type same as the one to apply or if
                         // the second option is 'clear'.
                         if (listClassName == 'clear' || targetClassName.match(new RegExp(listClassName, "g"))) {
-                            if (!isEditor(parent)) {
-                                while((next = target.nextSibling)) {
-                                    target.appendChild(next);
-                                }
-                                parent.parentNode.insertBefore(target, parent.nextSibling);
-                            }
+                            promoteLine(target);
+                            
                         // Apply the list otherwise.
                         } else if (isEditor(parent)) {
                             // If this is the first line in the editor, create a new block
@@ -190,7 +197,7 @@ Autotag = (function() {
                             // IE classList.add() is buggy.
                             target.className += 'autotagjs-list ' + listClassName;
                         }
-                        // setSelection(startContainer, startOffset, endContainer, endOffset);
+                        setSelection(startContainer, startOffset, endContainer, endOffset);
                     }
                 }
             }
@@ -765,7 +772,6 @@ Autotag = (function() {
         var processReturnKey = function() {
             if (ignoreReturnKey === false) {
                 var current = getLine();
-                // current.style.display = 'none';
                 if (getLineNumber(current) == inputLineNumber) {
                     current = getNextLine(current);
                     if (current !== null) {
@@ -778,8 +784,7 @@ Autotag = (function() {
                     fixLine(current);
                     gotoLine(current);
                 }
-                // current.style.removeProperty('counter-reset');
-                // current.style.display = 'block';
+
                 fixEditor();
                 processInput();
                 fixCaret();
@@ -961,7 +966,6 @@ Autotag = (function() {
                 if (ignoreReturnKey) {
                     e.preventDefault();
                     doOnReturnKey();
-                    // getLine().style.removeProperty('counter-reset');
                 } else {
                     setContinuingStyle();
                 }
