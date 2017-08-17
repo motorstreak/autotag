@@ -33,11 +33,11 @@ body {
 }
 
 .page-msg {
-    font-weight: 300;
-    font-size: 20px;
-    line-height: 1.4em;
-    max-width: 600px;
-    margin: auto;
+    font-weight : 300;
+    font-size : 20px;
+    line-height : 1.4em;
+    max-width : 600px;
+    margin : auto;
 }
 
 .page-section {
@@ -57,29 +57,28 @@ body {
 
 .section-text-title {
     font-size : 30px;
-    font-weight: bold;
+    font-weight : bold;
     padding-bottom : 20px;
     margin-bottom : 20px;
 }
 
 .section-text-body {
-    font-size: 20px;
-    font-family: 'Montserrat', sans-serif;
+    font-size : 20px;
+    font-family : 'Montserrat', sans-serif;
 }
 
 .section-build-editor {
     background-color : #F5F5F5;
-    color : #333;
-    /*border-top : 1px solid #DDD;*/
+    color : darkslategrey;
 }
 
 .section-browser-support {
-    background-color: #F5F5F5;
+    background-color : #F5F5F5;
     color : #555;
 }
 
 .section-enhanced-input {
-    background: #FFF;
+    background : #FFF;
 }
 
 .section-image {
@@ -90,10 +89,10 @@ body {
 .section-form {
     flex : 0 1 400px;
     text-align : left;
-    padding: 40px;
-    border: 1px dashed #999;
-    box-sizing: border-box;
-    border-radius: 6px;
+    padding : 40px;
+    border : 1px dashed #999;
+    box-sizing : border-box;
+    border-radius : 6px;
 }
 
 .browser-icon-list {
@@ -123,32 +122,32 @@ body {
 }
 
 .demo-inputplus {
-    background: #FFF;
-    padding: 5px 0 0;
-    text-align: left;
-    line-height: 2em;
+    background : #FFF;
+    padding : 5px 0 0;
+    text-align : left;
+    line-height : 2em;
 }
 
 .demo-inputplus-textbox {
-    margin-bottom: 30px;
-    border-bottom: 1px solid #DDD;
-    padding-bottom: 40px;
+    margin-bottom : 30px;
+    border-bottom : 1px solid #DDD;
+    padding-bottom : 40px;
 }
 
 .demo-inputplus-textarea {
-    height: 100px;
+    height : 100px;
 }
 
 .demo-inputplus-label {
-    text-align: left;
-    font-size: 0.7em;
-    color: #999;
+    text-align : left;
+    font-size : 0.7em;
+    color : #999;
 }
 
 .demo-plus-sign {
-    color: brown;
-    background-color: yellow;
-    font-style: italic;
+    color : brown;
+    background-color : yellow;
+    font-style : italic;
 }
 
 .demo-hash-tag {
@@ -178,92 +177,89 @@ body {
 }
 
 .demo-menubar {
-    padding : 6px 0;
+    padding : 14px ;
     display :         flex;
     display : -webkit-flex;
     flex-flow : row wrap;
     align-items : center;
     justify-content : center;
-    border-bottom : 1px solid #EEE;
-    background : #F5F5F5;
+    /*border-bottom : 1px solid #EEE;*/
+    /*background : #F5F5F5;*/
     position : relative;
     color : #000;
 }
 
 /* Set a color to the list */
 .autotagjs-list:before {
-    color: #555;
+    color : #555;
 }
 
 .demo-circle-list:before {
-    content: counter(demo-circle-counter, circle);
+    content : counter(demo-circle-counter, circle);
 }
 
 .demo-square-list:before {
-    content: counter(demo-square-counter, square);
+    content : counter(demo-square-counter, square);
 }
 
 .demo-ballotbox-list:before {
-    content: "\2610";
+    content : '\2610';
 }
 
 .demo-diamond-cross-list:before {
-    content: "\2756";
+    content : '\2756';
 }
 
-.demo-circle-list:before,
-.demo-square-list:before,
-.demo-diamond-cross-list:before {
+.demo-circle-list:before, .demo-square-list:before, .demo-diamond-cross-list:before {
     /* Custom adjust size and position of bullet a*/
-    font-size: 0.6em;
-    top: 22%;
+    font-size : 0.6em;
+    top : 22%;
 }
 
 .demo-leading-zero-list:before {
-    content: counter(demo-leading-zero-counter, decimal-leading-zero) ".";
-    counter-increment: demo-leading-zero-counter;
+    content : counter(demo-leading-zero-counter, decimal-leading-zero) '.';
+    counter-increment : demo-leading-zero-counter;
 }
 
 .demo-lower-roman-list:before {
-    content: counter(demo-lower-roman-counter, lower-roman) ".";
-    counter-increment: demo-lower-roman-counter;
+    content : counter(demo-lower-roman-counter, lower-roman) '.';
+    counter-increment : demo-lower-roman-counter;
 }
 
 .demo-upper-roman-list:before {
-    content: counter(demo-upper-roman-counter, upper-roman) ".";
-    counter-increment: demo-upper-roman-counter;
+    content : counter(demo-upper-roman-counter, upper-roman) '.';
+    counter-increment : demo-upper-roman-counter;
 }
 
 .demo-lower-greek-list:before {
-    content: counter(demo-lower-greek-counter, lower-greek) ".";
-    counter-increment: demo-lower-greek-counter;
+    content : counter(demo-lower-greek-counter, lower-greek) '.';
+    counter-increment : demo-lower-greek-counter;
 }
 
 .demo-lower-latin-list:before {
-    content: counter(demo-lower-latin-counter, lower-latin) ".";
-    counter-increment: demo-lower-latin-counter;
+    content : counter(demo-lower-latin-counter, lower-latin) '.';
+    counter-increment : demo-lower-latin-counter;
 }
 
 .demo-upper-latin-list:before {
-    content: counter(demo-upper-latin-counter, upper-latin) ".";
-    counter-increment: demo-upper-latin-counter;
+    content : counter(demo-upper-latin-counter, upper-latin) '.';
+    counter-increment : demo-upper-latin-counter;
 }
 
 [class^='icon-'], [class*=' icon-'] {
-    font-size : 25px;
+    font-size : 20px;
 }
 
 .demo-menu {
-    padding : 4px 6px;
+    padding : 6px;
     text-align : center;
     border-radius : 4px;
     margin : 2px;
-    color : darkslategray;
+    color : lightslategray;
 }
 
 .demo-menu-active, .demo-menu:hover {
-    box-shadow : 0 0 2px 0 #DDD;
-    background-color : #FFF;
+    color : #000;
 }
 
 .demo-menu-sep {
@@ -274,14 +270,14 @@ body {
 }
 
 .demo-submenu-sep {
-    border-bottom: 1px solid #EEE;
+    border-bottom : 1px solid #EEE;
 }
 
 .demo-submenu > div {
-    cursor: pointer;
-    padding: 4px 16px;
-    line-height: 20px;
-    font-size: 14px;
+    cursor : pointer;
+    padding : 4px 16px;
+    line-height : 20px;
+    font-size : 14px;
 }
 
 .demo-submenu > div:hover {

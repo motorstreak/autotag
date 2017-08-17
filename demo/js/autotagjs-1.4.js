@@ -132,10 +132,10 @@ Autotag = (function() {
                         var listClassName = cmd.split(/\s+/)[1],
                             listCounterName = cmd.split(/\s+/)[2];
 
-                        var startContainer = selectionRange.startContainer,
-                            endContainer = selectionRange.endContainer,
-                            startOffset = selectionRange.startOffset,
-                            endOffset = selectionRange.endOffset;
+                        // var startContainer = selectionRange.startContainer,
+                        //     endContainer = selectionRange.endContainer,
+                        //     startOffset = selectionRange.startOffset,
+                        //     endOffset = selectionRange.endOffset;
 
                         var next,
                             parent = target.parentNode,
@@ -190,7 +190,7 @@ Autotag = (function() {
                             // IE classList.add() is buggy.
                             target.className += 'autotagjs-list ' + listClassName;
                         }
-                        setSelection(startContainer, startOffset, endContainer, endOffset);
+                        // setSelection(startContainer, startOffset, endContainer, endOffset);
                     }
                 }
             }
@@ -842,6 +842,7 @@ Autotag = (function() {
 
         var saveSelectionRange = function() {
             selectionRange = getRange() || selectionRange;
+            console.log(selectionRange);
             return selectionRange;
         };
 
@@ -924,7 +925,7 @@ Autotag = (function() {
             if (saveSelectionRange()) {
                 doAfterSelection(getTagsInRange(selectionRange));
             }
-        }, 500));
+        }, 100));
 
         editor.addEventListener('dblclick', function(e) {
             saveSelectionRange();
@@ -937,7 +938,7 @@ Autotag = (function() {
         });
 
         editor.addEventListener('focus', function(e) {
-            saveSelectionRange();
+            // saveSelectionRange();
             fixEditor();
         });
 
@@ -1004,7 +1005,11 @@ Autotag = (function() {
                 if (menubar) {
                     editorMenubar = menubar;
                     editorMenubar.addEventListener('click', function(e) {
+
+                        // Ensure that the selection does not disapper after we have
+                        // applied formatting.
                         resetRange(selectionRange);
+
                         var target = e.target;
                         if (target.classList.contains('autotagjs-menu') ||
                             target.parentNode.classList.contains('autotagjs-submenu')) {
