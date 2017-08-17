@@ -116,6 +116,9 @@ Autotag = (function() {
             return line.appendChild(createBreakNode());
         };
 
+
+        // Removes the line node from below another line (parent) and places it at
+        // the same level as the parent, while returning the old parent.
         var promoteLine = function(line) {
             var parent = line.parentNode;
             if (!isEditor(parent)) {
@@ -124,7 +127,39 @@ Autotag = (function() {
                 }
                 parent.parentNode.insertBefore(line, parent.nextSibling);
             }
-            return line;
+
+            // parent is now the previous sibling.
+            return parent;
+        };
+
+
+        // Makes the given line a child of the previous line, while
+        // maintaining the hierarchy level of all the lines child lines.
+        // If this is the first line, create a new parent line. Returns
+        // the previous line (or now parent) of this line.
+        var demoteLine = function(line) {
+            var prevLine = line.previousSibling;
+
+            // If this is the first line in the editor, create a new block
+            // to nest the list.
+            if (prevLine == null) {
+                prevLine = createBlockNode();
+                editor.insertBefore(prevLine, line);
+                // prevLine.appendChild(line);
+            }
+
+            prevLine.appendChild(line);
+
+            // Move children of target under target's new parent node.
+            var children = Array.prototype.slice.call(line.children);
+            for(var k=0; k < children.length; k++) {
+                if (children[k].tagName == autoLineTag.toUpperCase()) {
+                    prevLine.appendChild(children[k]);
+                }
+            }
+
+            // prevLine is now the parent of target.
+            return prevLine;
         };
 
         var applyCommand = function(target, commands) {
@@ -150,7 +185,7 @@ Autotag = (function() {
 
                         var next,
                             parent = target.parentNode,
-                            prev = target.previousSibling;
+                            prevLine = target.previousSibling;
 
                         var targetClassName = target.className;
 
@@ -162,41 +197,47 @@ Autotag = (function() {
                         // the second option is 'clear'.
                         if (listClassName == 'clear' || targetClassName.match(new RegExp(listClassName, "g"))) {
                             promoteLine(target);
-                            
+
                         // Apply the list otherwise.
-                        } else if (isEditor(parent)) {
-                            // If this is the first line in the editor, create a new block
-                            // to nest the list.
-                            if (prev == null) {
-                                prev = createBlockNode();
-                                editor.insertBefore(prev, target);
-                                prev.appendChild(target);
-                            }
+                        } else  {
+                            if (isEditor(parent)) {
+                                // If this is the first line in the editor, create a new block
+                                // to nest the list.
+                                // if (prevLine == null) {
+                                //     prevLine = createBlockNode();
+                                //     editor.insertBefore(prevLine, target);
+                                //     prevLine.appendChild(target);
+                                // }
 
-                            if (listCounterName) {
-                                prev.style.setProperty('counter-reset', listCounterName);
-                            }
+                                parent = demoteLine(target);
 
-                            // Cleanup the target node since this may possibly hold a list.
-                            target.style.removeProperty('counter-reset');
-
-                            // IE classList.add() is buggy.
-                            target.className += 'autotagjs-list ' + listClassName;
-                            prev.appendChild(target);
-
-                            // Move children of target under target's new parent node.
-                            var children = Array.prototype.slice.call(target.children);
-                            for(var k=0; k < children.length; k++) {
-                                if (children[k].tagName == autoLineTag.toUpperCase()) {
-                                    prev.appendChild(children[k]);
+                                if (listCounterName) {
+                                    parent.style.setProperty('counter-reset', listCounterName);
                                 }
+
+                                // Cleanup the target node since this may possibly hold a list.
+                                target.style.removeProperty('counter-reset');
+
+                                // IE classList.add() is buggy.
+                                // target.className += 'autotagjs-list ' + listClassName;
+
+
+                                // prev.appendChild(target);
+                                //
+                                // // Move children of target under target's new parent node.
+                                // var children = Array.prototype.slice.call(target.children);
+                                // for(var k=0; k < children.length; k++) {
+                                //     if (children[k].tagName == autoLineTag.toUpperCase()) {
+                                //         prev.appendChild(children[k]);
+                                //     }
+                                // }
                             }
 
-                        // Apply the list otherwise.
-                        } else {
                             // IE classList.add() is buggy.
                             target.className += 'autotagjs-list ' + listClassName;
+                        // Apply the list otherwise.
                         }
+
                         setSelection(startContainer, startOffset, endContainer, endOffset);
                     }
                 }
