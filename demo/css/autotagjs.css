@@ -68,7 +68,7 @@
     border-radius : 2px;
 }
 
-.autotagjs-list {
+.autotagjs-list p {
     display: list-item;
     list-style-position: outside;
     list-style-type: none;
@@ -76,20 +76,38 @@
     padding-left: 75px;
 }
 
-.autotagjs-list:before {
+.autotagjs-list p:before {
     position: absolute;
     left: 0;
     width: 60px;
     text-align: right;
 }
 
-.autotagjs-numbered-list:before {
-    content: counter(autotagjs-numbered-counter) ".";
-    counter-increment: autotagjs-numbered-counter;
+.autotagjs-numbered-list-1:before {
+    content: counter(autotagjs-numbered-counter-1) ".";
+    counter-increment: autotagjs-numbered-counter-1;
 }
 
-.autotagjs-bulleted-list:before {
-    content: "\25CF";
+.autotagjs-numbered-list-2:before {
+    content: counter(autotagjs-numbered-counter-2, lower-latin) ".";
+    counter-increment: autotagjs-numbered-counter-2;
+}
+
+.autotagjs-numbered-list-3:before {
+    content: counter(autotagjs-numbered-counter-3, lower-roman) ".";
+    counter-increment: autotagjs-numbered-counter-3;
+}
+
+.autotagjs-bulleted-list-1:before {
+    content: '●';
+}
+
+.autotagjs-bulleted-list-2:before {
+    content : '○';
+}
+
+.autotagjs-bulleted-list-3:before {
+    content : '▪';
 }
 
 @media only screen and (max-width: 480px), only screen and (max-device-width: 480px) {
