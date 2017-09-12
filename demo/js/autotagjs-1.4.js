@@ -64,13 +64,14 @@ Autotag = (function() {
         };
 
 
-        function ifndef(obj) {
-            return (typeof obj === 'undefined');
+        function initObj(obj, toObj) {
+            toObj = (typeof toObj === 'undefined') ? true : toObj;
+            return (typeof obj === 'undefined') ? toObj : obj;
         }
 
         // Dump logs for testing.
         function logToConsole(data, msg) {
-            msg = ifndef(msg) ? '' : msg;
+            msg = initObj(msg, '');
             if (trace) console.log('TRACE : ' + msg + ' : ' + data);
         }
 
@@ -121,74 +122,113 @@ Autotag = (function() {
             return line.appendChild(createBreakNode());
         };
 
-        var updateListStyle = function(line, prefix) {
-            prefix = (typeof prefix === 'undefined') ? getListPrefix(line) : prefix;
-            if (prefix) {
-                var level = getIndentationLevel(line);
-                setListCounter(line, prefix, level);
-                setListClass(line, prefix, level);
-            }
+        var updateListStyle = function(line, prefix, level) {
+            setListCounter(line, prefix, level);
+            setListClass(line, prefix, level);
         };
 
         var initList = function(line) {
             if (isEditor(line.parentNode)) {
+                clearList(line);
                 line.classList.add('autotagjs-list');
             }
         };
 
-        var updateList = function(line, prefix) {
-            updateListStyle(line, prefix);
+        var updateList = function(line, prefix, level) {
 
-            var descendentLines = line.querySelectorAll('p');
-            if (descendentLines.length > 0) {
-                initList(line);
-            }
+        //     updateListStyle(line, prefix);
+        //
+        //     if (deep) {
+        //         var descendentLines = line.querySelectorAll(autoLineTag);
+        //         if (descendentLines.length > 0) initList(line);
+        //
+        //         for(var i=0; i < descendentLines.length; i++) {
+        //             updateListStyle(descendentLines[i], prefix);
+        //         }
+        //     }
 
-            for(var i=0; i < descendentLines.length; i++) {
-                updateListStyle(descendentLines[i], prefix);
+            updateListStyle(line, prefix, level);
+
+            var children = getChildren(line, isLine);
+            for (var i=0; i < children.length; i++) {
+                updateList(children[i], prefix, level + 1);
             }
         };
 
         var getListPrefix = function(line) {
-            var listClassNames = line.className.match(/(\w+(-\w+)*)-list-\d+/);
-            return listClassNames && listClassNames[1];
+            var names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
+            return names && names[1];
         };
 
         var indentList = function(line, prefix) {
-            if(ifndef(prefix)) {
-                prefix = getListPrefix(line) || getListPrefix(line.parentNode);
-            }
+            var rootLine = getLine(line, true);
+            prefix = initObj(prefix,
+                getListPrefix(line) || getListPrefix(line.parentNode) || 'autotagjs');
 
             var prevLine = getPreviousLine(line);
             if (!prevLine) {
-                prevLine = createBlockNode();
+                prevLine = createNewLine(false);
                 line.parentNode.insertBefore(prevLine, line);
             }
 
             initList(prevLine);
+
             prevLine.appendChild(line);
-            updateList(line, prefix);
+            updateList(line, prefix, getIndentationIndex(line));
+
+            // var child,
+            //     nextChild = line.firstChild;
+            // while((child = nextChild)) {
+            //     nextChild = child.nextSibling;
+            //     if (isLine(child)) {
+            //         line.parentNode.insertBefore (child, line.nextSibling);
+            //         updateList(child, prefix);
+            //     }
+            // }
+
+
+
         };
 
         var outdentList = function(line) {
-            if (!isEditor(line.parentNode)) {
-
-                prefix = getListPrefix(line) || getListPrefix(line.parentNode);
-
-                var sibling;
-                while((sibling = line.nextSibling)) {
-                    line.appendChild(sibling);
-                }
-
-                var parentLine = line.parentNode;
-                parentLine.parentNode.insertBefore(line, parentLine.nextSibling);
-
-                updateList(line, prefix);
-            }
+            // if (isEditor(line.parentNode)) {
+            //     initList(line);
+            // } else {
+            //
+            //     prefix = getListPrefix(line) || getListPrefix(line.parentNode);
+            //
+            //     if (line.childNodes.length > 0) {
+            //         var prevLine = createBlockNode();
+            //         var child, nextChild = line.firstChild;
+            //         while((child = nextChild)) {
+            //             nextChild = child.nextSibling;
+            //             if (isLine(child)) {
+            //                 prevLine.appendChild(child);
+            //                 // updateList(child, prefix);
+            //             }
+            //         }
+            //         line.appendChild(prevLine);
+            //         updateList(prevLine, prefix);
+            //     }
+            //
+            //     var sibling,
+            //         nextSibling = line.nextSibling;
+            //     while((sibling = nextSibling)) {
+            //         nextSibling = sibling.nextSibling;
+            //         if (isLine(sibling)) {
+            //             line.appendChild(sibling);
+            //         }
+            //     }
+            //
+            //     var parentLine = line.parentNode;
+            //     parentLine.parentNode.insertBefore(line, parentLine.nextSibling);
+            //
+            //     updateList(line, prefix);
+            // }
         };
 
         var clearList = function(line) {
-            line.className = line.className.replace(/(\w+(-\w+)*)-list-\d+/, '');
+            line.className = line.className.replace(/(\w+(-\w+)*)-list-\d+/, 'autotagjs-list-blank');
         };
 
         var applyCommand = function(target, commands) {
@@ -353,10 +393,13 @@ Autotag = (function() {
             return palette.appendChild(row);
         };
 
-        var createNewLine = function() {
+        var createNewLine = function(focus) {
+            focus = initObj(focus, true);
             var line = createBlockNode();
             editor.appendChild(line);
-            setCaret(addPilotNodeToLine(line), 0);
+            if (focus) {
+                setCaret(addPilotNodeToLine(line), 0);
+            }
             return line;
         };
 
@@ -396,7 +439,7 @@ Autotag = (function() {
         };
 
         var fixEditor = function(clear) {
-            if (!ifndef(clear) || !getFirstLine()) {
+            if (initObj(clear, false) || !getFirstLine()) {
                 removeAllChildNodes(editor);
                 createNewLine();
             } else {
@@ -411,21 +454,22 @@ Autotag = (function() {
         };
 
         var fixLine = function(line) {
-            line = ifndef(line) ? getLine() : line;
+            line = initObj(line, getLine());
             if (isLine(line)) {
-                if (line.textContent.length === 0) {
+                if (line.textContent.length > 0) {
+                    removeBreakNodes(line);
+                } else if (line.querySelectorAll(autoLineTag).length == 0) {
                     removeAllChildNodes(line);
                     setCaret(addPilotNodeToLine(line), 0);
-                } else {
-                    removeBreakNodes(line);
                 }
             }
+
             return line;
         };
 
         var fixText = function(node, offset) {
-            offset = ifndef(offset) ? 0 : offset;
-            node = ifndef(node) ? getRange().endContainer : node;
+            offset = initObj(offset, 0);
+            node = initObj(node, getRange().endContainer);
             if (isText(node)) {
                 var parentNode = node.parentNode;
                 if (isLine(parentNode)) {
@@ -478,11 +522,12 @@ Autotag = (function() {
             return editor.querySelector('p:first-child');
         };
 
-        var getIndentationLevel = function(line) {
+        var getIndentationIndex = function(line) {
             var level = 0;
             while ((line = line.parentNode) && !isEditor(line)) {
                 level++;
             }
+            // Indentation index is only 3 levels deep.
             return (level == 0 ? null : (level % 3 || 3));
         };
 
@@ -490,20 +535,22 @@ Autotag = (function() {
             return (e.which || e.keyCode || 0);
         };
 
-        // Line is a <p> node within the editor. Navigate up the
-        // range's ancestor tree until we hit either a <p> node or
-        // the editor node.
-        var getLine = function(node) {
-            node = ifndef(node) ? getRange() && getRange().endContainer : node;
+        // Returns the line on which this element is located.
+        // If 'root' is set to true (false by default) only the
+        // immediate line is returned.
+        var getLine = function(node, root) {
+            root = initObj(root, false);
+            node = initObj(node, getRange() && getRange().endContainer);
 
-            while (node && !isEditor(node) && !isLine(node)) {
+            while (node && !isEditor(node) && (root || !isLine(node))) {
                 node = node.parentNode;
             }
+
             return isLine(node) ? node : getFirstLine();
         };
 
         var getLineNumber = function(line) {
-            line = ifndef(line) ? getLine() : line;
+            line = initObj(line, getLine());
 
             var lineNumber;
             if (isLine(line)) {
@@ -527,7 +574,7 @@ Autotag = (function() {
         };
 
         var getNextLine = function(line) {
-            line = ifndef(line) ? getLine() : line;
+            line = initObj(line, getLine());
             return isLine(line) && line.nextSibling;
         };
 
@@ -553,7 +600,7 @@ Autotag = (function() {
         };
 
         var getPreviousLine = function(line) {
-            line = ifndef(line) ? getLine() : line;
+            line = initObj(line, getLine());
             var prev = line.previousSibling;
             while (prev && !isLine(prev)) {
                 prev = prev.previousSibling
@@ -583,7 +630,7 @@ Autotag = (function() {
         };
 
         var findTagInLine = function(line, index) {
-            index = (ifndef(index) || index < 0) ? 0 : index;
+            index = (initObj(index) || index < 0) ? 0 : index;
             return line.querySelector('a:nth-child(' + index + ')');
         };
 
@@ -613,7 +660,7 @@ Autotag = (function() {
         };
 
         var getTagsInLine = function(line) {
-            line = ifndef(line) ? getLine() : line;
+            line = initObj(line, getLine());
             return isLine(line) && line.getElementsByTagName(autoWordTag);
         };
 
@@ -635,7 +682,7 @@ Autotag = (function() {
 
         var gotoLine = function(line) {
             if (isLine(line)) {
-                setCaret(line.querySelector('a:first-child'), 0);
+                setCaret(line.querySelector(autoWordTag + ':first-child'), 0);
             }
         };
 
@@ -690,7 +737,7 @@ Autotag = (function() {
 
         var paragraphize = function(root, refresh) {
             root = (root == null) ? editor : root;
-            refresh = ifndef(refresh) ? false : true;
+            refresh = initObj(refresh, false) || true;
 
             if (refresh) {
                 removeNodesInList(root.querySelectorAll('div'));
@@ -841,7 +888,7 @@ Autotag = (function() {
                 node = isText(node) ? node.parentNode : node;
                 if (range.startOffset == 0) {
                     if (isLine(node) || isTag(node) && !node.previousSibling && (node = node.parentNode)) {
-                        if (getIndentationLevel(node)) {
+                        if (getIndentationIndex(node)) {
                             if (isTabKey(code)) {
                                 indentList(node);
                             } else if (isDeleteKey(code)) {
@@ -868,14 +915,19 @@ Autotag = (function() {
         };
 
         var getSiblings = function(node, filter) {
-            var siblings = [];
-            node = node.parentNode.firstChild;
-            do {
+            return getChildren(node.parentNode, filter);
+        };
+
+        var getChildren = function(node, filter) {
+            var children = [];
+            node = node.firstChild;
+            while(node) {
                 if (!filter || filter(node)) {
-                    siblings.push(node);
+                    children.push(node);
                 }
-            } while ((node = node.nextSibling));
-            return siblings;
+                node = node.nextSibling;
+            }
+            return children;
         };
 
         // Remove break nodes that have a text node as sibling, on the
@@ -920,14 +972,13 @@ Autotag = (function() {
 
         var saveSelectionRange = function() {
             selectionRange = getRange() || selectionRange;
-            console.log(selectionRange);
             return selectionRange;
         };
 
         // Takes in the current node and sets the cursor location
         // on the first child, if the child is a Text node.
         var setCaret = function(node, offset) {
-            offset = ifndef(offset) ? node.length : offset;
+            offset = initObj(offset, node.length);
             return setSelection(node, offset, node, offset);
         };
 
@@ -943,25 +994,28 @@ Autotag = (function() {
         };
 
         var setListClass = function(line, prefix, level) {
-            line.className = line.className.replace(/(\w+-)+list-\d/g, '');
-            if(prefix && level) {
+            //if(prefix && level && getChildren(line, isTag).length > 0) {
+            var name = line.className;
+            if(!name.match(/autotagjs-list-\d+/)) {
+                line.className = name.replace(/(\w+-)+list-\d/g, '');
                 line.classList.add(prefix + "-list-" + level);
             }
         };
 
         var setListCounter = function(line, prefix, level) {
-            if(prefix && level) {
-                line.parentNode.style.setProperty('counter-reset', prefix + "-counter-" + level);
-            } else {
-                line.parentNode.style.removeProperty('counter-reset');
-            }
+            // if(prefix && level) {
+            //     line.parentNode.style.setProperty('counter-reset', prefix + "-counter-" + level);
+            // } else {
+            //     line.parentNode.style.removeProperty('counter-reset');
+            // }
+            line.parentNode.style.setProperty('counter-reset', prefix + "-counter-" + level);
         };
 
         var setSelection = function(startContainer, startOffset, endContainer, endOffset) {
             var range;
             if (startContainer && endContainer) {
-                startOffset = ifndef(startOffset) ? 0 : startOffset;
-                endOffset = ifndef(endOffset) ? endContainer.length : endOffset;
+                startOffset = initObj(startOffset, 0);
+                endOffset = initObj(endOffset, endContainer.length);
 
                 range = document.createRange();
                 try {

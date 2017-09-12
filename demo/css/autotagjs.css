@@ -83,6 +83,12 @@
     text-align: right;
 }
 
+.autotagjs-list-1:before,
+.autotagjs-list-2:before,
+.autotagjs-list-3:before {
+    content: '';
+}
+
 .autotagjs-numbered-list-1:before {
     content: counter(autotagjs-numbered-counter-1) ".";
     counter-increment: autotagjs-numbered-counter-1;
