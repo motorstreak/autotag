@@ -134,27 +134,6 @@ Autotag = (function() {
             }
         };
 
-        var updateList = function(line, prefix, level) {
-
-        //     updateListStyle(line, prefix);
-        //
-        //     if (deep) {
-        //         var descendentLines = line.querySelectorAll(autoLineTag);
-        //         if (descendentLines.length > 0) initList(line);
-        //
-        //         for(var i=0; i < descendentLines.length; i++) {
-        //             updateListStyle(descendentLines[i], prefix);
-        //         }
-        //     }
-
-            updateListStyle(line, prefix, level);
-
-            var children = getChildren(line, isLine);
-            for (var i=0; i < children.length; i++) {
-                updateList(children[i], prefix, level + 1);
-            }
-        };
-
         var getListPrefix = function(line) {
             var names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
             return names && names[1];
@@ -165,66 +144,50 @@ Autotag = (function() {
             prefix = initObj(prefix,
                 getListPrefix(line) || getListPrefix(line.parentNode) || 'autotagjs');
 
-            var prevLine = getPreviousLine(line);
-            if (!prevLine) {
-                prevLine = createNewLine(false);
-                line.parentNode.insertBefore(prevLine, line);
+            var anchor = getPreviousLine(line);
+            if (!anchor) {
+                anchor = createNewLine(false);
+                line.parentNode.insertBefore(anchor, line);
             }
 
-            initList(prevLine);
+            initList(anchor);
+            anchor.appendChild(line);
+            updateListStyle(line, prefix, getIndentationIndex(line));
 
-            prevLine.appendChild(line);
-            updateList(line, prefix, getIndentationIndex(line));
-
-            // var child,
-            //     nextChild = line.firstChild;
-            // while((child = nextChild)) {
-            //     nextChild = child.nextSibling;
-            //     if (isLine(child)) {
-            //         line.parentNode.insertBefore (child, line.nextSibling);
-            //         updateList(child, prefix);
-            //     }
-            // }
-
-
-
+            // Now make line's children it's peer.
+            var children = getChildren(line, isLine);
+            for (var i=0; i < children.length; i++) {
+              line.parentNode.insertBefore(children[i], line.nextSibling);
+            }
         };
 
         var outdentList = function(line) {
-            // if (isEditor(line.parentNode)) {
-            //     initList(line);
-            // } else {
-            //
-            //     prefix = getListPrefix(line) || getListPrefix(line.parentNode);
-            //
-            //     if (line.childNodes.length > 0) {
-            //         var prevLine = createBlockNode();
-            //         var child, nextChild = line.firstChild;
-            //         while((child = nextChild)) {
-            //             nextChild = child.nextSibling;
-            //             if (isLine(child)) {
-            //                 prevLine.appendChild(child);
-            //                 // updateList(child, prefix);
-            //             }
-            //         }
-            //         line.appendChild(prevLine);
-            //         updateList(prevLine, prefix);
-            //     }
-            //
-            //     var sibling,
-            //         nextSibling = line.nextSibling;
-            //     while((sibling = nextSibling)) {
-            //         nextSibling = sibling.nextSibling;
-            //         if (isLine(sibling)) {
-            //             line.appendChild(sibling);
-            //         }
-            //     }
-            //
-            //     var parentLine = line.parentNode;
-            //     parentLine.parentNode.insertBefore(line, parentLine.nextSibling);
-            //
-            //     updateList(line, prefix);
-            // }
+            var parent = line.parentNode;
+            if (isEditor(parent)) {
+                initList(line);
+            } else {
+                prefix = getListPrefix(line) || getListPrefix(parent) || 'autotagjs';
+
+                // Now make line's children the anchor's children.
+                var children = getChildren(line, isLine);
+                if (children.length > 0) {
+                    var anchor = createNewLine(false);
+                    initList(anchor);
+
+                    line.insertBefore(anchor, children[0]);
+                    for (var i=0; i < children.length; i++) {
+                      anchor.appendChild(children[i]);
+                    }
+                }
+
+                var sibling;
+                while ((sibling = line.nextSibling)) {
+                    line.appendChild(sibling);
+                }
+
+                parent.parentNode.insertBefore(line, parent.nextSibling);
+                updateListStyle(line, prefix, getIndentationIndex(parent));
+            }
         };
 
         var clearList = function(line) {
@@ -603,7 +566,7 @@ Autotag = (function() {
             line = initObj(line, getLine());
             var prev = line.previousSibling;
             while (prev && !isLine(prev)) {
-                prev = prev.previousSibling
+                prev = prev.previousSibling;
             }
             return prev;
         };
@@ -994,7 +957,6 @@ Autotag = (function() {
         };
 
         var setListClass = function(line, prefix, level) {
-            //if(prefix && level && getChildren(line, isTag).length > 0) {
             var name = line.className;
             if(!name.match(/autotagjs-list-\d+/)) {
                 line.className = name.replace(/(\w+-)+list-\d/g, '');
@@ -1003,12 +965,8 @@ Autotag = (function() {
         };
 
         var setListCounter = function(line, prefix, level) {
-            // if(prefix && level) {
-            //     line.parentNode.style.setProperty('counter-reset', prefix + "-counter-" + level);
-            // } else {
-            //     line.parentNode.style.removeProperty('counter-reset');
-            // }
             line.parentNode.style.setProperty('counter-reset', prefix + "-counter-" + level);
+            line.style.setProperty('counter-reset', prefix + "-counter-" + (level + 1));
         };
 
         var setSelection = function(startContainer, startOffset, endContainer, endOffset) {
