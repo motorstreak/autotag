@@ -57,7 +57,7 @@
 }
 
 .autotagjs-submenu {
-    padding : 10px 0;
+    padding : 10px;
     background-color : #FFF;
     position : absolute;
     top : 50px;
@@ -73,13 +73,13 @@
     list-style-position: outside;
     list-style-type: none;
     position: relative;
-    padding-left: 75px;
+    padding-left: 55px;
 }
 
 .autotagjs-list p:before {
     position: absolute;
     left: 0;
-    width: 60px;
+    width: 40px;
     text-align: right;
 }
 

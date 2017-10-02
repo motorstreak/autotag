@@ -1,4 +1,3 @@
-
 /*! autotagjs.js v1.4 https://github.com/motorstreak/autotag */
 /*
  Version: 1.4
@@ -54,7 +53,16 @@ Autotag = (function() {
 
             editorMenubar,
             autoWordTag = 'span',
-            autoLineTag = 'p';
+            autoLineTag = 'p',
+
+            blankListClassName = 'autotagjs-list-blank',
+            defaultListClassName = 'autotagjs-list',
+
+            menuClassName = 'autotagjs-menu',
+            submenuClassName = 'autotagjs-submenu',
+            paletteClassName = 'autotagjs-palette',
+            paletteCellClassName = 'autotagjs-palette-cell',
+            paletteRowClassName = 'autotagjs-palette-row';
 
         // Map keeyboard controls to format options since we override them.
         var styleKeyMap = {
@@ -64,14 +72,14 @@ Autotag = (function() {
         };
 
 
-        function initObj(obj, toObj) {
+        function initParam(obj, toObj) {
             toObj = (typeof toObj === 'undefined') ? true : toObj;
-            return (typeof obj === 'undefined') ? toObj : obj;
+            return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
         }
 
         // Dump logs for testing.
         function logToConsole(data, msg) {
-            msg = initObj(msg, '');
+            msg = initParam(msg, '');
             if (trace) console.log('TRACE : ' + msg + ' : ' + data);
         }
 
@@ -101,7 +109,6 @@ Autotag = (function() {
 
         // Callbacks
         var decorator = config.decorator || function(node, text) {};
-        var doOnReturnKey = config.onReturnKey || function() {};
 
         // The default splitter splits on words.
         var splitter = config.splitter || function(str) {
@@ -122,29 +129,44 @@ Autotag = (function() {
             return line.appendChild(createBreakNode());
         };
 
-        var updateListStyle = function(line, prefix, level) {
-            setListCounter(line, prefix, level);
-            setListClass(line, prefix, level);
+        var updateList = function(line, prefix, level, force) {
+            force = initParam(force, true);
+            if (!initList(line)) {
+                setListCounter(line, prefix, level);
+                setListStyle(line, prefix, level, force);
+            }
         };
 
         var initList = function(line) {
             if (isEditor(line.parentNode)) {
-                clearList(line);
-                line.classList.add('autotagjs-list');
+                updateListStyle(line, defaultListClassName);
+                return true;
             }
+
+            line.classList.remove(defaultListClassName);
+            return false;
         };
 
-        var getListPrefix = function(line) {
+        var getListPrefix = function(line, force) {
+            force = initParam(force, false);
+
+            if (isEditor(line)) {
+                return 'autotagjs';
+            }
+
             var names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
-            return names && names[1];
+            var prefix = names && names[1];
+            return (prefix ? prefix : getListPrefix(line.parentNode, force));
         };
 
-        var indentList = function(line, prefix) {
-            var rootLine = getLine(line, true);
-            prefix = initObj(prefix,
-                getListPrefix(line) || getListPrefix(line.parentNode) || 'autotagjs');
+        var indentLine = function(line, prefix, refresh) {
+            refresh = initParam(refresh, true);
+            prefix = initParam(prefix, getListPrefix(line, true));
 
-            var anchor = getPreviousLine(line);
+            var selection = getRangeContainersAndOffsets(selectionRange),
+                rootLine = getLine(line, true),
+                anchor = getPreviousLine(line);
+
             if (!anchor) {
                 anchor = createNewLine(false);
                 line.parentNode.insertBefore(anchor, line);
@@ -152,21 +174,25 @@ Autotag = (function() {
 
             initList(anchor);
             anchor.appendChild(line);
-            updateListStyle(line, prefix, getIndentationIndex(line));
+            updateList(line, prefix, getIndentationIndex(line), refresh);
 
             // Now make line's children it's peer.
             var children = getChildren(line, isLine);
             for (var i=0; i < children.length; i++) {
               line.parentNode.insertBefore(children[i], line.nextSibling);
             }
+
+            setSelection(selection);
+            paragraphize(getLine(), true);
         };
 
-        var outdentList = function(line) {
-            var parent = line.parentNode;
-            if (isEditor(parent)) {
-                initList(line);
-            } else {
-                prefix = getListPrefix(line) || getListPrefix(parent) || 'autotagjs';
+        var outdentLine = function(line, refresh) {
+            refresh = initParam(refresh, true);
+            var parentLine = line.parentNode;
+
+            if (!initList(line)) {
+                var selection = getRangeContainersAndOffsets(selectionRange);
+                prefix = getListPrefix(line, true);
 
                 // Now make line's children the anchor's children.
                 var children = getChildren(line, isLine);
@@ -180,18 +206,40 @@ Autotag = (function() {
                     }
                 }
 
-                var sibling;
-                while ((sibling = line.nextSibling)) {
-                    line.appendChild(sibling);
+                while (line.nextSibling) {
+                    line.appendChild(line.nextSibling);
                 }
 
-                parent.parentNode.insertBefore(line, parent.nextSibling);
-                updateListStyle(line, prefix, getIndentationIndex(parent));
+                parentLine.parentNode.insertBefore(line, parentLine.nextSibling);
+
+                var indentIndex = getIndentationIndex(parentLine),
+                    level = updateList(line, prefix, indentIndex, refresh);
+
+                if ((getChildren(parentLine, isLine) +
+                    getChildren(parentLine, isTag)) == 0) {
+                    removeNode(parentLine);
+                }
+
+                setSelection(selection);
+                paragraphize(getLine(), true);
             }
         };
 
-        var clearList = function(line) {
-            line.className = line.className.replace(/(\w+(-\w+)*)-list-\d+/, 'autotagjs-list-blank');
+        var updateListStyle = function(line, klass) {
+            line.className = line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
+            line.classList.add(klass);
+        };
+
+        var removeListStyle = function(line) {
+            updateListStyle(line, '');
+        };
+
+        var setBlankList = function(line) {
+            updateListStyle(line, blankListClassName);
+        };
+
+        var isBlankList = function(line) {
+            return line.classList.contains(blankListClassName);
         };
 
         var applyCommand = function(target, commands) {
@@ -209,31 +257,21 @@ Autotag = (function() {
                     } else if (cmd.match(/^list(\s+\w+(-\w+)*){1}/)) {
                         var listPrefix = cmd.split(/\s+/)[1];
 
-                        // Promoting or demoting a line updates the range
-                        // and hence we need to save the seclection objects to
-                        // reinstate the selection.
-                        var startContainer = selectionRange.startContainer,
-                            endContainer = selectionRange.endContainer,
-                            startOffset = selectionRange.startOffset,
-                            endOffset = selectionRange.endOffset;
-
                         switch(listPrefix) {
                             case 'clear':
                                 clearList(target);
                                 break;
                             case 'indent':
-                                indentList(target);
+                                indentLine(target);
                                 break;
 
                             case 'outdent':
-                                outdentList(target);
+                                outdentLine(target);
                                 break;
 
                             default:
-                                indentList(target, listPrefix);
+                                indentLine(target, listPrefix);
                         }
-
-                        setSelection(startContainer, startOffset, endContainer, endOffset);
                     }
                 }
             }
@@ -267,7 +305,8 @@ Autotag = (function() {
                         target.style.removeProperty(property);
 
                     } else if (instruction == 'autotagjsSet' ||
-                        (instruction == 'autotagjsInitialize' || instruction == 'autotagjsToggle') &&
+                        (instruction == 'autotagjsInitialize' ||
+                        instruction == 'autotagjsToggle') &&
                         curValue.length === 0) {
                         target.style.setProperty(property, value);
 
@@ -308,17 +347,17 @@ Autotag = (function() {
         };
 
         var createPalette = function(menu) {
-            var palette = menu.getElementsByClassName('autotagjs-submenu')[0];
+            var palette = menu.getElementsByClassName(submenuClassName)[0];
             if (palette) {
                 palette.style.display = '';
             } else {
                 palette = document.createElement('div');
-                palette.className = 'autotagjs-submenu autotagjs-palette';
+                palette.classList.add(submenuClassName);
+                palette.classList.add(paletteClassName);
                 menu.appendChild(palette);
 
                 // Color palette
-                var row, cell, maxCols = 10,
-                    maxRows = 5;
+                var row, cell, maxCols = 10, maxRows = 5;
 
                 var hueStep = Math.round(360 / maxCols),
                     saturationStep = Math.round(40 / maxRows),
@@ -345,19 +384,19 @@ Autotag = (function() {
             var cell = document.createElement('div'),
                 hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
 
-            cell.className = 'autotagjs-palette-cell';
+            cell.className = paletteCellClassName;
             cell.style.color = cell.style.background = hsla;
             row.appendChild(cell);
         };
 
         var createPaletteRow = function(palette) {
             var row = document.createElement('div');
-            row.className = 'autotagjs-palette-row';
+            row.className = paletteRowClassName;
             return palette.appendChild(row);
         };
 
         var createNewLine = function(focus) {
-            focus = initObj(focus, true);
+            focus = initParam(focus, true);
             var line = createBlockNode();
             editor.appendChild(line);
             if (focus) {
@@ -382,6 +421,12 @@ Autotag = (function() {
             return document.createTextNode(str);
         };
 
+
+        var findTagInLine = function(line, index) {
+            index = (initParam(index) || index < 0) ? 0 : index;
+            return line.querySelector('a:nth-child(' + index + ')');
+        };
+
         var fixCaret = function() {
             var range = getRange();
             var node = range.endContainer;
@@ -402,7 +447,7 @@ Autotag = (function() {
         };
 
         var fixEditor = function(clear) {
-            if (initObj(clear, false) || !getFirstLine()) {
+            if (initParam(clear, false) || !getFirstLine()) {
                 removeAllChildNodes(editor);
                 createNewLine();
             } else {
@@ -417,7 +462,7 @@ Autotag = (function() {
         };
 
         var fixLine = function(line) {
-            line = initObj(line, getLine());
+            line = initParam(line, getLine());
             if (isLine(line)) {
                 if (line.textContent.length > 0) {
                     removeBreakNodes(line);
@@ -431,8 +476,8 @@ Autotag = (function() {
         };
 
         var fixText = function(node, offset) {
-            offset = initObj(offset, 0);
-            node = initObj(node, getRange().endContainer);
+            offset = initParam(offset, 0);
+            node = initParam(node, getRange().endContainer);
             if (isText(node)) {
                 var parentNode = node.parentNode;
                 if (isLine(parentNode)) {
@@ -457,7 +502,8 @@ Autotag = (function() {
                     case 'selection':
                         var tags = getTagsInRange(selectionRange);
                         var lines = getLinesInRange(selectionRange);
-                        if (lines.length > 1 || tags.length == getTagsInLine().length) {
+                        if (lines.length > 1 ||
+                            tags.length == getTagsInLine(getLine()).length) {
                             nodes = tags.concat(lines);
                         } else {
                             nodes = tags;
@@ -477,12 +523,22 @@ Autotag = (function() {
             }
         };
 
-        var getPixelAmount = function(value) {
-            return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0);
+        var getChildren = function(node, filter) {
+            var children = [];
+            node = node.firstChild;
+            while(node) {
+                if (!filter || filter(node)) {
+                    children.push(node);
+                }
+                node = node.nextSibling;
+            }
+            return children;
         };
 
+
+
         var getFirstLine = function() {
-            return editor.querySelector('p:first-child');
+            return editor.querySelector(autoLineTag + ':first-child');
         };
 
         var getIndentationIndex = function(line) {
@@ -499,11 +555,11 @@ Autotag = (function() {
         };
 
         // Returns the line on which this element is located.
-        // If 'root' is set to true (false by default) only the
-        // immediate line is returned.
+        // If 'root' is set to true (false by default) the outermost or
+        // root line is returned.
         var getLine = function(node, root) {
-            root = initObj(root, false);
-            node = initObj(node, getRange() && getRange().endContainer);
+            root = initParam(root, false);
+            node = initParam(node, getRange() && getRange().endContainer);
 
             while (node && !isEditor(node) && (root || !isLine(node))) {
                 node = node.parentNode;
@@ -513,7 +569,7 @@ Autotag = (function() {
         };
 
         var getLineNumber = function(line) {
-            line = initObj(line, getLine());
+            line = initParam(line, getLine());
 
             var lineNumber;
             if (isLine(line)) {
@@ -537,8 +593,7 @@ Autotag = (function() {
         };
 
         var getNextLine = function(line) {
-            line = initObj(line, getLine());
-            return isLine(line) && line.nextSibling;
+            return getLine(line).nextSibling;
         };
 
         var getNextTag = function(node) {
@@ -558,44 +613,42 @@ Autotag = (function() {
                     next = getNextTag(next.parentNode.nextSibling);
                 }
             }
-
             return next;
         };
 
+        var getPixelAmount = function(value) {
+            return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0);
+        };
+
         var getPreviousLine = function(line) {
-            line = initObj(line, getLine());
-            var prev = line.previousSibling;
-            while (prev && !isLine(prev)) {
-                prev = prev.previousSibling;
-            }
-            return prev;
+            return getLine(line).previousSibling;
         };
 
         var getRange = function() {
             var selection, range;
-            if (typeof window.getSelection != "undefined") {
+            if (typeof window.getSelection != 'undefined') {
                 selection = window.getSelection();
                 if (selection.rangeCount) {
                     range = selection.getRangeAt(0);
                 }
             } else if ((selection = document.selection) &&
-                selection.type != "Control") {
+                selection.type != 'Control') {
                 range = selection.createRange();
             }
 
             return range;
         };
 
-        var getStylePropertyValue = function(node, property) {
-            return node &&
-                property &&
-                window.getComputedStyle(node, null).getPropertyValue(property);
+        var getRangeContainersAndOffsets = function(range) {
+            return {
+                startContainer : range.startContainer,
+                endContainer : range.endContainer,
+                startOffset : range.startOffset,
+                endOffset : range.endOffset
+            };
         };
 
-        var findTagInLine = function(line, index) {
-            index = (initObj(index) || index < 0) ? 0 : index;
-            return line.querySelector('a:nth-child(' + index + ')');
-        };
+
 
         var getRangeStartTag = function(range) {
             var node = range.startContainer;
@@ -611,6 +664,26 @@ Autotag = (function() {
                 isText(node) && node.parentNode;
         };
 
+        var getSiblings = function(node, filter) {
+            return getChildren(node.parentNode, filter);
+        };
+
+        var getStylePropertyValue = function(node, property) {
+            return node &&
+                property &&
+                window.getComputedStyle(node, null).getPropertyValue(property);
+        };
+
+        var getTag = function(node) {
+            if (isText(node)) {
+                return node.parentNode;
+            } else if (isTag(node)) {
+                return node;
+            } else if (isLine(node)) {
+                return getTagsInLine(line)[0];
+            }
+        };
+
         var getTagsInRange = function(range) {
             var tag = getRangeStartTag(range),
                 endTag = getRangeEndTag(range),
@@ -623,7 +696,6 @@ Autotag = (function() {
         };
 
         var getTagsInLine = function(line) {
-            line = initObj(line, getLine());
             return isLine(line) && line.getElementsByTagName(autoWordTag);
         };
 
@@ -646,6 +718,12 @@ Autotag = (function() {
         var gotoLine = function(line) {
             if (isLine(line)) {
                 setCaret(line.querySelector(autoWordTag + ':first-child'), 0);
+            }
+        };
+
+        var hideSubmenu = function() {
+            if (activeSubmenu) {
+                activeSubmenu.style.display = 'none';
             }
         };
 
@@ -698,9 +776,43 @@ Autotag = (function() {
             return node && node.nodeType == Node.TEXT_NODE;
         };
 
+
+        var insertTab = function(node, index) {
+            var tag = isText(node) ? node.parentNode : node;
+            if (isTag(tag)) {
+                var content = tag.textContent,
+                    parent = tag.parentNode,
+                    sibling = tag.nextSibling;
+
+                var tab = createTagNode('    ');
+                if (index === 0) {
+                    parent.insertBefore(tab, tag);
+                    setCaret(tag.firstChild, 0);
+                } else if (index === tag.firstChild.length) {
+                    parent.insertBefore(tab, sibling);
+                    if (sibling) {
+                        setCaret(sibling.firstChild, 0);
+                    } else {
+                        setCaret(tab.firstChild, 1);
+                    }
+                    return true;
+                } else {
+                    tag.textContent = content.substring(0, index);
+                    parent.insertBefore(tab, sibling);
+
+                    var lastTag = createTagNode(content.substring(index));
+                    parent.insertBefore(lastTag, tab.nextSibling);
+                    setCaret(lastTag.firstChild, 0);
+                }
+                paragraphize(getLine(), true);
+                return true;
+            }
+            return false;
+        };
+
         var paragraphize = function(root, refresh) {
             root = (root == null) ? editor : root;
-            refresh = initObj(refresh, false) || true;
+            refresh = initParam(refresh, false) || true;
 
             if (refresh) {
                 removeNodesInList(root.querySelectorAll('div'));
@@ -708,23 +820,9 @@ Autotag = (function() {
 
             if (isLine(root)) {
                 var tagNodes = root.querySelectorAll(autoWordTag);
-                var tagNode, tagNodeHeight;
                 for (var i = 0; i < tagNodes.length; i++) {
                     softWrapNode(tagNodes[i]);
                 }
-            }
-        };
-
-        var hideSubmenu = function() {
-            if (activeSubmenu) {
-                activeSubmenu.style.display = 'none';
-            }
-        };
-
-        var toggleSubmenu = function() {
-            if (activeSubmenu) {
-                var style = window.getComputedStyle(activeSubmenu);
-                activeSubmenu.style.display = style.display === 'none' ? '' : 'none';
             }
         };
 
@@ -733,12 +831,32 @@ Autotag = (function() {
             if (menu.dataset.autotagjsPalette) {
                 createPalette(menu);
             } else if (menu.dataset.autotagjsSelect) {
-                activeSubmenu = menu.getElementsByClassName('autotagjs-submenu')[0];
+                activeSubmenu = menu.getElementsByClassName(submenuClassName)[0];
                 toggleSubmenu();
             } else {
                 formatSelection(menu.dataset);
                 paragraphize(getLine(), true);
             }
+        };
+
+        var processDeleteOrTabKey = function(range, keyCode, shifted) {
+            if (isCaret(range)) {
+                var node = range.endContainer,
+                    endOffset = range.endOffset;
+                if (range.startOffset == 0) {
+                    if (isLine(node) ||
+                        isBreakTag(node) && !node.previousSibling ||
+                        isText(node) && !node.parentNode.previousSibling) {
+                        return updateIndentationOnDeleteOrTabKey(
+                            getLine(node), keyCode, shifted);
+                    }
+                }
+
+                if (isTabKey(keyCode) && !shifted) {
+                    return insertTab(node, endOffset);
+                }
+            }
+            return false;
         };
 
         var processInput = function() {
@@ -827,70 +945,22 @@ Autotag = (function() {
                 var current = getLine();
                 if (getLineNumber(current) == inputLineNumber) {
                     current = getNextLine(current);
-                    if (current !== null) {
-                        fixLine(current);
-                        gotoLine(current);
-                    }
                 } else {
-                    var prev = getPreviousLine(current);
-                    fixLine(prev);
-                    fixLine(current);
-                    gotoLine(current);
+                    fixLine(getPreviousLine(current));
                 }
 
+                fixLine(current);
+                gotoLine(current);
                 fixEditor();
                 processInput();
                 fixCaret();
             }
         };
 
-        var updateIndentationOnKey = function(code) {
-            var range = getRange();
-            if (isCaret(range)) {
-                var node = range.endContainer;
-                node = isText(node) ? node.parentNode : node;
-                if (range.startOffset == 0) {
-                    if (isLine(node) || isTag(node) && !node.previousSibling && (node = node.parentNode)) {
-                        if (getIndentationIndex(node)) {
-                            if (isTabKey(code)) {
-                                indentList(node);
-                            } else if (isDeleteKey(code)) {
-                                if (getListPrefix(node)) {
-                                    clearList(node);
-                                } else {
-                                    outdentList(node);
-                                }
-                                return true;
-                            }
-                        }
-                    } else if (isTag(node) && isTabKey(code)) {
-                        insertTab(node, range.endOffset);
-                    }
-                }
-            }
-            paragraphize(getLine(), true);
-        };
-
         var removeAllChildNodes = function(node) {
             while (node && node.hasChildNodes()) {
                 node.removeChild(node.lastChild);
             }
-        };
-
-        var getSiblings = function(node, filter) {
-            return getChildren(node.parentNode, filter);
-        };
-
-        var getChildren = function(node, filter) {
-            var children = [];
-            node = node.firstChild;
-            while(node) {
-                if (!filter || filter(node)) {
-                    children.push(node);
-                }
-                node = node.nextSibling;
-            }
-            return children;
         };
 
         // Remove break nodes that have a text node as sibling, on the
@@ -909,7 +979,7 @@ Autotag = (function() {
         };
 
         var removeNodesInList = function(nodeList) {
-            for (var i = 0; nodeList && i <= nodeList.length; i++) {
+            for (var i=0; nodeList && i <= nodeList.length; i++) {
                 removeNode(nodeList[i]);
             }
             return nodeList;
@@ -941,44 +1011,52 @@ Autotag = (function() {
         // Takes in the current node and sets the cursor location
         // on the first child, if the child is a Text node.
         var setCaret = function(node, offset) {
-            offset = initObj(offset, node.length);
-            return setSelection(node, offset, node, offset);
+            offset = initParam(offset, node.length);
+            return setSelection({
+                startContainer: node,
+                startOffset: offset,
+                endContainer: node,
+                endOffset: offset
+            });
         };
 
         var setContinuingStyle = function() {
             var range = getRange();
             if (range) {
                 var container = range.endContainer;
-                var tag = isTag(container) && container || isText(container) && container.parentNode;
+                var tag = isTag(container) && container ||
+                    isText(container) && container.parentNode;
                 if (tag) {
                     continuingStyle = tag.getAttribute('style');
                 }
             }
         };
 
-        var setListClass = function(line, prefix, level) {
+        var setListStyle = function(line, prefix, level, force) {
             var name = line.className;
-            if(!name.match(/autotagjs-list-\d+/)) {
-                line.className = name.replace(/(\w+-)+list-\d/g, '');
-                line.classList.add(prefix + "-list-" + level);
+            if (prefix && level && (force || !isBlankList(line))) {
+                updateListStyle(line, prefix + "-list-" + level);
             }
         };
 
         var setListCounter = function(line, prefix, level) {
-            line.parentNode.style.setProperty('counter-reset', prefix + "-counter-" + level);
-            line.style.setProperty('counter-reset', prefix + "-counter-" + (level + 1));
+            line.parentNode.style.setProperty(
+                'counter-reset', prefix + "-counter-" + level);
+            line.style.setProperty(
+                'counter-reset', prefix + "-counter-" + (level + 1));
         };
 
-        var setSelection = function(startContainer, startOffset, endContainer, endOffset) {
-            var range;
-            if (startContainer && endContainer) {
-                startOffset = initObj(startOffset, 0);
-                endOffset = initObj(endOffset, endContainer.length);
-
+        var setSelection = function(obj) {
+            var range,
+                startNode = obj.startContainer,
+                endNode = obj.endContainer;
+            if (startNode && endNode) {
+                var startOffset = initParam(obj.startOffset, 0),
+                    endOffset = initParam(obj.endOffset, endNode.length);
                 range = document.createRange();
                 try {
-                    range.setStart(startContainer, startOffset);
-                    range.setEnd(endContainer, endOffset);
+                    range.setStart(startNode, startOffset);
+                    range.setEnd(endNode, endOffset);
                     selectionRange = range;
                 } catch (err) {
                     // Chrome does not like setting an offset of 1
@@ -991,39 +1069,47 @@ Autotag = (function() {
 
         var softWrapNode = function(node) {
             if (node) {
-                var fontSize = parseFloat(getStylePropertyValue(node, 'font-size'));
+                var fontSize =
+                    parseFloat(getStylePropertyValue(node, 'font-size'));
+
                 if (node.getBoundingClientRect().height > fontSize * 1.3) {
-                    var wrap = node.previousSibling && (node.previousSibling.tagName === 'DIV');
+                    var prevNode = node.previousSibling;
+                    var wrap = prevNode && (prevNode.tagName === 'DIV');
+
                     if (!wrap) {
-                        node.parentNode.insertBefore(document.createElement('div'), node);
+                        node.parentNode.insertBefore(
+                            document.createElement('div'), node);
                     }
                 }
             }
             return node;
         };
 
-        var insertTab = function(node, index) {
-            var content = node.textContent;
-            var parent = node.parentNode;
-            var sibling = node.nextSibling;
-
-            var tab = createTagNode('    ');
-            if (index === 0) {
-                parent.insertBefore(tab, node);
-                setCaret(node.firstChild, 0);
-            } else if (index === node.firstChild.length) {
-                if (sibling) {
-                    parent.insertBefore(tab, sibling);
-                    setCaret(sibling.firstChild, 0);
-                }
-            } else {
-                node.textContent = content.substring(0, index);
-                parent.insertBefore(tab, sibling);
-
-                var lastTag = createTagNode(content.substring(index));
-                parent.insertBefore(lastTag, tab.nextSibling);
-                setCaret(lastTag.firstChild, 0);
+        var toggleSubmenu = function() {
+            if (activeSubmenu) {
+                var style = window.getComputedStyle(activeSubmenu);
+                activeSubmenu.style.display = style.display === 'none' ? '' : 'none';
             }
+        };
+
+        var updateIndentationOnDeleteOrTabKey = function(line, keyCode, shifted) {
+            if (getIndentationIndex(line)) {
+                if (isTabKey(keyCode)) {
+                    if (shifted) {
+                        outdentLine(line, false);
+                    } else {
+                        indentLine(line, null, false);
+                    }
+                } else if (isDeleteKey(keyCode)) {
+                    if (!isBlankList(line)) {
+                        setBlankList(line);
+                    } else {
+                        outdentLine(line, false);
+                    }
+                }
+                return true;
+            }
+            return false;
         };
 
         document.addEventListener('selectionchange', debounce(function(e) {
@@ -1051,39 +1137,38 @@ Autotag = (function() {
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
             inputLineNumber = getLineNumber();
+            var range = getRange(),
+                keyCode = getKeyCode(e);
 
-            var code = getKeyCode(e);
-            if (isDeleteKey(code)) {
-                if (updateIndentationOnKey(code)) {
+            if (isDeleteKey(keyCode) || isTabKey(keyCode)) {
+                if (processDeleteOrTabKey(range, keyCode, e.shiftKey)) {
                     e.preventDefault();
                 }
                 fixCaret();
-            } else if (isReturnKey(code)) {
+
+            } else if (isReturnKey(keyCode)) {
                 if (ignoreReturnKey) {
                     e.preventDefault();
-                    doOnReturnKey();
                 } else {
                     setContinuingStyle();
                 }
-            } else if (isTabKey(code)) {
+
+            } else if (e.metaKey && isFormatKey(keyCode)) {
+                formatSelection({ autotagjsToggle: styleKeyMap[keyCode] });
                 e.preventDefault();
-                updateIndentationOnKey(code);
-            } else if (e.metaKey && isFormatKey(code)) {
-                e.preventDefault();
-                formatSelection({ autotagjsToggle: styleKeyMap[code] });
             }
         });
 
         editor.addEventListener('keyup', function(e) {
-            var code = getKeyCode(e);
-            if (isDeleteKey(code)) {
+            var keyCode = getKeyCode(e);
+            if (isDeleteKey(keyCode)) {
                 if (isEditor(getRange().endContainer)) {
                     fixEditor();
                 } else {
                     fixLine();
                 }
                 paragraphize(getLine(), true);
-            } else if (isReturnKey(code)) {
+            } else if (isReturnKey(keyCode)) {
                 processReturnKey();
             }
             doAfterKeypress();
@@ -1111,16 +1196,16 @@ Autotag = (function() {
                         resetRange(selectionRange);
 
                         var target = e.target;
-                        if (target.classList.contains('autotagjs-menu') ||
-                            target.parentNode.classList.contains('autotagjs-submenu')) {
+                        if (target.classList.contains(menuClassName) ||
+                            target.parentNode.classList.contains(submenuClassName)) {
                             performMenuAction(target);
-                        } else if (target.parentNode.classList.contains('autotagjs-menu')) {
+                        } else if (target.parentNode.classList.contains(menuClassName)) {
                             performMenuAction(target.parentNode);
-                        } else if (target.classList.contains('autotagjs-palette-cell')) {
-                            var color = target.style.backgroundColor;
-                            var dataset = activeSubmenu.parentNode.dataset;
+                        } else if (target.classList.contains(paletteCellClassName)) {
+                            var declaration,
+                                color = target.style.backgroundColor,
+                                dataset = activeSubmenu.parentNode.dataset;
 
-                            var declaration;
                             if (dataset.autotagjsPalette == 'color') {
                                 declaration = 'color: ' + color;
                             } else if (dataset.autotagjsPalette == 'fill') {
