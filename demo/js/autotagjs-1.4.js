@@ -51,19 +51,18 @@ Autotag = (function() {
             // across line breaks.
             continuingStyle,
 
-
-            classListTemp,
-            prevLineTemp,
-
             editorMenubar,
             autoWordTag = 'span',
             autoLineTag = 'p',
+
+            // Reserved class names
 
             blankListClassName = 'autotagjs-list-blank',
             defaultListClassName = 'autotagjs-list',
 
             menuClassName = 'autotagjs-menu',
             submenuClassName = 'autotagjs-submenu',
+
             paletteClassName = 'autotagjs-palette',
             paletteCellClassName = 'autotagjs-palette-cell',
             paletteRowClassName = 'autotagjs-palette-row';
@@ -444,12 +443,6 @@ Autotag = (function() {
             return document.createTextNode(str);
         };
 
-
-        // var findTagInLine = function(line, index) {
-        //     index = (initParam(index) || index < 0) ? 0 : index;
-        //     return line.querySelector('a:nth-child(' + index + ')');
-        // };
-
         var fixCaret = function() {
             var range = getRange();
             var node = range.endContainer;
@@ -628,38 +621,6 @@ Autotag = (function() {
             return getLine(line).nextSibling;
         };
 
-        // var getNthChild = function(parentNode, childOffset) {
-        //     if (isText(parentNode)) {
-        //         return parentNode;
-        //     }
-        //
-        //     var child = parentNode.firstChild;
-        //     for (var i=2; i<=childOffset; i++) {
-        //         child = child.nextSibling;
-        //     }
-        //     return child;
-        // };
-
-        // var getNextTag = function(node) {
-        //     var next;
-        //     if (node && !isEditor(node)) {
-        //         if (isLine(node)) {
-        //             next = node.firstChild;
-        //         } else if (isTag(node) || isSoftWrap(node)) {
-        //             next = node.nextSibling || getNextTag(node.parentNode.nextSibling);
-        //         }
-        //
-        //         if (!next) {
-        //             next = getNextTag(node.parentNode.nextSibling);
-        //         }
-        //
-        //         if (isBreakTag(next)) {
-        //             next = getNextTag(next.parentNode.nextSibling);
-        //         }
-        //     }
-        //     return next;
-        // };
-
         var getPixelAmount = function(value) {
             return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0);
         };
@@ -693,20 +654,6 @@ Autotag = (function() {
             };
         };
 
-        // var getRangeStartTag = function(range) {
-        //     var node = range.startContainer;
-        //     return isLine(node) && findTagInLine(node, range.startOffset + 1) ||
-        //         isTag(node) && node ||
-        //         isText(node) && node.parentNode;
-        // };
-        //
-        // var getRangeEndTag = function(range) {
-        //     var node = range.endContainer;
-        //     return isLine(node) && findTagInLine(node, range.endOffset) ||
-        //         isTag(node) && node ||
-        //         isText(node) && node.parentNode;
-        // };
-
         var getSiblings = function(node, filter) {
             return getChildren(node.parentNode, filter);
         };
@@ -726,18 +673,6 @@ Autotag = (function() {
                 return getTagsInLine(line)[0];
             }
         };
-
-        // var getTagsInRange = function(range) {
-        //     var tag = getRangeStartTag(range),
-        //         endTag = getRangeEndTag(range),
-        //         tags = tag && [tag] || [];
-        //
-        //     while (tag && (tag !== endTag)) {
-        //         tags.push(tag = getNextTag(tag));
-        //     }
-        //     return tags;
-        // };
-
 
         var rangeIntersectsNode = function(range, node) {
             var nodeRange;
@@ -777,25 +712,8 @@ Autotag = (function() {
             return tags;
         };
 
-
         var getTagsInLine = function(line) {
             return isLine(line) && line.getElementsByTagName(autoWordTag);
-        };
-
-        var getTextNodes = function(node) {
-            var text,
-                textNodes = [],
-                walker = getTextWalker(node);
-
-            while ((text = walker.nextNode())) {
-                textNodes.push(text);
-            }
-            return textNodes;
-        };
-
-        var getTextWalker = function(node) {
-            return node &&
-                document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false);
         };
 
         var gotoLine = function(line) {
@@ -853,7 +771,6 @@ Autotag = (function() {
         var isText = function(node) {
             return node && node.nodeType == Node.TEXT_NODE;
         };
-
 
         var insertTab = function(node, index) {
             var tag = isText(node) ? node.parentNode : node;
@@ -1183,22 +1100,6 @@ Autotag = (function() {
                 activeSubmenu.style.display = style.display === 'none' ? '' : 'none';
             }
         };
-
-        // var updateIndentationOnDeleteOrTabKey = function(line, keyCode, shifted) {
-        //     if (isTabKey(keyCode)) {
-        //         if (shifted) {
-        //             outdentLine(line, false);
-        //         } else {
-        //             indentLine(line, null, false);
-        //         }
-        //     } else if (isDeleteKey(keyCode)) {
-        //         if (!isBlankList(line)) {
-        //             setBlankList(line);
-        //         } else {
-        //             outdentLine(line, false);
-        //         }
-        //     }
-        // };
 
         document.addEventListener('selectionchange', debounce(function(e) {
             if (saveSelectionRange()) {
