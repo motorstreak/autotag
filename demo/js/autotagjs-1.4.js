@@ -831,7 +831,7 @@ Autotag = (function() {
             }
         };
 
-        var processDeleteOrTabKey = function(range, keyCode, shifted) {
+        var updateIndentationOnKey = function(range, keyCode, shifted) {
             if (range.collapsed) {
                 var node = range.startContainer,
                     offset = range.startOffset,
@@ -857,12 +857,6 @@ Autotag = (function() {
                         }
                         return true;
                     }
-                    // Possibly tryig to insert tab in a list
-                }
-
-                if (isTabKey(keyCode) && !shifted) {
-                    insertTab(node, offset);
-                    return true;
                 }
             }
             return false;
@@ -1130,12 +1124,13 @@ Autotag = (function() {
                 keyCode = getKeyCode(e);
 
             if (isDeleteKey(keyCode) || isTabKey(keyCode)) {
-                if (processDeleteOrTabKey(range, keyCode, e.shiftKey)) {
+                if (updateIndentationOnKey(range, keyCode, e.shiftKey)) {
+                    e.preventDefault();
+                } else if (isTabKey(keyCode) && !shifted) {
+                    insertTab(node, offset);
                     e.preventDefault();
                 }
                 fixCaret();
-
-                // console.log(getLine(range.startContainer).previousSibling);
 
             } else if (isReturnKey(keyCode)) {
                 if (ignoreReturnKey) {
@@ -1160,7 +1155,10 @@ Autotag = (function() {
                 }
                 paragraphize(getLine(), true);
                 // console.log(getLine(getRange().startContainer).previousSibling);
-                // indentLine(getLine());
+                console.log(getLine());
+                // if (!isBlankList(getLine())) indentLine(getLine());
+
+
             } else if (isReturnKey(keyCode)) {
                 processReturnKey();
             }
