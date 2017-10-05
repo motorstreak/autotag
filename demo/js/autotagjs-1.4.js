@@ -74,7 +74,6 @@ Autotag = (function() {
             85: 'text-decoration:underline'
         };
 
-
         function initParam(obj, toObj) {
             toObj = (typeof toObj === 'undefined') ? true : toObj;
             return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
@@ -460,6 +459,7 @@ Autotag = (function() {
                     }
                 }
             }
+            console.log(getRange().endContainer);
         };
 
         var fixEditor = function(clear) {
@@ -487,8 +487,6 @@ Autotag = (function() {
                     setCaret(addPilotNodeToLine(line), 0);
                 }
             }
-
-            return line;
         };
 
         var fixText = function(node, offset) {
@@ -505,7 +503,6 @@ Autotag = (function() {
                     removeBreakNodes(parentNode);
                 }
             }
-            return node;
         };
 
         var formatSelection = function(dataset) {
@@ -832,31 +829,29 @@ Autotag = (function() {
         };
 
         var updateIndentationOnKey = function(range, keyCode, shifted) {
-            if (range.collapsed) {
-                var node = range.startContainer,
-                    offset = range.startOffset,
-                    line = getLine(node);
+            var node = range.startContainer,
+                offset = range.startOffset,
+                line = getLine(node);
 
-                if (getIndentationIndex(line)) {
-                    if (isLine(node) ||
-                        isBreakTag(node) && !node.previousSibling ||
-                        isText(node) && !node.parentNode.previousSibling && offset == 0) {
+            if (getIndentationIndex(line)) {
+                if (isLine(node) ||
+                    isBreakTag(node) && !node.previousSibling ||
+                    isText(node) && !node.parentNode.previousSibling && offset == 0) {
 
-                        if (isTabKey(keyCode)) {
-                            if (shifted) {
-                                outdentLine(line, false);
-                            } else {
-                                indentLine(line, null, false);
-                            }
-                        } else if (isDeleteKey(keyCode)) {
-                            if (!isBlankList(line)) {
-                                setBlankList(line);
-                            } else {
-                                outdentLine(line, false);
-                            }
+                    if (isTabKey(keyCode)) {
+                        if (shifted) {
+                            outdentLine(line, false);
+                        } else {
+                            indentLine(line, null, false);
                         }
-                        return true;
+                    } else if (isDeleteKey(keyCode)) {
+                        if (!isBlankList(line)) {
+                            setBlankList(line);
+                        } else {
+                            outdentLine(line, false);
+                        }
                     }
+                    return true;
                 }
             }
             return false;
@@ -888,6 +883,7 @@ Autotag = (function() {
                         newTag = createTagNode(parts[i]);
                         newTag.setAttribute('style', refTag.getAttribute('style'));
                         newTag.style.display = 'inline';
+
                         decorator(newTag, newTag.firstChild.nodeValue);
                         refTag.parentNode.insertBefore(newTag, refTag.nextSibling);
 
@@ -1014,13 +1010,15 @@ Autotag = (function() {
         // Takes in the current node and sets the cursor location
         // on the first child, if the child is a Text node.
         var setCaret = function(node, offset) {
-            offset = initParam(offset, node.length);
-            return setSelection({
-                startContainer: node,
-                startOffset: offset,
-                endContainer: node,
-                endOffset: offset
-            });
+            if (node) {
+                offset = initParam(offset, node.length);
+                setSelection({
+                    startContainer: node,
+                    startOffset: offset,
+                    endContainer: node,
+                    endOffset: offset
+                });
+            }
         };
 
         var setContinuingStyle = function() {
@@ -1109,6 +1107,7 @@ Autotag = (function() {
             hideSubmenu();
             fixLine();
             fixEditor();
+            fixCaret();
         });
 
         editor.addEventListener('focus', function(e) {
@@ -1123,11 +1122,13 @@ Autotag = (function() {
             var range = getRange(),
                 keyCode = getKeyCode(e);
 
-            if (isDeleteKey(keyCode) || isTabKey(keyCode)) {
+            if (range.collapsed &&
+                (isDeleteKey(keyCode) || isTabKey(keyCode))) {
                 if (updateIndentationOnKey(range, keyCode, e.shiftKey)) {
                     e.preventDefault();
-                } else if (isTabKey(keyCode) && !shifted) {
-                    insertTab(node, offset);
+
+                } else if (isTabKey(keyCode) && !e.shiftKey) {
+                    insertTab(range.startContainer, range.startOffset);
                     e.preventDefault();
                 }
                 fixCaret();
@@ -1154,11 +1155,6 @@ Autotag = (function() {
                     fixLine();
                 }
                 paragraphize(getLine(), true);
-                // console.log(getLine(getRange().startContainer).previousSibling);
-                console.log(getLine());
-                // if (!isBlankList(getLine())) indentLine(getLine());
-
-
             } else if (isReturnKey(keyCode)) {
                 processReturnKey();
             }
