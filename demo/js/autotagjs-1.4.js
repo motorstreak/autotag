@@ -53,7 +53,7 @@ Autotag = (function() {
 
             editorMenubar,
             autoWordTag = 'span',
-            autoLineTag = 'p',
+            autoLineTag = 'div',
 
             // Reserved class names
 
@@ -82,7 +82,9 @@ Autotag = (function() {
         // Dump logs for testing.
         function logToConsole(data, msg) {
             msg = initParam(msg, '');
-            if (trace) console.log('TRACE : ' + msg + ' : ' + data);
+            if (trace) {
+                console.log('TRACE : ' + msg + ' : ' + data);
+            }
         }
 
         function debounce(func, wait, immediate) {
@@ -93,14 +95,18 @@ Autotag = (function() {
 
                 var later = function() {
                     timeout = null;
-                    if (!immediate) { func.apply(context, args); }
+                    if (!immediate) {
+                        func.apply(context, args);
+                    }
                 };
 
                 var callNow = immediate && !timeout;
                 clearTimeout(timeout);
                 timeout = setTimeout(later, wait);
 
-                if (callNow) { func.apply(context, args); }
+                if (callNow) {
+                    func.apply(context, args);
+                }
             };
         }
 
@@ -131,6 +137,7 @@ Autotag = (function() {
             return line.appendChild(createBreakNode());
         };
 
+        // Updates the list style and counter for the given line.
         var updateList = function(line, prefix, level, force) {
             force = initParam(force, true);
             if (!initList(line)) {
@@ -139,6 +146,7 @@ Autotag = (function() {
             }
         };
 
+        // Enable every root line to be list capable.
         var initList = function(line) {
             if (isEditor(line.parentNode)) {
                 updateListStyle(line, defaultListClassName);
@@ -149,23 +157,23 @@ Autotag = (function() {
             return false;
         };
 
-        var getListPrefix = function(line, force) {
-            force = initParam(force, false);
-
+        // Gets the list prefix for the given line. If no prefix is
+        // found, go check ancestors.
+        var getListPrefix = function(line) {
             if (isEditor(line)) {
                 return 'autotagjs';
             }
 
             var names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
             var prefix = names && names[1];
-            return (prefix ? prefix : getListPrefix(line.parentNode, force));
+            return (prefix ? prefix : getListPrefix(line.parentNode));
         };
 
 
         var indentLine = function(line, prefix, refresh) {
             if(!isListIndenter(line)) {
                 refresh = initParam(refresh, true);
-                prefix = initParam(prefix, getListPrefix(line, true));
+                prefix = initParam(prefix, getListPrefix(line));
 
                 var selection = getRangeContainersAndOffsets(selectionRange);
 
@@ -175,9 +183,9 @@ Autotag = (function() {
                     updateList(line, prefix, getIndentationIndex(line), refresh);
                 } else {
                     var rootLine = getLine(line, true),
-                        anchor = getPreviousLine(line);
+                        anchor = line.previousSibling;
 
-                    if (!anchor) {
+                    if (!isLine(anchor)) {
                         anchor = createNewLine(false);
                         line.parentNode.insertBefore(anchor, line);
                     }
@@ -204,7 +212,7 @@ Autotag = (function() {
 
                 if (!initList(line)) {
                     var selection = getRangeContainersAndOffsets(selectionRange);
-                    prefix = getListPrefix(line, true);
+                    prefix = getListPrefix(line);
 
                     // Now make line's children the anchor's children.
                     var children = getChildren(line, isLine);
@@ -459,7 +467,6 @@ Autotag = (function() {
                     }
                 }
             }
-            console.log(getRange().endContainer);
         };
 
         var fixEditor = function(clear) {
@@ -491,8 +498,7 @@ Autotag = (function() {
 
         var fixText = function(node, offset) {
             offset = initParam(offset, 0);
-            node = initParam(node, getRange().endContainer);
-            if (isText(node)) {
+            if (node && isText(node)) {
                 var parentNode = node.parentNode;
                 if (isLine(parentNode)) {
                     var tagNode = createTagNode();
@@ -548,8 +554,6 @@ Autotag = (function() {
             return children;
         };
 
-
-
         var getFirstLine = function() {
             return editor.querySelector(autoLineTag + ':first-child');
         };
@@ -572,7 +576,9 @@ Autotag = (function() {
         // root line is returned.
         var getLine = function(node, root) {
             root = initParam(root, false);
-            node = initParam(node, getRange() && getRange().endContainer);
+
+            var range = getRange();
+            node = initParam(node, range && range.endContainer);
 
             while (node && !isEditor(node) && (root || !isLine(node))) {
                 node = node.parentNode;
@@ -604,7 +610,6 @@ Autotag = (function() {
                     lines = lines.concat(getLines(children[i], endLine));
                 }
             } while(line != endLine && (line = line.nextSibling));
-            console.log(lines);
             return lines;
         };
 
@@ -614,17 +619,8 @@ Autotag = (function() {
                 getLine(range.endContainer));
         };
 
-        var getNextLine = function(line) {
-            return getLine(line).nextSibling;
-        };
-
         var getPixelAmount = function(value) {
             return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0);
-        };
-
-        var getPreviousLine = function(line) {
-            var prev = getLine(line).previousSibling;
-            return isLine(prev) ? prev : null;
         };
 
         var getRange = function() {
@@ -703,7 +699,9 @@ Autotag = (function() {
             var tags = [];
             do {
                 var node = textWalker.currentNode.parentNode;
-                if (isTag(node)) { tags.push(node); }
+                if (isTag(node)) {
+                    tags.push(node);
+                }
             } while (textWalker.nextNode());
 
             return tags;
@@ -804,7 +802,7 @@ Autotag = (function() {
             refresh = initParam(refresh, false) || true;
 
             if (refresh) {
-                removeNodesInList(root.querySelectorAll('div'));
+                removeNodesInList(root.querySelectorAll('div.autotagjs-softwrap'));
             }
 
             if (isLine(root)) {
@@ -943,9 +941,9 @@ Autotag = (function() {
             if (ignoreReturnKey === false) {
                 var current = getLine();
                 if (getLineNumber(current) == inputLineNumber) {
-                    current = getNextLine(current);
+                    current = current.nextSibling;
                 } else {
-                    fixLine(getPreviousLine(current));
+                    fixLine(current.previousSibling);
                 }
 
                 fixLine(current);
@@ -1075,11 +1073,13 @@ Autotag = (function() {
 
                 if (node.getBoundingClientRect().height > fontSize * 1.3) {
                     var prevNode = node.previousSibling;
-                    var wrap = prevNode && (prevNode.tagName === 'DIV');
+                    var wrap = prevNode && (prevNode.tagName === 'DIV') &&
+                        prevNode.className == 'autotagjs-softwrap';
 
                     if (!wrap) {
-                        node.parentNode.insertBefore(
-                            document.createElement('div'), node);
+                        var wrapNode = document.createElement('div');
+                        wrapNode.className = 'autotagjs-softwrap';
+                        node.parentNode.insertBefore(wrapNode, node);
                     }
                 }
             }
@@ -1149,11 +1149,8 @@ Autotag = (function() {
         editor.addEventListener('keyup', function(e) {
             var keyCode = getKeyCode(e);
             if (isDeleteKey(keyCode)) {
-                if (isEditor(getRange().endContainer)) {
-                    fixEditor();
-                } else {
-                    fixLine();
-                }
+                fixEditor();
+                fixLine();
                 paragraphize(getLine(), true);
             } else if (isReturnKey(keyCode)) {
                 processReturnKey();
