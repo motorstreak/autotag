@@ -56,7 +56,6 @@ Autotag = (function() {
             autoLineTag = 'div',
 
             // Reserved class names
-
             blankListClassName = 'autotagjs-list-blank',
             defaultListClassName = 'autotagjs-list',
 
@@ -65,7 +64,9 @@ Autotag = (function() {
 
             paletteClassName = 'autotagjs-palette',
             paletteCellClassName = 'autotagjs-palette-cell',
-            paletteRowClassName = 'autotagjs-palette-row';
+            paletteRowClassName = 'autotagjs-palette-row',
+
+            softWrapClassName = 'autotagjs-softwrap';
 
         // Map keeyboard controls to format options since we override them.
         var styleKeyMap = {
@@ -182,11 +183,11 @@ Autotag = (function() {
                 if (isBlankList(line) || !isEditor(line.parentNode) && isRootList(line)) {
                     updateList(line, prefix, getIndentationIndex(line), refresh);
                 } else {
-                    var rootLine = getLine(line, true),
+                    var rootLine = getRootLine(line),
                         anchor = line.previousSibling;
 
                     if (!isLine(anchor)) {
-                        anchor = createNewLine(false);
+                        anchor = createNewLine();
                         line.parentNode.insertBefore(anchor, line);
                     }
 
@@ -201,7 +202,7 @@ Autotag = (function() {
                     }
                 }
                 setSelection(selection);
-                paragraphize(getLine(), true);
+                paragraphize(getActiveLine(), true);
             }
         };
 
@@ -217,7 +218,7 @@ Autotag = (function() {
                     // Now make line's children the anchor's children.
                     var children = getChildren(line, isLine);
                     if (children.length > 0) {
-                        var anchor = createNewLine(false);
+                        var anchor = createNewLine();
                         initList(anchor);
 
                         line.insertBefore(anchor, children[0]);
@@ -241,7 +242,7 @@ Autotag = (function() {
                     }
 
                     setSelection(selection);
-                    paragraphize(getLine(), true);
+                    paragraphize(getActiveLine(), true);
                 }
             }
         };
@@ -360,11 +361,6 @@ Autotag = (function() {
             }
         };
 
-        // A Block node form a line element in the editor.
-        var createBlockNode = function() {
-            return document.createElement(autoLineTag);
-        };
-
         var createBreakNode = function() {
             var node = document.createElement(autoWordTag);
             node.appendChild(document.createElement('br'));
@@ -424,23 +420,31 @@ Autotag = (function() {
             return palette.appendChild(row);
         };
 
-        var createNewLine = function(focus) {
-            focus = initParam(focus, true);
-            var line = createBlockNode();
-            editor.appendChild(line);
-            if (focus) {
-                setCaret(addPilotNodeToLine(line), 0);
+        var createNewLine = function(parent, addPilotNode) {
+            var line = document.createElement(autoLineTag);
+            if (parent) {
+                parent.appendChild(line);
+                if (addPilotNode) {
+                    setCaret(addPilotNodeToLine(line), 0);
+                }
             }
             return line;
         };
 
         // Every text node in the editor is wrapped in a Tag node.
-        var createTagNode = function(str) {
-            var tagNode = document.createElement(autoWordTag);
-            if (str) {
-                tagNode.appendChild(createTextNode(str));
+        var createTagNode = function(stringOrText) {
+            var tag = document.createElement(autoWordTag),
+                text;
+            if (typeof stringOrText === 'string') {
+                text = createTextNode(stringOrText);
+            } else if (isText(stringOrText)) {
+                text = stringOrText;
             }
-            return tagNode;
+
+            if (text) {
+                tag.appendChild(text);
+            }
+            return tag;
         };
 
         var createTextNode = function(str) {
@@ -470,44 +474,42 @@ Autotag = (function() {
         };
 
         var fixEditor = function(clear) {
-            if (initParam(clear, false) || !getFirstLine()) {
-                removeAllChildNodes(editor);
-                createNewLine();
-            } else {
-                // IE adds unwanted nodes sometimes.
-                var lines = editor.childNodes;
-                for (var i = 0; i < lines.length; i++) {
-                    if (lines[i].tagName !== autoLineTag.toUpperCase()) {
-                        removeNode(lines[i]);
-                    }
-                }
+            // If editor is empty, add a new break node.
+            if (getChildren(editor, isLine).length == 0) {
+                createNewLine(editor, true);
             }
         };
 
-        var fixLine = function(line) {
-            line = initParam(line, getLine());
-            if (isLine(line)) {
-                if (line.textContent.length > 0) {
-                    removeBreakNodes(line);
-                } else if (line.querySelectorAll(autoLineTag).length == 0) {
-                    removeAllChildNodes(line);
-                    setCaret(addPilotNodeToLine(line), 0);
-                }
+        var fixLine = function(line, walkTree) {
+
+            // Possible that some text elements are
+            // present directly on the line.
+            var texts = getChildren(line, isText);
+            for(i=0; i<texts.length; i++) {
+                fixText(texts[i]);
+            }
+
+            var tags = getChildren(line, isTag);
+            for(var i=0; i<tags.length; i++) {
+                fixTag(tags[i]);
+            }
+
+
+            var lines = getChildren(line, isLine);
+            for (i=0; walkTree && i<lines.length; i++) {
+                fixLine(lines[i], walkTree);
             }
         };
 
-        var fixText = function(node, offset) {
-            offset = initParam(offset, 0);
-            if (node && isText(node)) {
-                var parentNode = node.parentNode;
-                if (isLine(parentNode)) {
-                    var tagNode = createTagNode();
-                    parentNode.insertBefore(tagNode, node);
-                    tagNode.appendChild(node);
-                    setCaret(node, offset);
-                } else if (isTag(parentNode)) {
-                    removeBreakNodes(parentNode);
-                }
+        var fixTag = function(tag) {
+            fixBreakTags(tag);
+        };
+
+        var fixText = function(text) {
+            if (isText(text) && !isTag(text.parentNode)) {
+                var tag = document.createElement(autoWordTag);
+                text.parentNode.insertBefore(tag, text);
+                tag.appendChild(text);
             }
         };
 
@@ -522,7 +524,7 @@ Autotag = (function() {
                         var tags = getTagsInRange(selectionRange);
                         var lines = getLinesInRange(selectionRange);
                         if (lines.length > 1 ||
-                            tags.length == getTagsInLine(getLine()).length) {
+                            tags.length == getTagsInLine(getActiveLine()).length) {
                             nodes = tags.concat(lines);
                         } else {
                             nodes = tags;
@@ -545,6 +547,7 @@ Autotag = (function() {
         var getChildren = function(node, filter) {
             var children = [];
             node = node.firstChild;
+
             while(node) {
                 if (!filter || filter(node)) {
                     children.push(node);
@@ -571,24 +574,26 @@ Autotag = (function() {
             return (e.which || e.keyCode || 0);
         };
 
-        // Returns the line on which this element is located.
-        // If 'root' is set to true (false by default) the outermost or
-        // root line is returned.
-        var getLine = function(node, root) {
-            root = initParam(root, false);
+        var getActiveLine = function() {
+            var range = getRange();
+            return range && getLine(range.startContainer, false);
+        };
 
+        var getRootLine = function(node) {
             var range = getRange();
             node = initParam(node, range && range.endContainer);
+            return getLine(node, true);
+        };
 
-            while (node && !isEditor(node) && (root || !isLine(node))) {
+        var getLine = function(node, walkTree) {
+            while (node && !isEditor(node) && (walkTree || !isLine(node))) {
                 node = node.parentNode;
             }
-
             return isLine(node) ? node : getFirstLine();
         };
 
         var getLineNumber = function(line) {
-            line = initParam(line, getLine());
+            line = initParam(line, getActiveLine());
 
             var lineNumber;
             if (isLine(line)) {
@@ -600,24 +605,13 @@ Autotag = (function() {
             return lineNumber;
         };
 
-        var getLines = function(startLine, endLine) {
-            var lines = [],
-                line = startLine;
-            do {
-                lines.push(line);
-                var children = getChildren(line, isLine);
-                for (var i=0; i<children.length; i++) {
-                    lines = lines.concat(getLines(children[i], endLine));
-                }
-            } while(line != endLine && (line = line.nextSibling));
-            return lines;
+        var getLinesInRange = function(range) {
+            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isLine);
         };
 
-        var getLinesInRange = function(range) {
-            return getLines(
-                getLine(range.startContainer),
-                getLine(range.endContainer));
-        };
+        var getTagsInRange = function(range) {
+            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isTag);
+        }
 
         var getPixelAmount = function(value) {
             return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0);
@@ -684,27 +678,36 @@ Autotag = (function() {
             }
         };
 
-        var getTagsInRange = function(range) {
+        var getRangeWalker = function(range, nodeFilter, filter) {
             var container = range.commonAncestorContainer;
-            var textWalker = document.createTreeWalker(
+
+            // The ancestor should atleast be at the same level as the filter.
+            // Continue if it is the editor or a line.
+            while(!isEditor(container) && !isLine(container) && !filter(container)) {
+                container = container.parentNode;
+            }
+
+            return document.createTreeWalker(
                 container,
-                NodeFilter.SHOW_TEXT,
+                nodeFilter,
                 function(node) {
                     return rangeIntersectsNode(range, node) ? NodeFilter.FILTER_ACCEPT
                                                             : NodeFilter.FILTER_REJECT;
                 },
                 false
             );
+        };
 
-            var tags = [];
+        var getNodesInRange = function(range, nodeFilter, filter) {
+            var nodes = [],
+                walker = getRangeWalker(range, nodeFilter, filter);
             do {
-                var node = textWalker.currentNode.parentNode;
-                if (isTag(node)) {
-                    tags.push(node);
+                var node = walker.currentNode;
+                if (!filter || filter(node)) {
+                    nodes.push(node);
                 }
-            } while (textWalker.nextNode());
-
-            return tags;
+            } while (walker.nextNode());
+            return nodes;
         };
 
         var getTagsInLine = function(line) {
@@ -744,7 +747,8 @@ Autotag = (function() {
         };
 
         var isLine = function(node) {
-            return node && node.tagName == autoLineTag.toUpperCase();
+            return node && node.tagName == autoLineTag.toUpperCase() &&
+                node.className != softWrapClassName;
         };
 
         var isReturnKey = function(code) {
@@ -793,7 +797,7 @@ Autotag = (function() {
                     parent.insertBefore(lastTag, tab.nextSibling);
                     setCaret(lastTag.firstChild, 0);
                 }
-                paragraphize(getLine(), true);
+                paragraphize(getActiveLine(), true);
             }
         };
 
@@ -802,7 +806,8 @@ Autotag = (function() {
             refresh = initParam(refresh, false) || true;
 
             if (refresh) {
-                removeNodesInList(root.querySelectorAll('div.autotagjs-softwrap'));
+                removeNodesInList(
+                    root.querySelectorAll('div.' + softWrapClassName));
             }
 
             if (isLine(root)) {
@@ -822,14 +827,14 @@ Autotag = (function() {
                 toggleSubmenu();
             } else {
                 formatSelection(menu.dataset);
-                paragraphize(getLine(), true);
+                paragraphize(getActiveLine(), true);
             }
         };
 
         var updateIndentationOnKey = function(range, keyCode, shifted) {
             var node = range.startContainer,
                 offset = range.startOffset,
-                line = getLine(node);
+                line = getActiveLine();
 
             if (getIndentationIndex(line)) {
                 if (isLine(node) ||
@@ -861,7 +866,7 @@ Autotag = (function() {
 
             if (isText(container)) {
                 var offset = range.endOffset;
-                fixText(container, offset);
+                // fixText(container, offset, true);
 
                 var refTag = container.parentNode,
                     parts = splitter(container.nodeValue || '');
@@ -903,9 +908,8 @@ Autotag = (function() {
         };
 
         var processKeyedInput = function() {
-            fixLine();
             processInput();
-            paragraphize(getLine(), true);
+            paragraphize(getActiveLine(), true);
         };
 
         var processPastedInput = function(e) {
@@ -922,7 +926,7 @@ Autotag = (function() {
             // In IE, selecting full text (Ctrl + A) will position the caret
             // on the editor element.
             if (isEditor(container)) {
-                fixEditor(true);
+                // fixEditor(true);
                 container = getRange().endContainer;
             }
 
@@ -939,18 +943,16 @@ Autotag = (function() {
 
         var processReturnKey = function() {
             if (ignoreReturnKey === false) {
-                var current = getLine();
+                var current = getActiveLine();
                 if (getLineNumber(current) == inputLineNumber) {
                     current = current.nextSibling;
                 } else {
-                    fixLine(current.previousSibling);
+                    fixLine(current.previousSibling, false);
                 }
 
-                fixLine(current);
+                fixLine(current, false);
                 gotoLine(current);
-                fixEditor();
                 processInput();
-                fixCaret();
             }
         };
 
@@ -962,7 +964,7 @@ Autotag = (function() {
 
         // Remove break nodes that have a text node as sibling, on the
         // given line and its descendent lines. #firefox.
-        var removeBreakNodes = function(node) {
+        var fixBreakTags = function(node) {
             var breakNodes = node && node.querySelectorAll('br');
             for (var i=0; i < breakNodes.length; i++) {
                 if (getSiblings(breakNodes[i], isText).length > 0) {
@@ -1074,11 +1076,11 @@ Autotag = (function() {
                 if (node.getBoundingClientRect().height > fontSize * 1.3) {
                     var prevNode = node.previousSibling;
                     var wrap = prevNode && (prevNode.tagName === 'DIV') &&
-                        prevNode.className == 'autotagjs-softwrap';
+                        prevNode.className == softWrapClassName;
 
                     if (!wrap) {
                         var wrapNode = document.createElement('div');
-                        wrapNode.className = 'autotagjs-softwrap';
+                        wrapNode.className = softWrapClassName;
                         node.parentNode.insertBefore(wrapNode, node);
                     }
                 }
@@ -1105,9 +1107,7 @@ Autotag = (function() {
 
         editor.addEventListener('click', function(e) {
             hideSubmenu();
-            fixLine();
             fixEditor();
-            fixCaret();
         });
 
         editor.addEventListener('focus', function(e) {
@@ -1149,9 +1149,8 @@ Autotag = (function() {
         editor.addEventListener('keyup', function(e) {
             var keyCode = getKeyCode(e);
             if (isDeleteKey(keyCode)) {
-                fixEditor();
-                fixLine();
-                paragraphize(getLine(), true);
+                fixLine(getActiveLine());
+                paragraphize(getActiveLine(), true);
             } else if (isReturnKey(keyCode)) {
                 processReturnKey();
             }
@@ -1164,10 +1163,8 @@ Autotag = (function() {
         });
 
         window.addEventListener('resize', debounce(function(e) {
-            paragraphize(getLine(), true);
+            paragraphize(getActiveLine(), true);
         }, 250));
-
-        fixEditor();
 
         return {
             attachMenubar: function(menubar) {

@@ -259,7 +259,8 @@ body {
 }
 
 .demo-menu-active, .demo-menu:hover {
-    color : #000;
+    color: brown;
+    background: cornsilk;
 }
 
 .demo-menu-sep {
