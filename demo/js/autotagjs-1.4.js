@@ -6,8 +6,8 @@
  Licensed under MIT License http://www.opensource.org/licenses/mit-license
 */
 
-var Autotag = Autotag || {};
-Autotag = (function() {
+// var Autotag = Autotag || {};
+var AutotagJS = (function() {
     // Configuration options
     //
     // splitter:    A callback function that can receive a string, split it and return
@@ -37,6 +37,169 @@ Autotag = (function() {
     //
     // trace:     Set this to true to see debug messages on the console.
 
+
+    // Map keeyboard controls to format options since we override them.
+    var styleKeyMap = {
+        66: 'font-weight:bold',
+        73: 'font-style:italic',
+        85: 'text-decoration:underline'
+    };
+
+    var autoWordTag = 'span',
+        autoLineTag = 'div',
+
+        // Reserved class names
+        blankListClassName = 'autotagjs-list-blank',
+        defaultListClassName = 'autotagjs-list',
+        menuClassName = 'autotagjs-menu',
+        paletteClassName = 'autotagjs-palette',
+        paletteCellClassName = 'autotagjs-palette-cell',
+        paletteRowClassName = 'autotagjs-palette-row',
+        softWrapClassName = 'autotagjs-softwrap',
+        submenuClassName = 'autotagjs-submenu';
+
+    function initObject(obj, toObj) {
+        return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
+    }
+
+    // A debounce function to damp event firing.
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function() {
+            var context = this,
+                args = arguments;
+
+            var later = function() {
+                timeout = null;
+                if (!immediate) {
+                    func.apply(context, args);
+                }
+            };
+
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+
+            if (callNow) {
+                func.apply(context, args);
+            }
+        };
+    }
+
+    // Some utility functions.
+    function getKeyCode(e) {
+        return (e.which || e.keyCode || 0);
+    }
+
+    function removeNode(node) {
+        return node && node.parentNode.removeChild(node);
+    }
+
+    function removeNodesInList(nodeList) {
+        for (var i=0; nodeList && i <= nodeList.length; i++) {
+            removeNode(nodeList[i]);
+        }
+    }
+
+    function removeAllChildNodes (node) {
+        while (node && node.hasChildNodes()) {
+            node.removeChild(node.lastChild);
+        }
+    }
+
+    function isTextNode(node) {
+        return node && node.nodeType == Node.TEXT_NODE;
+    }
+
+    function isBreakNode(node) {
+        return node && node.tagName == 'BR';
+    }
+
+    function isTabKey(code) {
+        return code == 9;
+    }
+
+    function isReturnKey(code) {
+        return code == 13;
+    }
+
+    function isDeleteKey(code) {
+        return code == 8;
+    }
+
+    // Returns all direct childrten of node after applying
+    // the filter function.
+    function getChildren(node, filter) {
+        var children = [];
+        node = node.firstChild;
+
+        while(node) {
+            if (!filter || filter(node)) {
+                children.push(node);
+            }
+            node = node.nextSibling;
+        }
+        return children;
+    }
+
+    function getSiblings(node, filter) {
+        return getChildren(node.parentNode, filter);
+    }
+
+    function getRange() {
+        var selection, range;
+        if (typeof window.getSelection != 'undefined') {
+            selection = window.getSelection();
+            if (selection.rangeCount) {
+                range = selection.getRangeAt(0);
+            }
+        } else if ((selection = document.selection) &&
+            selection.type != 'Control') {
+            range = selection.createRange();
+        }
+
+        return range;
+    }
+
+    // Clears all existing ranges and sets it to the provided one.
+    function resetRange(range) {
+        if (range) {
+            if (window.getSelection) {
+                var selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    selection.removeAllRanges();
+                }
+                selection.addRange(range);
+            } else if (document.createRange) {
+                window.getSelection().addRange(range);
+            } else if (document.selection) {
+                range.select();
+            }
+        }
+    }
+
+    // Returns true if the node is contained within the Range.
+    function rangeIntersectsNode(range, node) {
+        var nodeRange;
+        if (range.intersectsNode) {
+            return range.intersectsNode(node);
+        } else {
+            nodeRange = node.ownerDocument.createRange();
+            try {
+                nodeRange.selectNode(node);
+            } catch (e) {
+                nodeRange.selectNodeContents(node);
+            }
+
+            return range.compareBoundaryPoints(Range.END_TO_START, nodeRange) == -1 &&
+                range.compareBoundaryPoints(Range.START_TO_END, nodeRange) == 1;
+        }
+    }
+
+    function splitAtWord(str) {
+        return str.match(/([^,\s\.]+)|[,\s\.]+/ig);
+    }
+
     return function(editor, config) {
         var activeSubmenu,
 
@@ -51,68 +214,11 @@ Autotag = (function() {
             // across line breaks.
             continuingStyle,
 
-            editorMenubar,
-            autoWordTag = 'span',
-            autoLineTag = 'div',
-
-            // Reserved class names
-            blankListClassName = 'autotagjs-list-blank',
-            defaultListClassName = 'autotagjs-list',
-
-            menuClassName = 'autotagjs-menu',
-            submenuClassName = 'autotagjs-submenu',
-
-            paletteClassName = 'autotagjs-palette',
-            paletteCellClassName = 'autotagjs-palette-cell',
-            paletteRowClassName = 'autotagjs-palette-row',
-
-            softWrapClassName = 'autotagjs-softwrap';
-
-        // Map keeyboard controls to format options since we override them.
-        var styleKeyMap = {
-            66: 'font-weight:bold',
-            73: 'font-style:italic',
-            85: 'text-decoration:underline'
-        };
-
-        function initParam(obj, toObj) {
-            toObj = (typeof toObj === 'undefined') ? true : toObj;
-            return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
-        }
-
-        // Dump logs for testing.
-        function logToConsole(data, msg) {
-            msg = initParam(msg, '');
-            if (trace) {
-                console.log('TRACE : ' + msg + ' : ' + data);
-            }
-        }
-
-        function debounce(func, wait, immediate) {
-            var timeout;
-            return function() {
-                var context = this,
-                    args = arguments;
-
-                var later = function() {
-                    timeout = null;
-                    if (!immediate) {
-                        func.apply(context, args);
-                    }
-                };
-
-                var callNow = immediate && !timeout;
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-
-                if (callNow) {
-                    func.apply(context, args);
-                }
-            };
-        }
+            editorMenubar;
 
         // Initialize configuration.
         config = config || {};
+
         var ignoreReturnKey = config.ignoreReturnKey || false;
         var trace = config.trace || false;
 
@@ -120,9 +226,7 @@ Autotag = (function() {
         var decorator = config.decorator || function(node, text) {};
 
         // The default splitter splits on words.
-        var splitter = config.splitter || function(str) {
-            return str.match(/([^,\s\.]+)|[,\s\.]+/ig);
-        };
+        var splitter = config.splitter || splitAtWord;
 
         // Event callbacks
         var doAfterKeypress = config.afterKeypress || function() {};
@@ -136,140 +240,6 @@ Autotag = (function() {
         // across browsers.
         var addPilotNodeToLine = function(line) {
             return line.appendChild(createBreakNode());
-        };
-
-        // Updates the list style and counter for the given line.
-        var updateList = function(line, prefix, level, force) {
-            force = initParam(force, true);
-            if (!initList(line)) {
-                setListCounter(line, prefix, level);
-                setListStyle(line, prefix, level, force);
-            }
-        };
-
-        // Enable every root line to be list capable.
-        var initList = function(line) {
-            if (isEditor(line.parentNode)) {
-                updateListStyle(line, defaultListClassName);
-                return true;
-            }
-
-            line.classList.remove(defaultListClassName);
-            return false;
-        };
-
-        // Gets the list prefix for the given line. If no prefix is
-        // found, go check ancestors.
-        var getListPrefix = function(line) {
-            if (isEditor(line)) {
-                return 'autotagjs';
-            }
-
-            var names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
-            var prefix = names && names[1];
-            return (prefix ? prefix : getListPrefix(line.parentNode));
-        };
-
-
-        var indentLine = function(line, prefix, refresh) {
-            if(!isListIndenter(line)) {
-                refresh = initParam(refresh, true);
-                prefix = initParam(prefix, getListPrefix(line));
-
-                var selection = getRangeContainersAndOffsets(selectionRange);
-
-                // The second check (isEdi..) is required to acomodate Firefox which
-                // appends the next lines class to the top line on a delete.
-                if (isBlankList(line) || !isEditor(line.parentNode) && isRootList(line)) {
-                    updateList(line, prefix, getIndentationIndex(line), refresh);
-                } else {
-                    var rootLine = getRootLine(line),
-                        anchor = line.previousSibling;
-
-                    if (!isLine(anchor)) {
-                        anchor = createNewLine();
-                        line.parentNode.insertBefore(anchor, line);
-                    }
-
-                    initList(anchor);
-                    anchor.appendChild(line);
-                    updateList(line, prefix, getIndentationIndex(line), refresh);
-
-                    // Now make line's children it's peer.
-                    var children = getChildren(line, isLine);
-                    for (var i=0; i < children.length; i++) {
-                      line.parentNode.insertBefore(children[i], line.nextSibling);
-                    }
-                }
-                setSelection(selection);
-                paragraphize(getActiveLine(), true);
-            }
-        };
-
-        var outdentLine = function(line, refresh) {
-            if(!isListIndenter(line)) {
-                refresh = initParam(refresh, true);
-                var parentLine = line.parentNode;
-
-                if (!initList(line)) {
-                    var selection = getRangeContainersAndOffsets(selectionRange);
-                    prefix = getListPrefix(line);
-
-                    // Now make line's children the anchor's children.
-                    var children = getChildren(line, isLine);
-                    if (children.length > 0) {
-                        var anchor = createNewLine();
-                        initList(anchor);
-
-                        line.insertBefore(anchor, children[0]);
-                        for (var i=0; i < children.length; i++) {
-                          anchor.appendChild(children[i]);
-                        }
-                    }
-
-                    while (line.nextSibling) {
-                        line.appendChild(line.nextSibling);
-                    }
-
-                    parentLine.parentNode.insertBefore(line, parentLine.nextSibling);
-
-                    var indentIndex = getIndentationIndex(parentLine),
-                        level = updateList(line, prefix, indentIndex, refresh);
-
-                    if ((getChildren(parentLine, isLine) +
-                        getChildren(parentLine, isTag)) == 0) {
-                        removeNode(parentLine);
-                    }
-
-                    setSelection(selection);
-                    paragraphize(getActiveLine(), true);
-                }
-            }
-        };
-
-        var updateListStyle = function(line, klass) {
-            line.className = line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
-            line.classList.add(klass);
-        };
-
-        var removeListStyle = function(line) {
-            updateListStyle(line, '');
-        };
-
-        var setBlankList = function(line) {
-            updateListStyle(line, blankListClassName);
-        };
-
-        var isBlankList = function(line) {
-            return line.classList.contains(blankListClassName);
-        };
-
-        var isListIndenter = function(line) {
-            return !isEditor(line.parentNode) && !line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
-        };
-
-        var isRootList = function(line) {
-            return line.classList.contains(defaultListClassName);
         };
 
         var applyCommand = function(target, commands) {
@@ -437,7 +407,7 @@ Autotag = (function() {
                 text;
             if (typeof stringOrText === 'string') {
                 text = createTextNode(stringOrText);
-            } else if (isText(stringOrText)) {
+            } else if (isTextNode(stringOrText)) {
                 text = stringOrText;
             }
 
@@ -452,6 +422,17 @@ Autotag = (function() {
             // space in the element causing all sorts of headache.
             str = str && str.replace(/ /g, '\u00a0') || '';
             return document.createTextNode(str);
+        };
+
+        // Remove break nodes that have a text node as sibling, on the
+        // given line and its descendent lines. #firefox.
+        var fixBreakTags = function(node) {
+            var breakNodes = node && node.querySelectorAll('br');
+            for (var i=0; i < breakNodes.length; i++) {
+                if (getSiblings(breakNodes[i], isTextNode).length > 0) {
+                    removeNode(breakNodes[i]);
+                }
+            }
         };
 
         var fixCaret = function() {
@@ -481,10 +462,9 @@ Autotag = (function() {
         };
 
         var fixLine = function(line, walkTree) {
-
             // Possible that some text elements are
             // present directly on the line.
-            var texts = getChildren(line, isText);
+            var texts = getChildren(line, isTextNode);
             for(i=0; i<texts.length; i++) {
                 fixText(texts[i]);
             }
@@ -506,7 +486,7 @@ Autotag = (function() {
         };
 
         var fixText = function(text) {
-            if (isText(text) && !isTag(text.parentNode)) {
+            if (isTextNode(text) && !isTag(text.parentNode)) {
                 var tag = document.createElement(autoWordTag);
                 text.parentNode.insertBefore(tag, text);
                 tag.appendChild(text);
@@ -544,17 +524,9 @@ Autotag = (function() {
             }
         };
 
-        var getChildren = function(node, filter) {
-            var children = [];
-            node = node.firstChild;
-
-            while(node) {
-                if (!filter || filter(node)) {
-                    children.push(node);
-                }
-                node = node.nextSibling;
-            }
-            return children;
+        var getActiveLine = function() {
+            var range = getRange();
+            return range && getLine(range.startContainer, false);
         };
 
         var getFirstLine = function() {
@@ -570,21 +542,6 @@ Autotag = (function() {
             return (level == 0 ? null : (level % 3 || 3));
         };
 
-        var getKeyCode = function(e) {
-            return (e.which || e.keyCode || 0);
-        };
-
-        var getActiveLine = function() {
-            var range = getRange();
-            return range && getLine(range.startContainer, false);
-        };
-
-        var getRootLine = function(node) {
-            var range = getRange();
-            node = initParam(node, range && range.endContainer);
-            return getLine(node, true);
-        };
-
         var getLine = function(node, walkTree) {
             while (node && !isEditor(node) && (walkTree || !isLine(node))) {
                 node = node.parentNode;
@@ -592,8 +549,12 @@ Autotag = (function() {
             return isLine(node) ? node : getFirstLine();
         };
 
+        var getLinesInRange = function(range) {
+            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isLine);
+        };
+
         var getLineNumber = function(line) {
-            line = initParam(line, getActiveLine());
+            line = initObject(line, getActiveLine());
 
             var lineNumber;
             if (isLine(line)) {
@@ -605,31 +566,32 @@ Autotag = (function() {
             return lineNumber;
         };
 
-        var getLinesInRange = function(range) {
-            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isLine);
+        // Gets the list prefix for the given line. If no prefix is
+        // found, go check ancestors.
+        var getListPrefix = function(line) {
+            if (isEditor(line)) {
+                return 'autotagjs';
+            }
+
+            var names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
+            var prefix = names && names[1];
+            return (prefix ? prefix : getListPrefix(line.parentNode));
         };
 
-        var getTagsInRange = function(range) {
-            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isTag);
-        }
+        var getNodesInRange = function(range, nodeFilter, filter) {
+            var nodes = [],
+                walker = getRangeWalker(range, nodeFilter, filter);
+            do {
+                var node = walker.currentNode;
+                if (!filter || filter(node)) {
+                    nodes.push(node);
+                }
+            } while (walker.nextNode());
+            return nodes;
+        };
 
         var getPixelAmount = function(value) {
             return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0);
-        };
-
-        var getRange = function() {
-            var selection, range;
-            if (typeof window.getSelection != 'undefined') {
-                selection = window.getSelection();
-                if (selection.rangeCount) {
-                    range = selection.getRangeAt(0);
-                }
-            } else if ((selection = document.selection) &&
-                selection.type != 'Control') {
-                range = selection.createRange();
-            }
-
-            return range;
         };
 
         var getRangeContainersAndOffsets = function(range) {
@@ -639,43 +601,6 @@ Autotag = (function() {
                 startOffset : range.startOffset,
                 endOffset : range.endOffset
             };
-        };
-
-        var getSiblings = function(node, filter) {
-            return getChildren(node.parentNode, filter);
-        };
-
-        var getStylePropertyValue = function(node, property) {
-            return node &&
-                property &&
-                window.getComputedStyle(node, null).getPropertyValue(property);
-        };
-
-        var getTag = function(node) {
-            if (isText(node)) {
-                return node.parentNode;
-            } else if (isTag(node)) {
-                return node;
-            } else if (isLine(node)) {
-                return getTagsInLine(line)[0];
-            }
-        };
-
-        var rangeIntersectsNode = function(range, node) {
-            var nodeRange;
-            if (range.intersectsNode) {
-                return range.intersectsNode(node);
-            } else {
-                nodeRange = node.ownerDocument.createRange();
-                try {
-                    nodeRange.selectNode(node);
-                } catch (e) {
-                    nodeRange.selectNodeContents(node);
-                }
-
-                return range.compareBoundaryPoints(Range.END_TO_START, nodeRange) == -1 &&
-                    range.compareBoundaryPoints(Range.START_TO_END, nodeRange) == 1;
-            }
         };
 
         var getRangeWalker = function(range, nodeFilter, filter) {
@@ -698,20 +623,34 @@ Autotag = (function() {
             );
         };
 
-        var getNodesInRange = function(range, nodeFilter, filter) {
-            var nodes = [],
-                walker = getRangeWalker(range, nodeFilter, filter);
-            do {
-                var node = walker.currentNode;
-                if (!filter || filter(node)) {
-                    nodes.push(node);
-                }
-            } while (walker.nextNode());
-            return nodes;
+        var getRootLine = function(node) {
+            var range = getRange();
+            node = initObject(node, range && range.endContainer);
+            return getLine(node, true);
+        };
+
+        var getStylePropertyValue = function(node, property) {
+            return node &&
+                property &&
+                window.getComputedStyle(node, null).getPropertyValue(property);
+        };
+
+        var getTag = function(node) {
+            if (isTextNode(node)) {
+                return node.parentNode;
+            } else if (isTag(node)) {
+                return node;
+            } else if (isLine(node)) {
+                return getTagsInLine(line)[0];
+            }
         };
 
         var getTagsInLine = function(line) {
             return isLine(line) && line.getElementsByTagName(autoWordTag);
+        };
+
+        var getTagsInRange = function(range) {
+            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isTag);
         };
 
         var gotoLine = function(line) {
@@ -726,16 +665,58 @@ Autotag = (function() {
             }
         };
 
-        var isBreak = function(node) {
-            return node && node.tagName == 'BR';
+        var indentLine = function(line, prefix, refresh) {
+            if(!isListIndenter(line)) {
+                refresh = initObject(refresh, true);
+                prefix = initObject(prefix, getListPrefix(line));
+
+                var selection = getRangeContainersAndOffsets(selectionRange);
+
+                // The second check (isEdi..) is required to acomodate Firefox which
+                // appends the next lines class to the top line on a delete.
+                if (isBlankList(line) || !isEditor(line.parentNode) && isRootList(line)) {
+                    updateList(line, prefix, getIndentationIndex(line), refresh);
+                } else {
+                    var rootLine = getRootLine(line),
+                        anchor = line.previousSibling;
+
+                    if (!isLine(anchor)) {
+                        anchor = createNewLine();
+                        line.parentNode.insertBefore(anchor, line);
+                    }
+
+                    initList(anchor);
+                    anchor.appendChild(line);
+                    updateList(line, prefix, getIndentationIndex(line), refresh);
+
+                    // Now make line's children it's peer.
+                    var children = getChildren(line, isLine);
+                    for (var i=0; i < children.length; i++) {
+                      line.parentNode.insertBefore(children[i], line.nextSibling);
+                    }
+                }
+                setSelection(selection);
+                paragraphize(getActiveLine(), true);
+            }
+        };
+
+        // Enable every root line to be list capable.
+        var initList = function(line) {
+            if (isEditor(line.parentNode)) {
+                updateListStyle(line, defaultListClassName);
+                return true;
+            }
+
+            line.classList.remove(defaultListClassName);
+            return false;
+        };
+
+        var isBlankList = function(line) {
+            return line.classList.contains(blankListClassName);
         };
 
         var isBreakTag = function(node) {
-            return isTag(node) && isBreak(node.lastChild);
-        };
-
-        var isDeleteKey = function(code) {
-            return code == 8;
+            return isTag(node) && isBreakNode(node.lastChild);
         };
 
         var isEditor = function(node) {
@@ -751,28 +732,24 @@ Autotag = (function() {
                 node.className != softWrapClassName;
         };
 
-        var isReturnKey = function(code) {
-            return code == 13;
+        var isListIndenter = function(line) {
+            return !isEditor(line.parentNode) && !line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
+        };
+
+        var isRootList = function(line) {
+            return line.classList.contains(defaultListClassName);
         };
 
         var isSoftWrap = function(node) {
             return node && node.tagName == 'DIV';
         };
 
-        var isTabKey = function(code) {
-            return code == 9;
-        };
-
         var isTag = function(node) {
             return node && node.tagName == autoWordTag.toUpperCase();
         };
 
-        var isText = function(node) {
-            return node && node.nodeType == Node.TEXT_NODE;
-        };
-
         var insertTab = function(node, index) {
-            var tag = isText(node) ? node.parentNode : node;
+            var tag = isTextNode(node) ? node.parentNode : node;
             if (isTag(tag)) {
                 var content = tag.textContent,
                     parent = tag.parentNode,
@@ -801,9 +778,50 @@ Autotag = (function() {
             }
         };
 
+        var outdentLine = function(line, refresh) {
+            if(!isListIndenter(line)) {
+                refresh = initObject(refresh, true);
+                var parentLine = line.parentNode;
+
+                if (!initList(line)) {
+                    var selection = getRangeContainersAndOffsets(selectionRange);
+                    prefix = getListPrefix(line);
+
+                    // Now make line's children the anchor's children.
+                    var children = getChildren(line, isLine);
+                    if (children.length > 0) {
+                        var anchor = createNewLine();
+                        initList(anchor);
+
+                        line.insertBefore(anchor, children[0]);
+                        for (var i=0; i < children.length; i++) {
+                          anchor.appendChild(children[i]);
+                        }
+                    }
+
+                    while (line.nextSibling) {
+                        line.appendChild(line.nextSibling);
+                    }
+
+                    parentLine.parentNode.insertBefore(line, parentLine.nextSibling);
+
+                    var indentIndex = getIndentationIndex(parentLine),
+                        level = updateList(line, prefix, indentIndex, refresh);
+
+                    if ((getChildren(parentLine, isLine) +
+                        getChildren(parentLine, isTag)) == 0) {
+                        removeNode(parentLine);
+                    }
+
+                    setSelection(selection);
+                    paragraphize(getActiveLine(), true);
+                }
+            }
+        };
+
         var paragraphize = function(root, refresh) {
             root = (root == null) ? editor : root;
-            refresh = initParam(refresh, false) || true;
+            refresh = initObject(refresh, true);
 
             if (refresh) {
                 removeNodesInList(
@@ -831,40 +849,11 @@ Autotag = (function() {
             }
         };
 
-        var updateIndentationOnKey = function(range, keyCode, shifted) {
-            var node = range.startContainer,
-                offset = range.startOffset,
-                line = getActiveLine();
-
-            if (getIndentationIndex(line)) {
-                if (isLine(node) ||
-                    isBreakTag(node) && !node.previousSibling ||
-                    isText(node) && !node.parentNode.previousSibling && offset == 0) {
-
-                    if (isTabKey(keyCode)) {
-                        if (shifted) {
-                            outdentLine(line, false);
-                        } else {
-                            indentLine(line, null, false);
-                        }
-                    } else if (isDeleteKey(keyCode)) {
-                        if (!isBlankList(line)) {
-                            setBlankList(line);
-                        } else {
-                            outdentLine(line, false);
-                        }
-                    }
-                    return true;
-                }
-            }
-            return false;
-        };
-
         var processInput = function() {
             var range = getRange();
             var container = range.endContainer;
 
-            if (isText(container)) {
+            if (isTextNode(container)) {
                 var offset = range.endOffset;
                 // fixText(container, offset, true);
 
@@ -874,8 +863,6 @@ Autotag = (function() {
                 // Trim empty values from the array.
                 parts = parts && parts.filter(Boolean) || '';
                 var numparts = parts.length;
-
-                logToConsole(parts, 'splitter');
 
                 if (numparts > 1) {
                     // Prevent caret jump in Safari by hiding the original node.
@@ -902,7 +889,7 @@ Autotag = (function() {
                 } else {
                     decorator(refTag, refTag.firstChild.nodeValue);
                 }
-            } else if (isTag(container) && isText(container.firstChild)) {
+            } else if (isTag(container) && isTextNode(container.firstChild)) {
                 decorator(container, container.firstChild.nodeValue);
             }
         };
@@ -930,7 +917,7 @@ Autotag = (function() {
                 container = getRange().endContainer;
             }
 
-            if (isText(container)) {
+            if (isTextNode(container)) {
                 container.nodeValue = container.nodeValue + content;
                 setCaret(container);
             } else {
@@ -956,50 +943,8 @@ Autotag = (function() {
             }
         };
 
-        var removeAllChildNodes = function(node) {
-            while (node && node.hasChildNodes()) {
-                node.removeChild(node.lastChild);
-            }
-        };
-
-        // Remove break nodes that have a text node as sibling, on the
-        // given line and its descendent lines. #firefox.
-        var fixBreakTags = function(node) {
-            var breakNodes = node && node.querySelectorAll('br');
-            for (var i=0; i < breakNodes.length; i++) {
-                if (getSiblings(breakNodes[i], isText).length > 0) {
-                    removeNode(breakNodes[i]);
-                }
-            }
-        };
-
-        var removeNode = function(node) {
-            return node && node.parentNode && node.parentNode.removeChild(node);
-        };
-
-        var removeNodesInList = function(nodeList) {
-            for (var i=0; nodeList && i <= nodeList.length; i++) {
-                removeNode(nodeList[i]);
-            }
-            return nodeList;
-        };
-
-        // Clears all existing ranges and sets it to the provided one.
-        var resetRange = function(range) {
-            if (range) {
-                if (window.getSelection) {
-                    var selection = window.getSelection();
-                    if (selection.rangeCount > 0) {
-                        selection.removeAllRanges();
-                    }
-                    selection.addRange(range);
-                } else if (document.createRange) {
-                    window.getSelection().addRange(range);
-                } else if (document.selection) {
-                    range.select();
-                }
-            }
-            return range;
+        var removeListStyle = function(line) {
+            updateListStyle(line, '');
         };
 
         var saveSelectionRange = function() {
@@ -1007,11 +952,15 @@ Autotag = (function() {
             return selectionRange;
         };
 
+        var setBlankList = function(line) {
+            updateListStyle(line, blankListClassName);
+        };
+
         // Takes in the current node and sets the cursor location
         // on the first child, if the child is a Text node.
         var setCaret = function(node, offset) {
             if (node) {
-                offset = initParam(offset, node.length);
+                offset = initObject(offset, node.length);
                 setSelection({
                     startContainer: node,
                     startOffset: offset,
@@ -1026,7 +975,7 @@ Autotag = (function() {
             if (range) {
                 var container = range.endContainer;
                 var tag = isTag(container) && container ||
-                    isText(container) && container.parentNode;
+                    isTextNode(container) && container.parentNode;
                 if (tag) {
                     continuingStyle = tag.getAttribute('style');
                 }
@@ -1034,7 +983,6 @@ Autotag = (function() {
         };
 
         var setListStyle = function(line, prefix, level, force) {
-            var name = line.className;
             if (prefix && level && (force || !isBlankList(line))) {
                 updateListStyle(line, prefix + "-list-" + level);
             }
@@ -1052,8 +1000,8 @@ Autotag = (function() {
                 startNode = obj.startContainer,
                 endNode = obj.endContainer;
             if (startNode && endNode) {
-                var startOffset = initParam(obj.startOffset, 0),
-                    endOffset = initParam(obj.endOffset, endNode.length);
+                var startOffset = initObject(obj.startOffset, 0),
+                    endOffset = initObject(obj.endOffset, endNode.length);
                 range = document.createRange();
                 try {
                     range.setStart(startNode, startOffset);
@@ -1065,7 +1013,6 @@ Autotag = (function() {
                 }
                 resetRange(range);
             }
-            return range;
         };
 
         var softWrapNode = function(node) {
@@ -1093,6 +1040,49 @@ Autotag = (function() {
                 var style = window.getComputedStyle(activeSubmenu);
                 activeSubmenu.style.display = style.display === 'none' ? '' : 'none';
             }
+        };
+
+        var updateIndentationOnKey = function(range, keyCode, shifted) {
+            var node = range.startContainer,
+                offset = range.startOffset,
+                line = getActiveLine();
+
+            if (getIndentationIndex(line)) {
+                if (isLine(node) ||
+                    isBreakTag(node) && !node.previousSibling ||
+                    isTextNode(node) && !node.parentNode.previousSibling && offset == 0) {
+
+                    if (isTabKey(keyCode)) {
+                        if (shifted) {
+                            outdentLine(line, false);
+                        } else {
+                            indentLine(line, null, false);
+                        }
+                    } else if (isDeleteKey(keyCode)) {
+                        if (!isBlankList(line)) {
+                            setBlankList(line);
+                        } else {
+                            outdentLine(line, false);
+                        }
+                    }
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // Updates the list style and counter for the given line.
+        var updateList = function(line, prefix, level, force) {
+            force = initObject(force, true);
+            if (!initList(line)) {
+                setListCounter(line, prefix, level);
+                setListStyle(line, prefix, level, force);
+            }
+        };
+
+        var updateListStyle = function(line, klass) {
+            line.className = line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
+            line.classList.add(klass);
         };
 
         document.addEventListener('selectionchange', debounce(function(e) {
@@ -1202,4 +1192,4 @@ Autotag = (function() {
             }
         };
     };
-})();
+}());

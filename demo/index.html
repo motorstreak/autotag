@@ -269,7 +269,6 @@
                 return tag.style.getPropertyValue('text-decoration') == 'underline';
             };
 
-
             // Some configuration options for the editor.
             var editorConfig = {
 
@@ -315,7 +314,7 @@
             };
 
             // Enable the editor element with the provided config and attach the menubar.
-            new Autotag(editor, editorConfig).attachMenubar(menubar);
+            new AutotagJS(editor, editorConfig).attachMenubar(menubar);
 
 
             var inputConfig = {
@@ -331,8 +330,8 @@
                 ignoreReturnKey: true
             };
 
-            new Autotag(document.getElementById('textbox'), inputConfig);
-            new Autotag(document.getElementById('textarea'), inputConfig);
+            new AutotagJS(document.getElementById('textbox'), inputConfig);
+            new AutotagJS(document.getElementById('textarea'), inputConfig);
 
     </script>
 </body>
