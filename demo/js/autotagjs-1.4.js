@@ -210,11 +210,11 @@ var AutotagJS = (function() {
             // Stores the last selection made in the editor.
             selectionRange,
 
-            // Continues the current text style to the next line and
-            // across line breaks.
-            continuingStyle,
-
             editorMenubar;
+
+        // Continues the current text style to the next line and
+        // across line breaks.
+        var continuingTagStyle = '';
 
         // Initialize configuration.
         config = config || {};
@@ -236,12 +236,6 @@ var AutotagJS = (function() {
 
         var doOnMenuClick = config.onMenuClick || function() {};
 
-        // A leading Tag node, required to maintain consistancy in behavior
-        // across browsers.
-        var addPilotNodeToLine = function(line) {
-            return line.appendChild(createBreakNode());
-        };
-
         var applyCommand = function(target, commands) {
             if (Array.isArray(target)) {
                 for (var i = 0; i < target.length; i++) {
@@ -251,7 +245,7 @@ var AutotagJS = (function() {
                 for (var j = 0; j < commands.length; j++) {
                     var cmd = commands[j];
                     if (cmd == 'clear') {
-                        continuingStyle = null;
+                        // continuingStyle = null;
                         target.setAttribute('style', '');
 
                     } else if (cmd.match(/^list(\s+\w+(-\w+)*){1}/)) {
@@ -331,13 +325,13 @@ var AutotagJS = (function() {
             }
         };
 
-        var createBreakNode = function() {
+        var createBreakTag = function(line, breakNode) {
+            breakNode = breakNode || document.createElement('br');
             var node = document.createElement(autoWordTag);
-            node.appendChild(document.createElement('br'));
-            if (continuingStyle) {
-                node.setAttribute('style', continuingStyle);
-            }
-
+            line.appendChild(node);
+            node.appendChild(breakNode);
+            node.setAttribute('style', continuingTagStyle);
+            node.style.display="block";
             return node;
         };
 
@@ -390,19 +384,30 @@ var AutotagJS = (function() {
             return palette.appendChild(row);
         };
 
-        var createNewLine = function(parent, addPilotNode) {
+        var createNewLine = function(node, options) {
+            options = options || {};
             var line = document.createElement(autoLineTag);
-            if (parent) {
-                parent.appendChild(line);
-                if (addPilotNode) {
-                    setCaret(addPilotNodeToLine(line), 0);
+            if (node) {
+
+                // By default, attach as child of node.
+                if (options.asSibling) {
+                    node.parentNode.insertBefore(line, node.nextSibling);
+                } else {
+                    node.appendChild(line);
+                }
+
+                if (options.addPilotNode) {
+                    var pilot = createBreakTag(line);
+                    if (options.setCaret) {
+                        setCaret(pilot, 0);
+                    }
                 }
             }
             return line;
         };
 
         // Every text node in the editor is wrapped in a Tag node.
-        var createTagNode = function(stringOrText) {
+        var createTagNode = function(stringOrText, style) {
             var tag = document.createElement(autoWordTag),
                 text;
             if (typeof stringOrText === 'string') {
@@ -414,6 +419,8 @@ var AutotagJS = (function() {
             if (text) {
                 tag.appendChild(text);
             }
+
+            tag.setAttribute('style', style || continuingTagStyle);
             return tag;
         };
 
@@ -425,7 +432,7 @@ var AutotagJS = (function() {
         };
 
         // Remove break nodes that have a text node as sibling, on the
-        // given line and its descendent lines. #firefox.
+        // given line and its descendent lines. #Firefox.
         var fixBreakTags = function(node) {
             var breakNodes = node && node.querySelectorAll('br');
             for (var i=0; i < breakNodes.length; i++) {
@@ -457,7 +464,7 @@ var AutotagJS = (function() {
         var fixEditor = function(clear) {
             // If editor is empty, add a new break node.
             if (getChildren(editor, isLine).length == 0) {
-                createNewLine(editor, true);
+                createNewLine(editor, {addPilotNode: true, setCaret: true});
             }
         };
 
@@ -469,20 +476,33 @@ var AutotagJS = (function() {
                 fixText(texts[i]);
             }
 
-            var tags = getChildren(line, isTag);
-            for(var i=0; i<tags.length; i++) {
-                fixTag(tags[i]);
+            // Deleting text may sometimes leave break nodes
+            // directly on the line. #Chrome
+            var breaks = getChildren(line, isBreakNode);
+            for(i=0; i<breaks.length; i++) {
+                createBreakTag(line, breaks[0]);
             }
 
+            var tags = getChildren(line, isTag);
+            for(var i=0; i<tags.length; i++) {
+                fixBreakTags(tags[i]);
+                if (tags[i].textContent.length == 0) {
+                    removeNode(tags[i]);
+                }
+            }
 
             var lines = getChildren(line, isLine);
             for (i=0; walkTree && i<lines.length; i++) {
                 fixLine(lines[i], walkTree);
             }
-        };
 
-        var fixTag = function(tag) {
-            fixBreakTags(tag);
+            fixEditor();
+
+            if (line.textContent.length == 0) {
+                createBreakTag(line);
+            }
+
+
         };
 
         var fixText = function(text) {
@@ -524,8 +544,8 @@ var AutotagJS = (function() {
             }
         };
 
-        var getActiveLine = function() {
-            var range = getRange();
+        var getActiveLine = function(range) {
+            range = range || getRange();
             return range && getLine(range.startContainer, false);
         };
 
@@ -696,7 +716,6 @@ var AutotagJS = (function() {
                     }
                 }
                 setSelection(selection);
-                paragraphize(getActiveLine(), true);
             }
         };
 
@@ -774,7 +793,6 @@ var AutotagJS = (function() {
                     parent.insertBefore(lastTag, tab.nextSibling);
                     setCaret(lastTag.firstChild, 0);
                 }
-                paragraphize(getActiveLine(), true);
             }
         };
 
@@ -814,24 +832,6 @@ var AutotagJS = (function() {
                     }
 
                     setSelection(selection);
-                    paragraphize(getActiveLine(), true);
-                }
-            }
-        };
-
-        var paragraphize = function(root, refresh) {
-            root = (root == null) ? editor : root;
-            refresh = initObject(refresh, true);
-
-            if (refresh) {
-                removeNodesInList(
-                    root.querySelectorAll('div.' + softWrapClassName));
-            }
-
-            if (isLine(root)) {
-                var tagNodes = root.querySelectorAll(autoWordTag);
-                for (var i = 0; i < tagNodes.length; i++) {
-                    softWrapNode(tagNodes[i]);
                 }
             }
         };
@@ -845,7 +845,6 @@ var AutotagJS = (function() {
                 toggleSubmenu();
             } else {
                 formatSelection(menu.dataset);
-                paragraphize(getActiveLine(), true);
             }
         };
 
@@ -870,8 +869,8 @@ var AutotagJS = (function() {
 
                     var newTag, length;
                     for (var i = 0; i < numparts; i++) {
-                        newTag = createTagNode(parts[i]);
-                        newTag.setAttribute('style', refTag.getAttribute('style'));
+                        newTag = createTagNode(
+                            parts[i], refTag.getAttribute('style'));
                         newTag.style.display = 'inline';
 
                         decorator(newTag, newTag.firstChild.nodeValue);
@@ -887,16 +886,12 @@ var AutotagJS = (function() {
                     }
                     removeNode(container.parentNode);
                 } else {
+                    refTag.style.display = 'inline';
                     decorator(refTag, refTag.firstChild.nodeValue);
                 }
             } else if (isTag(container) && isTextNode(container.firstChild)) {
                 decorator(container, container.firstChild.nodeValue);
             }
-        };
-
-        var processKeyedInput = function() {
-            processInput();
-            paragraphize(getActiveLine(), true);
         };
 
         var processPastedInput = function(e) {
@@ -928,18 +923,29 @@ var AutotagJS = (function() {
             processInput();
         };
 
-        var processReturnKey = function() {
-            if (ignoreReturnKey === false) {
-                var current = getActiveLine();
-                if (getLineNumber(current) == inputLineNumber) {
-                    current = current.nextSibling;
-                } else {
-                    fixLine(current.previousSibling, false);
-                }
+        var processReturnKey = function(range) {
+            var tags = getTagsInRange(range);
+            if (range.collapsed) {
+                var newLine,
+                    container = tags[0].firstChild,
+                    line = getLine(tags[0]);
 
-                fixLine(current, false);
-                gotoLine(current);
-                processInput();
+                if (!isTextNode(container) || container.length == range.startOffset) {
+                    newLine = createNewLine(getLine(tags[0]), {
+                        asSibling: true,
+                        addPilotNode: true,
+                        setCaret: true
+                    });
+                } else {
+                    var newNode = container.splitText(range.startOffset);
+                    var newTag = createTagNode(removeNode(newNode));
+                    newLine = createNewLine(getLine(container), {asSibling: true});
+                    newLine.appendChild(newTag);
+                    setCaret(newNode, 0);
+                }
+                newLine.setAttribute('style', line.getAttribute('style'));
+                // newLine.style.display="block";
+                newLine.className = line.className;
             }
         };
 
@@ -970,15 +976,10 @@ var AutotagJS = (function() {
             }
         };
 
-        var setContinuingStyle = function() {
-            var range = getRange();
-            if (range) {
-                var container = range.endContainer;
-                var tag = isTag(container) && container ||
-                    isTextNode(container) && container.parentNode;
-                if (tag) {
-                    continuingStyle = tag.getAttribute('style');
-                }
+        var setContinuingTagStyle = function() {
+            var tag = getTagsInRange(getRange()).pop();
+            if (tag) {
+                continuingTagStyle = tag.getAttribute('style');
             }
         };
 
@@ -1087,6 +1088,7 @@ var AutotagJS = (function() {
 
         document.addEventListener('selectionchange', debounce(function(e) {
             if (saveSelectionRange()) {
+                setContinuingTagStyle();
                 doAfterSelection(getTagsInRange(selectionRange));
             }
         }, 100));
@@ -1104,7 +1106,9 @@ var AutotagJS = (function() {
             fixEditor();
         });
 
-        editor.addEventListener('input', processKeyedInput);
+        editor.addEventListener('input', function() {
+            processInput();
+        });
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
@@ -1121,15 +1125,15 @@ var AutotagJS = (function() {
                     insertTab(range.startContainer, range.startOffset);
                     e.preventDefault();
                 }
+
                 fixCaret();
 
             } else if (isReturnKey(keyCode)) {
-                if (ignoreReturnKey) {
-                    e.preventDefault();
-                } else {
-                    setContinuingStyle();
+                if (!ignoreReturnKey) {
+                    processReturnKey(range);
                 }
 
+                e.preventDefault();
             } else if (e.metaKey && isFormatKey(keyCode)) {
                 formatSelection({ autotagjsToggle: styleKeyMap[keyCode] });
                 e.preventDefault();
@@ -1137,12 +1141,9 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('keyup', function(e) {
-            var keyCode = getKeyCode(e);
-            if (isDeleteKey(keyCode)) {
-                fixLine(getActiveLine());
-                paragraphize(getActiveLine(), true);
-            } else if (isReturnKey(keyCode)) {
-                processReturnKey();
+            var line = getActiveLine();
+            if (isDeleteKey(getKeyCode(e))) {
+                fixLine(line);
             }
             doAfterKeypress();
         });
@@ -1151,10 +1152,6 @@ var AutotagJS = (function() {
             e.preventDefault();
             processPastedInput(e);
         });
-
-        window.addEventListener('resize', debounce(function(e) {
-            paragraphize(getActiveLine(), true);
-        }, 250));
 
         return {
             attachMenubar: function(menubar) {

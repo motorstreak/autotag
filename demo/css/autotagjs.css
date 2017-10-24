@@ -1,9 +1,15 @@
 
+/* Prevent word breaks */
+[contenteditable] div > span {
+    word-break : break-all;
+    caret-color: #777;
+}
+
 /* Deal with IE paragraph style within the editor. */
 [contenteditable] > div,
 [contenteditable] div > span {
     margin : 0;
-    word-break : break-all;
+    /*min-height: 28px;*/
 }
 
 ::-moz-selection {
