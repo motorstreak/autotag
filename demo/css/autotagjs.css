@@ -3,6 +3,7 @@
 [contenteditable] div > span {
     word-break : break-all;
     caret-color: #777;
+    /*display: inline-block;*/
 }
 
 /* Deal with IE paragraph style within the editor. */
