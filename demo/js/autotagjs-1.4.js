@@ -54,8 +54,10 @@ var AutotagJS = (function() {
         menuClassName = 'autotagjs-menu',
         paletteClassName = 'autotagjs-palette',
         paletteCellClassName = 'autotagjs-palette-cell',
+        // paletteCellFillClassName = 'autotagjs-palette-fill-cell',
+        // paletteCellColorClassName = 'autotagjs-palette-color-cell',
         paletteRowClassName = 'autotagjs-palette-row',
-        softWrapClassName = 'autotagjs-softwrap',
+        paletteCellCrossClassName = 'autotagjs-crossed-cell',
         submenuClassName = 'autotagjs-submenu';
 
     function initObject(obj, toObj) {
@@ -331,7 +333,7 @@ var AutotagJS = (function() {
             }
         };
 
-        var createPalette = function(menu) {
+        var createPalette = function(menu, fill) {
             var palette = menu.getElementsByClassName(submenuClassName)[0];
             if (palette) {
                 palette.style.display = '';
@@ -351,27 +353,73 @@ var AutotagJS = (function() {
                 for (var i = 0, s = 100, l = 94; i < maxRows; i++, s -= saturationStep, l -= luminosityStep) {
                     row = createPaletteRow(palette);
                     for (var j = 0, h = 0; j < maxCols; j++, h += hueStep) {
-                        createPaletteCell(row, h, s, l);
+                        createPaletteCell(row, h, s, l, fill);
                     }
                 }
 
                 row = createPaletteRow(palette);
-                luminosityStep = Math.round(100 / maxCols);
+                luminosityStep = Math.round(100 / (maxCols-1));
 
-                for (i = 0, l = 10; i < maxCols; i++, l += luminosityStep) {
-                    createPaletteCell(row, 0, 0, l);
+                for (i = 0, l = luminosityStep; i < maxCols-1; i++, l += luminosityStep) {
+                    createPaletteCell(row, 0, 0, l, fill);
                 }
+                createCrossedPaletteCell(row, fill);
             }
             activeSubmenu = palette;
         };
 
-        var createPaletteCell = function(row, h, s, l) {
+        var createPaletteCellAction = function(cell, type) {
+            var dataset = cell.dataset;
+            if (!dataset.autotagjsSet) {
+                var style, color = dataset.autotagjsPaletteColor;
+
+                if (type == 'color') {
+                    style = 'color: ' + color;
+
+                } else if (type == 'fill') {
+                    style = 'background-color: ' + color;
+
+                    var contrast = dataset.autotagjsPaletteContrastColor;
+                    if (contrast) {
+                        style = style + '; color: ' + contrast;
+                    }
+                }
+                dataset.autotagjsSet = style;
+            }
+        };
+
+        var createCrossedPaletteCell = function(row, fill) {
+            var cell = createPaletteCell(row, 0, 0, 100);
+            cell.classList.add(paletteCellCrossClassName);
+            if (!fill) {
+                cell.dataset.autotagjsPaletteColor = '#000';
+            }
+            return cell;
+        };
+
+        var createPaletteCell = function(row, h, s, l, fill) {
             var cell = document.createElement('div'),
                 hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
-
             cell.className = paletteCellClassName;
-            cell.style.color = cell.style.background = hsla;
-            row.appendChild(cell);
+            cell.style.background = hsla;
+            cell.dataset.autotagjsPaletteColor = hsla;
+            if (fill) {
+                cell.dataset.autotagjsPaletteContrastColor =
+                    generateContrastColor(cell.style.background);
+            }
+            return row.appendChild(cell);
+        };
+
+        var generateContrastColor = function(rgbStr) {
+            var rgb = rgbStr.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+            for (var i=1; i < rgb.length; i++) {
+                rgb[i] = rgb[i]/255.0;
+                rgb[i] =
+                    (rgb[i] <= 0.03928) ? rgb[i]/12.92
+                                        : Math.pow((rgb[i] + 0.055)/1.055, 2.4);
+            }
+            var lumin = rgb[1] * 0.2126 + rgb[2] * 0.7152 + rgb[3] * 0.0722;
+            return (lumin > 0.179) ? '#000' : '#FFF';
         };
 
         var createPaletteRow = function(palette) {
@@ -685,7 +733,8 @@ var AutotagJS = (function() {
 
                 // The second check (isEdi..) is required to acomodate Firefox which
                 // appends the next lines class to the top line on a delete.
-                if (isBlankList(line) || !isEditor(line.parentNode) && isRootList(line)) {
+                if (isBlankList(line) || !isEditor(line.parentNode) &&
+                    isRootList(line)) {
                     updateList(line, prefix, getIndentationIndex(line), refresh);
                 } else {
                     var rootLine = getRootLine(line),
@@ -745,20 +794,18 @@ var AutotagJS = (function() {
         };
 
         var isLine = function(node) {
-            return node && node.tagName == autoLineTag.toUpperCase() &&
-                node.className != softWrapClassName;
+            return node &&
+                node.tagName == autoLineTag.toUpperCase() &&
+                !isEditor(node);
         };
 
         var isListIndenter = function(line) {
-            return !isEditor(line.parentNode) && !line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
+            return !isEditor(line.parentNode) &&
+                !line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
         };
 
         var isRootList = function(line) {
             return line.classList.contains(defaultListClassName);
-        };
-
-        var isSoftWrap = function(node) {
-            return node && node.tagName == 'DIV';
         };
 
         var isTag = function(node) {
@@ -776,6 +823,7 @@ var AutotagJS = (function() {
                 if (index === 0) {
                     parent.insertBefore(tab, tag);
                     setCaret(tag.firstChild, 0);
+
                 } else if (index === tag.firstChild.length) {
                     parent.insertBefore(tab, sibling);
                     if (sibling) {
@@ -783,6 +831,7 @@ var AutotagJS = (function() {
                     } else {
                         setCaret(tab.firstChild, 1);
                     }
+
                 } else {
                     tag.textContent = content.substring(0, index);
                     parent.insertBefore(tab, sibling);
@@ -839,7 +888,7 @@ var AutotagJS = (function() {
         var performMenuAction = function(menu) {
             hideSubmenu();
             if (menu.dataset.autotagjsPalette) {
-                createPalette(menu);
+                createPalette(menu, menu.dataset.autotagjsPalette == 'fill');
             } else if (menu.dataset.autotagjsSelect) {
                 activeSubmenu = menu.getElementsByClassName(submenuClassName)[0];
                 toggleSubmenu();
@@ -942,12 +991,14 @@ var AutotagJS = (function() {
                         addPilotNode: true,
                         setCaret: true
                     });
+
                 } else if (isBeginingOfLine(tag, offset)) {
                     newLine = createNewLine(line, {
                         asPreviousSibling: true,
                         addPilotNode: true,
                         setCaret: true
                     });
+
                 } else {
                     var newNode = container.splitText(range.startOffset);
                     var newTag = createTagNode(removeNode(newNode));
@@ -955,11 +1006,14 @@ var AutotagJS = (function() {
                     newLine.appendChild(newTag);
                     setCaret(newNode, 0);
 
+                    // Collect remaining tags and append them to the new line.
+                    var tags = [];
                     while ((tag = tag.nextSibling)) {
-                        newTag = appendNode(newTag, tag);
+                        tags.push(tag);
                     }
+                    appendNodes(newTag, tags);
                 }
-                newLine.setAttribute('style', line.getAttribute('style'));
+                newLine.style = line.style;
                 newLine.className = line.className;
             }
         };
@@ -1025,6 +1079,7 @@ var AutotagJS = (function() {
             var range,
                 startNode = obj.startContainer,
                 endNode = obj.endContainer;
+
             if (startNode && endNode) {
                 var startOffset = initObject(obj.startOffset, 0),
                     endOffset = initObject(obj.endOffset, endNode.length);
@@ -1042,30 +1097,11 @@ var AutotagJS = (function() {
             return range;
         };
 
-        var softWrapNode = function(node) {
-            if (node) {
-                var fontSize =
-                    parseFloat(getStylePropertyValue(node, 'font-size'));
-
-                if (node.getBoundingClientRect().height > fontSize * 1.3) {
-                    var prevNode = node.previousSibling;
-                    var wrap = prevNode && (prevNode.tagName === 'DIV') &&
-                        prevNode.className == softWrapClassName;
-
-                    if (!wrap) {
-                        var wrapNode = document.createElement('div');
-                        wrapNode.className = softWrapClassName;
-                        node.parentNode.insertBefore(wrapNode, node);
-                    }
-                }
-            }
-            return node;
-        };
-
         var toggleSubmenu = function() {
             if (activeSubmenu) {
                 var style = window.getComputedStyle(activeSubmenu);
-                activeSubmenu.style.display = style.display === 'none' ? '' : 'none';
+                activeSubmenu.style.display =
+                    style.display === 'none' ? '' : 'none';
             }
         };
 
@@ -1169,7 +1205,12 @@ var AutotagJS = (function() {
 
         var deleteSelection = function(range) {
             removeNodesInList(getTagsInRange(range));
-            fixCaret();
+            var lines = getLinesInRange(range);
+            for (var i=0; i<lines.length; i++) {
+                if (isBlankLine(lines[i])) {
+                    removeNode(lines[i]);
+                }
+            }
             fixEditor();
         };
 
@@ -1192,6 +1233,7 @@ var AutotagJS = (function() {
                     // offset is calculated to be the full length of the
                     // string value in tag.
                     deleteChar(target, offset || null);
+
                 } else {
                     deleteLine(getLine(tag));
                 }
@@ -1214,19 +1256,11 @@ var AutotagJS = (function() {
             line.classList.add(klass);
         };
 
-        document.addEventListener('selectionchange', debounce(function(e) {
-            if (saveSelectionRange()) {
-                setContinuingTagStyle();
-                doAfterSelection(getTagsInRange(selectionRange));
-            }
-        }, 200));
-
         editor.addEventListener('dblclick', function(e) {
             saveSelectionRange();
         });
 
         editor.addEventListener('click', function(e) {
-            console.log(getRange());
             hideSubmenu();
             fixEditor();
             fixCaret();
@@ -1264,17 +1298,19 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('keyup', function(e) {
-            // var line = getActiveLine();
-            // if (isDeleteKey(getKeyCode(e))) {
-            //     // fixLine(line);
-            // }
-            // doAfterKeypress();
         });
 
         editor.addEventListener('paste', function(e) {
             e.preventDefault();
             processPastedInput(e);
         });
+
+        document.addEventListener('selectionchange', debounce(function(e) {
+            if (saveSelectionRange()) {
+                setContinuingTagStyle();
+                doAfterSelection(getTagsInRange(selectionRange));
+            }
+        }, 200));
 
         return {
             attachMenubar: function(menubar) {
@@ -1287,26 +1323,15 @@ var AutotagJS = (function() {
                         resetRange(selectionRange);
 
                         var target = e.target;
-                        if (target.classList.contains(menuClassName) ||
-                            target.parentNode.classList.contains(submenuClassName)) {
-                            performMenuAction(target);
-                        } else if (target.parentNode.classList.contains(menuClassName)) {
-                            performMenuAction(target.parentNode);
+                        var parent = target.parentNode;
+                        if (parent.classList.contains(menuClassName)) {
+                            target = parent;
+
                         } else if (target.classList.contains(paletteCellClassName)) {
-                            var declaration,
-                                color = target.style.backgroundColor,
-                                dataset = activeSubmenu.parentNode.dataset;
-
-                            if (dataset.autotagjsPalette == 'color') {
-                                declaration = 'color: ' + color;
-                            } else if (dataset.autotagjsPalette == 'fill') {
-                                declaration = 'background-color: ' + color;
-                            }
-
-                            dataset.autotagjsSet = declaration;
-                            formatSelection(dataset);
-                            hideSubmenu();
+                            createPaletteCellAction( target,
+                                activeSubmenu.parentNode.dataset.autotagjsPalette);
                         }
+                        performMenuAction(target);
                     });
                 }
             }

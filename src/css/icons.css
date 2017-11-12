@@ -1,10 +1,10 @@
 @font-face {
   font-family: 'autotagjs';
-  src:  url('../fonts/autotagjs.eot?vm7zpz');
-  src:  url('../fonts/autotagjs.eot?vm7zpz#iefix') format('embedded-opentype'),
-    url('../fonts/autotagjs.ttf?vm7zpz') format('truetype'),
-    url('../fonts/autotagjs.woff?vm7zpz') format('woff'),
-    url('../fonts/autotagjs.svg?vm7zpz#autotag') format('svg');
+  src:  url('../fonts/autotagjs.eot?grjilu');
+  src:  url('../fonts/autotagjs.eot?grjilu#iefix') format('embedded-opentype'),
+    url('../fonts/autotagjs.ttf?grjilu') format('truetype'),
+    url('../fonts/autotagjs.woff?grjilu') format('woff'),
+    url('../fonts/autotagjs.svg?grjilu#autotagjs') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -23,6 +23,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
 .icon-align-center:before {
   content: "\e234";
 }
@@ -43,6 +44,9 @@
 }
 .icon-color-fill:before {
   content: "\e23a";
+}
+.icon-color-reset:before {
+  content: "\e23b";
 }
 .icon-color-text:before {
   content: "\e23c";

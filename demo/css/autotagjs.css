@@ -38,14 +38,37 @@
 }
 
 .autotagjs-palette-cell {
-    cursor : pointer;
-    width : 20px;
+    cursor: pointer;
+    width: 20px;
     height: 20px;
-    margin : 2px;
+    margin: 2px;
+    text-align: center;
+    line-height: 22px;
+    font-weight: bold;
 }
+
+/*.autotagjs-palette-color-cell {
+    font-size: 12px;
+}
+
+.autotagjs-palette-fill-cell {
+    font-size: 6px;
+}*/
 
 .autotagjs-palette-cell:hover {
     box-shadow : 0 0 1px #000;
+}
+
+.autotagjs-crossed-cell {
+    background: linear-gradient(to top left,
+        rgba(0,0,0,0) 0%,
+        rgba(0,0,0,0) calc(50% - 0.8px),
+        rgba(0,0,0,0.3) 50%,
+        rgba(0,0,0,0) calc(50% + 0.8px),
+        rgba(0,0,0,0) 100%) !important;
+    border: 1px solid #CCC;
+    height: 18px;
+    width: 18px;
 }
 
 .autotagjs-menu {
