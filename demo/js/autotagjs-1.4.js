@@ -49,16 +49,16 @@ var AutotagJS = (function() {
         autoLineTag = 'div',
 
         // Reserved class names
-        blankListClassName = 'autotagjs-list-blank',
-        defaultListClassName = 'autotagjs-list',
-        menuClassName = 'autotagjs-menu',
-        paletteClassName = 'autotagjs-palette',
-        paletteCellClassName = 'autotagjs-palette-cell',
-        // paletteCellFillClassName = 'autotagjs-palette-fill-cell',
-        // paletteCellColorClassName = 'autotagjs-palette-color-cell',
-        paletteRowClassName = 'autotagjs-palette-row',
-        paletteCellCrossClassName = 'autotagjs-crossed-cell',
-        submenuClassName = 'autotagjs-submenu';
+        blankListClassName = 'atg-list-blank',
+        defaultListClassName = 'atg-list',
+        menuClassName = 'atg-menu',
+        paletteClassName = 'atg-palette',
+        paletteCellClassName = 'atg-palette-cell',
+        // paletteCellFillClassName = 'atg-palette-fill-cell',
+        // paletteCellColorClassName = 'atg-palette-color-cell',
+        paletteRowClassName = 'atg-palette-row',
+        paletteCellCrossClassName = 'atg-crossed-cell',
+        submenuClassName = 'atg-submenu';
 
     function initObject(obj, toObj) {
         return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
@@ -280,9 +280,9 @@ var AutotagJS = (function() {
         };
 
         var applyInstruction = function(nodes, instruction, declarations) {
-            if (instruction == 'autotagjsCommand') {
+            if (instruction == 'atgCommand') {
                 applyCommand(nodes, declarations);
-            } else if (instruction == 'autotagjsCallback') {
+            } else if (instruction == 'atgCallback') {
                 doOnMenuClick(declarations, nodes);
             } else {
                 applyStyle(nodes, instruction, declarations);
@@ -302,24 +302,24 @@ var AutotagJS = (function() {
 
                     var curValue = target.style.getPropertyValue(property);
 
-                    if (instruction == 'autotagjsUnset' ||
-                        instruction == 'autotagjsToggle' && curValue.length > 0) {
+                    if (instruction == 'atgUnset' ||
+                        instruction == 'atgToggle' && curValue.length > 0) {
                         target.style.removeProperty(property);
 
-                    } else if (instruction == 'autotagjsSet' ||
-                        (instruction == 'autotagjsInitialize' ||
-                        instruction == 'autotagjsToggle') &&
+                    } else if (instruction == 'atgSet' ||
+                        (instruction == 'atgInitialize' ||
+                        instruction == 'atgToggle') &&
                         curValue.length === 0) {
                         target.style.setProperty(property, value);
 
-                    } else if (instruction.match(/^autotagjs(Increment|Decrement)/)) {
+                    } else if (instruction.match(/^atg(Increment|Decrement)/)) {
                         curValue = curValue || getComputedStyle(target).getPropertyValue(property);
                         var amount = getPixelAmount(value),
                             curAmount = getPixelAmount(curValue);
 
-                        if (instruction == 'autotagjsIncrement') {
+                        if (instruction == 'atgIncrement') {
                             curAmount += amount;
-                        } else if (instruction == 'autotagjsDecrement') {
+                        } else if (instruction == 'atgDecrement') {
                             curAmount -= amount;
                         }
 
@@ -370,8 +370,8 @@ var AutotagJS = (function() {
 
         var createPaletteCellAction = function(cell, type) {
             var dataset = cell.dataset;
-            if (!dataset.autotagjsSet) {
-                var style, color = dataset.autotagjsPaletteColor;
+            if (!dataset.atgSet) {
+                var style, color = dataset.atgPaletteColor;
 
                 if (type == 'color') {
                     style = 'color: ' + color;
@@ -379,12 +379,12 @@ var AutotagJS = (function() {
                 } else if (type == 'fill') {
                     style = 'background-color: ' + color;
 
-                    var contrast = dataset.autotagjsPaletteContrastColor;
+                    var contrast = dataset.atgPaletteContrastColor;
                     if (contrast) {
                         style = style + '; color: ' + contrast;
                     }
                 }
-                dataset.autotagjsSet = style;
+                dataset.atgSet = style;
             }
         };
 
@@ -392,7 +392,7 @@ var AutotagJS = (function() {
             var cell = createPaletteCell(row, 0, 0, 100);
             cell.classList.add(paletteCellCrossClassName);
             if (!fill) {
-                cell.dataset.autotagjsPaletteColor = '#000';
+                cell.dataset.atgPaletteColor = '#000';
             }
             return cell;
         };
@@ -402,9 +402,9 @@ var AutotagJS = (function() {
                 hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
             cell.className = paletteCellClassName;
             cell.style.background = hsla;
-            cell.dataset.autotagjsPaletteColor = hsla;
+            cell.dataset.atgPaletteColor = hsla;
             if (fill) {
-                cell.dataset.autotagjsPaletteContrastColor =
+                cell.dataset.atgPaletteContrastColor =
                     generateContrastColor(cell.style.background);
             }
             return row.appendChild(cell);
@@ -541,7 +541,7 @@ var AutotagJS = (function() {
                 var nodes;
                 var lines = getLinesInRange(selectionRange);
 
-                switch (dataset.autotagjsScope) {
+                switch (dataset.atgScope) {
                     // Apply the formatting only to the lines in the selection.
                     case 'line':
                         // Exclude parent lines in selection if multiple lines
@@ -626,7 +626,7 @@ var AutotagJS = (function() {
         // found, go check ancestors.
         var getListPrefix = function(line) {
             if (isEditor(line)) {
-                return 'autotagjs';
+                return 'atg';
             }
 
             var names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
@@ -900,9 +900,9 @@ var AutotagJS = (function() {
 
         var performMenuAction = function(menu) {
             hideSubmenu();
-            if (menu.dataset.autotagjsPalette) {
-                createPalette(menu, menu.dataset.autotagjsPalette == 'fill');
-            } else if (menu.dataset.autotagjsSelect) {
+            if (menu.dataset.atgPalette) {
+                createPalette(menu, menu.dataset.atgPalette == 'fill');
+            } else if (menu.dataset.atgSelect) {
                 activeSubmenu = menu.getElementsByClassName(submenuClassName)[0];
                 toggleSubmenu();
             } else {
@@ -1305,7 +1305,7 @@ var AutotagJS = (function() {
                 e.preventDefault();
 
             } else if (e.metaKey && isFormatKey(keyCode)) {
-                formatSelection({ autotagjsToggle: styleKeyMap[keyCode] });
+                formatSelection({ atgToggle: styleKeyMap[keyCode] });
                 e.preventDefault();
             }
         });
@@ -1343,7 +1343,7 @@ var AutotagJS = (function() {
                         } else if (target.classList.contains(paletteCellClassName)) {
                             createPaletteCellAction(
                                 target,
-                                activeSubmenu.parentNode.dataset.autotagjsPalette);
+                                activeSubmenu.parentNode.dataset.atgPalette);
                         }
                         performMenuAction(target);
                     });

@@ -190,7 +190,7 @@ body {
 }
 
 /* Set a color to the list */
-.autotagjs-list:before {
+.atg-list:before {
     color : #555;
 }
 

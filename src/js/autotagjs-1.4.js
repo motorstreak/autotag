@@ -49,16 +49,16 @@ var AutotagJS = (function() {
         autoLineTag = 'div',
 
         // Reserved class names
-        blankListClassName = 'autotagjs-list-blank',
-        defaultListClassName = 'autotagjs-list',
-        menuClassName = 'autotagjs-menu',
-        paletteClassName = 'autotagjs-palette',
-        paletteCellClassName = 'autotagjs-palette-cell',
-        // paletteCellFillClassName = 'autotagjs-palette-fill-cell',
-        // paletteCellColorClassName = 'autotagjs-palette-color-cell',
-        paletteRowClassName = 'autotagjs-palette-row',
-        paletteCellCrossClassName = 'autotagjs-crossed-cell',
-        submenuClassName = 'autotagjs-submenu';
+        blankListClassName = 'atg-list-blank',
+        defaultListClassName = 'atg-list',
+        menuClassName = 'atg-menu',
+        paletteClassName = 'atg-palette',
+        paletteCellClassName = 'atg-palette-cell',
+        // paletteCellFillClassName = 'atg-palette-fill-cell',
+        // paletteCellColorClassName = 'atg-palette-color-cell',
+        paletteRowClassName = 'atg-palette-row',
+        paletteCellCrossClassName = 'atg-crossed-cell',
+        submenuClassName = 'atg-submenu';
 
     function initObject(obj, toObj) {
         return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;

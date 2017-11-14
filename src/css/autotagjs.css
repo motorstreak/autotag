@@ -29,15 +29,15 @@
     outline : 0;
 }
 
-.autotagjs-palette {
+.atg-palette {
     left : -132px;
 }
 
-.autotagjs-palette-row {
+.atg-palette-row {
     display : flex;
 }
 
-.autotagjs-palette-cell {
+.atg-palette-cell {
     cursor: pointer;
     width: 20px;
     height: 20px;
@@ -47,19 +47,19 @@
     font-weight: bold;
 }
 
-/*.autotagjs-palette-color-cell {
+/*.atg-palette-color-cell {
     font-size: 12px;
 }
 
-.autotagjs-palette-fill-cell {
+.atg-palette-fill-cell {
     font-size: 6px;
 }*/
 
-.autotagjs-palette-cell:hover {
+.atg-palette-cell:hover {
     box-shadow : 0 0 1px #000;
 }
 
-.autotagjs-crossed-cell {
+.atg-crossed-cell {
     background: linear-gradient(to top left,
         rgba(0,0,0,0) 0%,
         rgba(0,0,0,0) calc(50% - 0.8px),
@@ -71,7 +71,7 @@
     width: 18px;
 }
 
-.autotagjs-menu {
+.atg-menu {
     position : relative;
     -webkit-touch-callout: none;  /* iOS Safari */
        -webkit-user-select: none; /* Safari */
@@ -82,11 +82,11 @@
                                      supported by Chrome and Opera */
 }
 
-.autotagjs-menu:hover {
+.atg-menu:hover {
     cursor: pointer;
 }
 
-.autotagjs-submenu {
+.atg-submenu {
     padding : 10px;
     background-color : #FFF;
     position : absolute;
@@ -98,7 +98,7 @@
     border-radius : 2px;
 }
 
-.autotagjs-list div {
+.atg-list div {
     display: list-item;
     list-style-position: outside;
     list-style-type: none;
@@ -106,43 +106,43 @@
     padding-left: 55px;
 }
 
-.autotagjs-list div:before {
+.atg-list div:before {
     position: absolute;
     left: 0;
     width: 40px;
     text-align: right;
 }
 
-.autotagjs-list-1:before,
-.autotagjs-list-2:before,
-.autotagjs-list-3:before {
+.atg-list-1:before,
+.atg-list-2:before,
+.atg-list-3:before {
     content: '';
 }
 
-.autotagjs-numbered-list-1:before {
-    content: counter(autotagjs-numbered-counter-1) ".";
-    counter-increment: autotagjs-numbered-counter-1;
+.atg-numbered-list-1:before {
+    content: counter(atg-numbered-counter-1) ".";
+    counter-increment: atg-numbered-counter-1;
 }
 
-.autotagjs-numbered-list-2:before {
-    content: counter(autotagjs-numbered-counter-2, lower-latin) ".";
-    counter-increment: autotagjs-numbered-counter-2;
+.atg-numbered-list-2:before {
+    content: counter(atg-numbered-counter-2, lower-latin) ".";
+    counter-increment: atg-numbered-counter-2;
 }
 
-.autotagjs-numbered-list-3:before {
-    content: counter(autotagjs-numbered-counter-3, lower-roman) ".";
-    counter-increment: autotagjs-numbered-counter-3;
+.atg-numbered-list-3:before {
+    content: counter(atg-numbered-counter-3, lower-roman) ".";
+    counter-increment: atg-numbered-counter-3;
 }
 
-.autotagjs-bulleted-list-1:before {
+.atg-bulleted-list-1:before {
     content: '●';
 }
 
-.autotagjs-bulleted-list-2:before {
+.atg-bulleted-list-2:before {
     content : '○';
 }
 
-.autotagjs-bulleted-list-3:before {
+.atg-bulleted-list-3:before {
     content : '▪';
 }
 
@@ -151,14 +151,14 @@
     .page-header {
         padding: 60px 20px !important;
     }
-    .autotagjs-palette {
+    .atg-palette {
         position : fixed !important;
         left : 50%;
         margin-left : -180px;
         top : 220px !important;
     }
 
-    .autotagjs-palette-cell {
+    .atg-palette-cell {
         height: 26px;
         width: 26px;
         margin: 4px;
