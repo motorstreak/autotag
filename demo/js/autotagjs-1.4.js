@@ -411,14 +411,14 @@ var AutotagJS = (function() {
         };
 
         var generateContrastColor = function(rgbStr) {
-            var rgb = rgbStr.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
-            for (var i=1; i < rgb.length; i++) {
+            var rgb = rgbStr.match(/[.?\d]+/g);
+            for (var i=0; i < 3; i++) {
                 rgb[i] = rgb[i]/255.0;
                 rgb[i] =
                     (rgb[i] <= 0.03928) ? rgb[i]/12.92
                                         : Math.pow((rgb[i] + 0.055)/1.055, 2.4);
             }
-            var lumin = rgb[1] * 0.2126 + rgb[2] * 0.7152 + rgb[3] * 0.0722;
+            var lumin = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
             return (lumin > 0.179) ? '#000' : '#FFF';
         };
 
@@ -542,6 +542,13 @@ var AutotagJS = (function() {
                 switch (dataset.autotagjsScope) {
                     case 'line':
                         nodes = getLinesInRange(selectionRange);
+
+                        // Exclude parent lines in selection, if multiple lines
+                        // are present in the seection.
+                        if (nodes.length >  1 &&
+                            isLine(selectionRange.commonAncestorContainer)) {
+                            nodes.shift();
+                        }
                         break;
                     case 'selection':
                         var tags = getTagsInRange(selectionRange);
@@ -925,7 +932,7 @@ var AutotagJS = (function() {
                     for (var i = 0; i < numparts; i++) {
                         newTag = createTagNode(
                             parts[i], refTag.getAttribute('style'));
-                        newTag.style.display = 'inline-block';
+                        newTag.style.removeProperty('display');
 
                         decorator(newTag, newTag.firstChild.nodeValue);
                         refTag.parentNode.insertBefore(newTag, refTag.nextSibling);
@@ -940,7 +947,7 @@ var AutotagJS = (function() {
                     }
                     removeNode(container.parentNode);
                 } else {
-                    refTag.style.display = 'inline-block';
+                    refTag.style.removeProperty('display');
                     decorator(refTag, refTag.firstChild.nodeValue);
                 }
             } else if (isTag(container) && isTextNode(container.firstChild)) {
