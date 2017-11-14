@@ -539,27 +539,32 @@ var AutotagJS = (function() {
         var formatSelection = function(dataset) {
             if (selectionRange && dataset) {
                 var nodes;
-                switch (dataset.autotagjsScope) {
-                    case 'line':
-                        nodes = getLinesInRange(selectionRange);
+                var lines = getLinesInRange(selectionRange);
 
-                        // Exclude parent lines in selection, if multiple lines
-                        // are present in the seection.
-                        if (nodes.length >  1 &&
+                switch (dataset.autotagjsScope) {
+                    // Apply the formatting only to the lines in the selection.
+                    case 'line':
+                        // Exclude parent lines in selection if multiple lines
+                        // are present.
+                        if (lines.length >  1 &&
                             isLine(selectionRange.commonAncestorContainer)) {
-                            nodes.shift();
+                            lines.shift();
                         }
+                        nodes = lines;
                         break;
+
+                    // Apply formatting to both tags and lines.
                     case 'selection':
-                        var tags = getTagsInRange(selectionRange);
-                        var lines = getLinesInRange(selectionRange);
-                        if (lines.length > 1 ||
-                            tags.length == getTagsInLine(getActiveLine()).length) {
+                        var tags = getTagsInRange(selectionRange),
+                            activeTags = getTagsInLine(getActiveLine());
+                        if (lines.length > 1 || tags.length == activeTags.length) {
                             nodes = tags.concat(lines);
                         } else {
                             nodes = tags;
                         }
                         break;
+
+                    // Else, apply only to tags.
                     default:
                         nodes = getTagsInRange(selectionRange);
                 }
@@ -574,8 +579,9 @@ var AutotagJS = (function() {
             }
         };
 
-        var getActiveLine = function(range) {
-            range = range || getRange();
+        // The line on which the selection starts (and ends if collapsed).
+        var getActiveLine = function() {
+            var range = selectionRange;
             return range && getLine(range.startContainer, false);
         };
 
@@ -1335,7 +1341,8 @@ var AutotagJS = (function() {
                             target = parent;
 
                         } else if (target.classList.contains(paletteCellClassName)) {
-                            createPaletteCellAction( target,
+                            createPaletteCellAction(
+                                target,
                                 activeSubmenu.parentNode.dataset.autotagjsPalette);
                         }
                         performMenuAction(target);
