@@ -54,8 +54,6 @@ var AutotagJS = (function() {
         menuClassName = 'atg-menu',
         paletteClassName = 'atg-palette',
         paletteCellClassName = 'atg-palette-cell',
-        // paletteCellFillClassName = 'atg-palette-fill-cell',
-        // paletteCellColorClassName = 'atg-palette-color-cell',
         paletteRowClassName = 'atg-palette-row',
         paletteCellCrossClassName = 'atg-crossed-cell',
         submenuClassName = 'atg-submenu';
@@ -100,6 +98,21 @@ var AutotagJS = (function() {
     function appendNodes(node, nodeList) {
         for (var i=0; i<nodeList.length; i++) {
             node = appendNode(node, nodeList[i]);
+        }
+    }
+
+    function toggleNodeVisibility(node) {
+        var style = window.getComputedStyle(node);
+        node.style.display = (style.display === 'none') ? '' : 'none';
+    }
+
+    function hideNode (node) {
+        node.style.display = 'none';
+    }
+
+    function showNode (node) {
+        if (window.getComputedStyle(node).display === 'none') {
+            node.style.display = '';
         }
     }
 
@@ -333,7 +346,7 @@ var AutotagJS = (function() {
             }
         };
 
-        var createPalette = function(menu, fill) {
+        var createPalette = function(menu, type) {
             var palette = menu.getElementsByClassName(submenuClassName)[0];
             if (palette) {
                 palette.style.display = '';
@@ -341,6 +354,7 @@ var AutotagJS = (function() {
                 palette = document.createElement('div');
                 palette.classList.add(submenuClassName);
                 palette.classList.add(paletteClassName);
+                palette.dataset.atgPalette = type;
                 menu.appendChild(palette);
 
                 // Color palette
@@ -353,7 +367,7 @@ var AutotagJS = (function() {
                 for (var i = 0, s = 100, l = 94; i < maxRows; i++, s -= saturationStep, l -= luminosityStep) {
                     row = createPaletteRow(palette);
                     for (var j = 0, h = 0; j < maxCols; j++, h += hueStep) {
-                        createPaletteCell(row, h, s, l, fill);
+                        createPaletteCell(row, h, s, l, type);
                     }
                 }
 
@@ -361,22 +375,25 @@ var AutotagJS = (function() {
                 luminosityStep = Math.round(100 / (maxCols-1));
 
                 for (i = 0, l = luminosityStep; i < maxCols-1; i++, l += luminosityStep) {
-                    createPaletteCell(row, 0, 0, l, fill);
+                    createPaletteCell(row, 0, 0, l, type);
                 }
-                createCrossedPaletteCell(row, fill);
+                createCrossedPaletteCell(row, type);
             }
             activeSubmenu = palette;
         };
 
+        // If the palette cell does not already have a style set,
+        // extract the same from the cell. Noe that we do this only on a need
+        // basis and hence this is not created at the time of cell creation.
         var createPaletteCellAction = function(cell, type) {
             var dataset = cell.dataset;
             if (!dataset.atgSet) {
                 var style, color = dataset.atgPaletteColor;
 
-                if (type == 'color') {
+                if (type === 'color') {
                     style = 'color: ' + color;
 
-                } else if (type == 'fill') {
+                } else if (type === 'highlight') {
                     style = 'background-color: ' + color;
 
                     var contrast = dataset.atgPaletteContrastColor;
@@ -388,22 +405,24 @@ var AutotagJS = (function() {
             }
         };
 
-        var createCrossedPaletteCell = function(row, fill) {
+        // Created the palette cell that clears formatting.
+        var createCrossedPaletteCell = function(row, type) {
             var cell = createPaletteCell(row, 0, 0, 100);
             cell.classList.add(paletteCellCrossClassName);
-            if (!fill) {
+            if (type === 'color') {
                 cell.dataset.atgPaletteColor = '#000';
             }
             return cell;
         };
 
-        var createPaletteCell = function(row, h, s, l, fill) {
+        // Create the palette cells for a given row.
+        var createPaletteCell = function(row, h, s, l, type) {
             var cell = document.createElement('div'),
                 hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
             cell.className = paletteCellClassName;
             cell.style.background = hsla;
             cell.dataset.atgPaletteColor = hsla;
-            if (fill) {
+            if (type === 'highlight') {
                 cell.dataset.atgPaletteContrastColor =
                     generateContrastColor(cell.style.background);
             }
@@ -536,47 +555,56 @@ var AutotagJS = (function() {
             }
         };
 
-        var formatSelection = function(dataset) {
+        var formatSelection = function(dataset, scope) {
             if (selectionRange && dataset) {
-                var nodes;
-                var lines = getLinesInRange(selectionRange);
+                var nodes = getSelectionNodes(scope);
 
-                switch (dataset.atgScope) {
-                    // Apply the formatting only to the lines in the selection.
-                    case 'line':
-                        // Exclude parent lines in selection if multiple lines
-                        // are present.
-                        if (lines.length >  1 &&
-                            isLine(selectionRange.commonAncestorContainer)) {
-                            lines.shift();
-                        }
-                        nodes = lines;
-                        break;
-
-                    // Apply formatting to both tags and lines.
-                    case 'selection':
-                        var tags = getTagsInRange(selectionRange),
-                            activeTags = getTagsInLine(getActiveLine());
-                        if (lines.length > 1 || tags.length == activeTags.length) {
-                            nodes = tags.concat(lines);
-                        } else {
-                            nodes = tags;
-                        }
-                        break;
-
-                    // Else, apply only to tags.
-                    default:
-                        nodes = getTagsInRange(selectionRange);
-                }
-
-                nodes = nodes.filter(Boolean);
                 for (var key in dataset) {
                     if (dataset.hasOwnProperty(key)) {
                         applyInstruction(nodes, key, dataset[key].split(/\s*;\s*/));
                     }
                 }
+
+                // Ensure that the selection does not disapper after we have
+                // applied formatting.
                 resetRange(selectionRange);
             }
+        };
+
+        var getSelectionNodes = function(scope) {
+            var nodes;
+            var lines = getLinesInRange(selectionRange);
+
+            switch (scope) {
+                // Apply the formatting only to the lines in the selection.
+                case 'line':
+                    // Exclude parent lines in selection if multiple lines
+                    // are present.
+                    if (lines.length >  1 &&
+                        isLine(selectionRange.commonAncestorContainer)) {
+                        lines.shift();
+                    }
+                    nodes = lines;
+                    break;
+
+                // Apply formatting to both tags and lines.
+                case 'selection':
+                    var tags = getTagsInRange(selectionRange),
+                        activeTags = getTagsInLine(getActiveLine());
+                    if (lines.length > 1 || tags.length == activeTags.length) {
+                        nodes = tags.concat(lines);
+                    } else {
+                        nodes = tags;
+                    }
+                    break;
+
+                // Else, apply only to tags.
+                default:
+                    nodes = getTagsInRange(selectionRange);
+            }
+
+            nodes = nodes.filter(Boolean);
+            return nodes;
         };
 
         // The line on which the selection starts (and ends if collapsed).
@@ -731,9 +759,10 @@ var AutotagJS = (function() {
             }
         };
 
-        var hideSubmenu = function() {
-            if (activeSubmenu) {
-                activeSubmenu.style.display = 'none';
+        var hideSubmenus = function() {
+            var submenus = menubar.querySelectorAll('.' + submenuClassName);
+            for(var i=0; i<submenus.length; i++) {
+                hideNode(submenus[i]);
             }
         };
 
@@ -795,7 +824,7 @@ var AutotagJS = (function() {
         };
 
         var isBlankList = function(line) {
-            return line.classList.contains(blankListClassName);
+            return line && line.classList.contains(blankListClassName);
         };
 
         var isEditor = function(node) {
@@ -813,12 +842,12 @@ var AutotagJS = (function() {
         };
 
         var isListIndenter = function(line) {
-            return !isEditor(line.parentNode) &&
+            return line && !isEditor(line.parentNode) &&
                 !line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
         };
 
         var isRootList = function(line) {
-            return line.classList.contains(defaultListClassName);
+            return line && line.classList.contains(defaultListClassName);
         };
 
         var isTag = function(node) {
@@ -883,7 +912,8 @@ var AutotagJS = (function() {
                         line.appendChild(line.nextSibling);
                     }
 
-                    parentLine.parentNode.insertBefore(line, parentLine.nextSibling);
+                    parentLine.parentNode.insertBefore(line,
+                        parentLine.nextSibling);
 
                     var indentIndex = getIndentationIndex(parentLine),
                         level = updateList(line, prefix, indentIndex, refresh);
@@ -898,18 +928,6 @@ var AutotagJS = (function() {
             }
         };
 
-        var performMenuAction = function(menu) {
-            hideSubmenu();
-            if (menu.dataset.atgPalette) {
-                createPalette(menu, menu.dataset.atgPalette == 'fill');
-            } else if (menu.dataset.atgSelect) {
-                activeSubmenu = menu.getElementsByClassName(submenuClassName)[0];
-                toggleSubmenu();
-            } else {
-                formatSelection(menu.dataset);
-            }
-        };
-
         var processInput = function() {
             var range = getRange();
             var container = range.endContainer;
@@ -917,12 +935,14 @@ var AutotagJS = (function() {
             if (isTextNode(container)) {
                 var value = container.nodeValue;
                 if (value.match(/^\u200b/)) {
-                    range.startContainer.nodeValue =
-                        range.startContainer.nodeValue.replace(/\u200b/g, '');
+                    container.nodeValue = value.replace(/\u200b/g, '');
                     range = setCaret(container, range.endOffset + 1);
                 }
 
+                // Note that the offset within the range object will update
+                // on its own if the container's node value is changed.
                 var offset = range.endOffset;
+
                 var refTag = container.parentNode,
                     parts = splitter(container.nodeValue || '');
 
@@ -952,6 +972,7 @@ var AutotagJS = (function() {
                         refTag = newTag;
                     }
                     removeNode(container.parentNode);
+
                 } else {
                     refTag.style.removeProperty('display');
                     decorator(refTag, refTag.firstChild.nodeValue);
@@ -966,6 +987,7 @@ var AutotagJS = (function() {
             if (e.clipboardData) {
                 content = (e.originalEvent || e)
                     .clipboardData.getData('text/plain');
+
             } else if (window.clipboardData) {
                 content = window.clipboardData.getData('Text');
             }
@@ -981,6 +1003,7 @@ var AutotagJS = (function() {
             if (isTextNode(container)) {
                 container.nodeValue = container.nodeValue + content;
                 setCaret(container);
+
             } else {
                 var textNode = document.createTextNode(content);
                 container.insertBefore(textNode, container.firstChild);
@@ -1019,7 +1042,8 @@ var AutotagJS = (function() {
                     newLine.appendChild(newTag);
                     setCaret(newNode, 0);
 
-                    // Collect remaining tags and append them to the new line.
+                    // Collect remaining tags and append them to the
+                    // new line.
                     var tags = [];
                     while ((tag = tag.nextSibling)) {
                         tags.push(tag);
@@ -1110,14 +1134,6 @@ var AutotagJS = (function() {
             return range;
         };
 
-        var toggleSubmenu = function() {
-            if (activeSubmenu) {
-                var style = window.getComputedStyle(activeSubmenu);
-                activeSubmenu.style.display =
-                    style.display === 'none' ? '' : 'none';
-            }
-        };
-
         var updateIndentation = function(keyCode, line, shifted) {
             if (isTabKey(keyCode)) {
                 if (shifted) {
@@ -1138,7 +1154,8 @@ var AutotagJS = (function() {
         };
 
         var isBeginingOfLine = function(tag, offset) {
-            return (isBlankNode(tag) || offset == 0) && !tag.previousSibling;
+            return (isBlankNode(tag) || offset == 0) &&
+                !tag.previousSibling;
         };
 
         var isEndOfLine = function(tag, offset) {
@@ -1161,8 +1178,8 @@ var AutotagJS = (function() {
                 }
             }
 
-            // Perform regular delete operation if above conditions fail to
-            // satisfy.
+            // Perform regular delete operation if above conditions fail
+            // to satisfy.
             if (isDeleteKey(keyCode)) {
                 processDelete(getRange());
             }
@@ -1173,13 +1190,15 @@ var AutotagJS = (function() {
                 textNode = tag.firstChild;
 
             offset = initObject(offset, str.length);
-            textNode.nodeValue = str.slice(0, offset - 1) + str.slice(offset);
+            textNode.nodeValue =
+                str.slice(0, offset - 1) + str.slice(offset);
 
             if (textNode.nodeValue.length == 0 && offset == 1) {
                 if (!tag.previousSibling) {
                     textNode.nodeValue = '\u200b';
                     tag.style.display = 'inline';
                     setCaret(tag);
+
                 } else {
                     setCaret(tag.previousSibling);
                     removeNode(tag);
@@ -1198,9 +1217,11 @@ var AutotagJS = (function() {
 
                 if (isBlankLine(prevLine)) {
                     removeNode(prevLine);
+
                 } else if (isBlankLine(line)) {
                     setCaret(lastPrevTag);
                     removeNode(line);
+
                 } else {
                     setCaret(lastPrevTag);
                     var curTags = getTagsInLine(line);
@@ -1265,7 +1286,8 @@ var AutotagJS = (function() {
         };
 
         var updateListStyle = function(line, klass) {
-            line.className = line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
+            line.className =
+                line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
             line.classList.add(klass);
         };
 
@@ -1274,7 +1296,7 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('click', function(e) {
-            hideSubmenu();
+            hideSubmenus();
             fixEditor();
             fixCaret();
         });
@@ -1325,6 +1347,17 @@ var AutotagJS = (function() {
             }
         }, 200));
 
+        var getParentMenu = function(node) {
+            while(!node.classList.contains(submenuClassName) &&
+                !node.classList.contains(menuClassName)) {
+                node = node.parentNode;
+
+                // Should not happen! Ever.
+                if (isEditor(node)) return;
+            }
+            return node;
+        };
+
         return {
             attachMenubar: function(menubar) {
                 if (menubar) {
@@ -1336,16 +1369,36 @@ var AutotagJS = (function() {
                         resetRange(selectionRange);
 
                         var target = e.target;
-                        var parent = target.parentNode;
-                        if (parent.classList.contains(menuClassName)) {
-                            target = parent;
+                        var menu = getParentMenu(target);
+                        var submenu = menu.querySelector('.' + submenuClassName);
 
-                        } else if (target.classList.contains(paletteCellClassName)) {
-                            createPaletteCellAction(
-                                target,
-                                activeSubmenu.parentNode.dataset.atgPalette);
+                        // If a submenu already exists, just display it.
+                        if (submenu) {
+                            toggleNodeVisibility(submenu);
+
+                        // If atg-submenu is specified (and no submenu exists),
+                        // proceed to take action.
+                        } else if ((submenu = menu.dataset.atgSubmenu)) {
+
+                            // If atg-submenu eludes to palette, create it and
+                            // display the submenu.
+                            if (submenu.match(/Palette$/)) {
+                                createPalette(menu, submenu.split('Palette')[0]);
+                            }
+
+                        } else {
+
+                            // If the submenu alludes to atg-palette, extract
+                            // the color properties into the target (a palette
+                            // cell in this case).
+                            if (menu.dataset.atgPalette) {
+                                createPaletteCellAction(target,
+                                    menu.dataset.atgPalette);
+                            }
+
+                            formatSelection(target.dataset, menu.dataset.atgScope);
+                            hideSubmenus();
                         }
-                        performMenuAction(target);
                     });
                 }
             }

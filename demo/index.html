@@ -33,8 +33,8 @@
 
     <div class="page-notepad">
         <div class="demo-container atg-editor">
-            <div id="menubar" class="demo-menubar">
-                <span class="demo-menu atg-menu" data-atg-select="font-size">
+            <div id="menubar" class="demo-menubar" data-atg-scope="selection">
+                <span class="demo-menu atg-menu">
                     <span class="icon-size"></span>
                     <div style="display:none;" class="demo-submenu atg-submenu"
                         data-atg-scope="selection">
@@ -42,24 +42,15 @@
                         <div data-atg-set="font-size: 12px">9</div>
                         <div data-atg-set="font-size: 13px">10</div>
                         <div data-atg-set="font-size: 14px">11</div>
-                        <div data-atg-scope="selection"
-                            data-atg-set="font-size: 16px">12</div>
-                        <div data-atg-scope="selection"
-                            data-atg-set="font-size: 19px">14</div>
-                        <div data-atg-scope="selection"
-                            data-atg-set="font-size: 24px">18</div>
-                        <div data-atg-scope="selection"
-                            data-atg-set="font-size: 32px">24</div>
-                        <div data-atg-scope="selection"
-                            data-atg-set="font-size: 40px">30</div>
-                        <div data-atg-scope="selection"
-                            data-atg-set="font-size: 52px">40</div>
-                        <div data-atg-scope="selection"
-                            data-atg-set="font-size: 93px">70</div>
-                        <div data-atg-scope="selection"
-                            data-atg-increment="font-size: 10px">Bigger</div>
-                        <div data-atg-scope="selection"
-                            data-atg-decrement="font-size: 10px">Smaller</div>
+                        <div data-atg-set="font-size: 16px">12</div>
+                        <div data-atg-set="font-size: 19px">14</div>
+                        <div data-atg-set="font-size: 24px">18</div>
+                        <div data-atg-set="font-size: 32px">24</div>
+                        <div data-atg-set="font-size: 40px">30</div>
+                        <div data-atg-set="font-size: 52px">40</div>
+                        <div data-atg-set="font-size: 93px">70</div>
+                        <div data-atg-increment="font-size: 10px">Bigger</div>
+                        <div data-atg-decrement="font-size: 10px">Smaller</div>
                     </div>
                 </span>
 
@@ -78,11 +69,12 @@
                 <span class="demo-menu-sep"></span>
 
                 <span class="icon-color-text demo-menu atg-menu"
-                    data-atg-palette="color"></span>
+                    data-atg-scope="selection"
+                    data-atg-submenu="colorPalette"></span>
 
                 <span class="icon-color-fill demo-menu atg-menu"
                     data-atg-scope="selection"
-                    data-atg-palette="fill"></span>
+                    data-atg-submenu="highlightPalette"></span>
 
                 <span class="demo-menu-sep"></span>
 
@@ -107,15 +99,12 @@
                 <span class="demo-menu atg-menu"
                     data-atg-select="line-height">
                     <span class="icon-line-spacing"></span>
-                    <div style="display:none;" class="demo-submenu atg-submenu">
-                        <div data-atg-scope="line"
-                            data-atg-set="line-height: 1.5em">1.5</div>
-                        <div data-atg-scope="line"
-                            data-atg-set="line-height: 1em">Normal</div>
-                        <div data-atg-scope="line"
-                            data-atg-set="line-height: 2em">Double</div>
-                        <div data-atg-scope="line"
-                            data-atg-set="line-height: 3em">Correction</div>
+                    <div style="display:none;" class="demo-submenu atg-submenu"
+                        data-atg-scope="line">
+                        <div data-atg-set="line-height: 1.5em">1.5</div>
+                        <div data-atg-set="line-height: 1em">Normal</div>
+                        <div data-atg-set="line-height: 2em">Double</div>
+                        <div data-atg-set="line-height: 3em">Correction</div>
                     </div>
                 </span>
 
@@ -134,12 +123,11 @@
                 <span class="demo-menu atg-menu"
                     data-atg-select="bulleted-list">
                     <span class="icon-list-bulleted"></span>
-                    <div style="display:none;" class="demo-submenu atg-submenu">
+                    <div style="display:none;" class="demo-submenu atg-submenu"
+                        data-atg-scope="line">
                         <div class="demo-submenu-sep"
-                            data-atg-scope="line"
                             data-atg-command="list clear">Clear</div>
-                        <div data-atg-scope="line"
-                            data-atg-command="list atg-bulleted">
+                        <div data-atg-command="list atg-bulleted">
                             ●&nbsp;&nbsp;○&nbsp;&nbsp;▪&nbsp;&nbsp;...
                         </div>
                     </div>
@@ -148,12 +136,11 @@
                 <span class="demo-menu atg-menu"
                     data-atg-select="numbered-list">
                     <span class="icon-list-numbered"></span>
-                    <div style="display:none;" class="demo-submenu atg-submenu">
+                    <div style="display:none;" class="demo-submenu atg-submenu"
+                        data-atg-scope="line">
                         <div class="demo-submenu-sep"
-                            data-atg-scope="line"
                             data-atg-command="list clear">Clear</div>
-                        <div data-atg-scope="line"
-                            data-atg-command="list atg-numbered">
+                        <div data-atg-command="list atg-numbered">
                             1.&nbsp;a.&nbsp;i.&nbsp;...
                         </div>
                     </div>
