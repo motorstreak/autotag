@@ -3,7 +3,7 @@
 [contenteditable] div > span {
     word-break : break-all;
     caret-color: #777;
-    /*display: inline-block;*/
+    display: inline-block;
 }
 
 /* Deal with IE paragraph style within the editor. */
@@ -14,13 +14,13 @@
 }
 
 ::-moz-selection {
-    color : #FFF;
-    background : rgb(81, 120, 225);
+    color : #000;
+    background : #BFD3FA;
 }
 
 ::selection {
-    color : #FFF;
-    background : rgb(81, 120, 225);
+    color : #000;
+    background : #BFD3FA;
 }
 
 /* Prevent outlines on contenteditable items in IE. */

@@ -39,26 +39,24 @@ var AutotagJS = (function() {
 
 
     // Map keeyboard controls to format options since we override them.
-    var styleKeyMap = {
+    var _styleKeyMap = {
         66: 'font-weight:bold',
         73: 'font-style:italic',
         85: 'text-decoration:underline'
     };
 
-    var autoWordTag = 'span',
-        autoLineTag = 'div',
+    var _autoWordTag = 'span',
+        _autoLineTag = 'div',
 
         // Reserved class names
-        blankListClassName = 'atg-list-blank',
-        defaultListClassName = 'atg-list',
-        menuClassName = 'atg-menu',
-        paletteClassName = 'atg-palette',
-        paletteCellClassName = 'atg-palette-cell',
-        // paletteCellFillClassName = 'atg-palette-fill-cell',
-        // paletteCellColorClassName = 'atg-palette-color-cell',
-        paletteRowClassName = 'atg-palette-row',
-        paletteCellCrossClassName = 'atg-crossed-cell',
-        submenuClassName = 'atg-submenu';
+        _blankListClassName = 'atg-list-blank',
+        _defaultListClassName = 'atg-list',
+        _menuClassName = 'atg-menu',
+        _paletteClassName = 'atg-palette',
+        _paletteCellClassName = 'atg-palette-cell',
+        _paletteRowClassName = 'atg-palette-row',
+        _paletteCellCrossClassName = 'atg-crossed-cell',
+        _submenuClassName = 'atg-submenu';
 
     function initObject(obj, toObj) {
         return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
@@ -100,6 +98,21 @@ var AutotagJS = (function() {
     function appendNodes(node, nodeList) {
         for (var i=0; i<nodeList.length; i++) {
             node = appendNode(node, nodeList[i]);
+        }
+    }
+
+    function toggleNodeVisibility(node) {
+        var style = window.getComputedStyle(node);
+        node.style.display = (style.display === 'none') ? '' : 'none';
+    }
+
+    function hideNode (node) {
+        node.style.display = 'none';
+    }
+
+    function showNode (node) {
+        if (window.getComputedStyle(node).display === 'none') {
+            node.style.display = '';
         }
     }
 
@@ -280,9 +293,9 @@ var AutotagJS = (function() {
         };
 
         var applyInstruction = function(nodes, instruction, declarations) {
-            if (instruction == 'autotagjsCommand') {
+            if (instruction == 'atgCommand') {
                 applyCommand(nodes, declarations);
-            } else if (instruction == 'autotagjsCallback') {
+            } else if (instruction == 'atgCallback') {
                 doOnMenuClick(declarations, nodes);
             } else {
                 applyStyle(nodes, instruction, declarations);
@@ -302,24 +315,24 @@ var AutotagJS = (function() {
 
                     var curValue = target.style.getPropertyValue(property);
 
-                    if (instruction == 'autotagjsUnset' ||
-                        instruction == 'autotagjsToggle' && curValue.length > 0) {
+                    if (instruction == 'atgUnset' ||
+                        instruction == 'atgToggle' && curValue.length > 0) {
                         target.style.removeProperty(property);
 
-                    } else if (instruction == 'autotagjsSet' ||
-                        (instruction == 'autotagjsInitialize' ||
-                        instruction == 'autotagjsToggle') &&
+                    } else if (instruction == 'atgSet' ||
+                        (instruction == 'atgInitialize' ||
+                        instruction == 'atgToggle') &&
                         curValue.length === 0) {
                         target.style.setProperty(property, value);
 
-                    } else if (instruction.match(/^autotagjs(Increment|Decrement)/)) {
+                    } else if (instruction.match(/^atg(Increment|Decrement)/)) {
                         curValue = curValue || getComputedStyle(target).getPropertyValue(property);
                         var amount = getPixelAmount(value),
                             curAmount = getPixelAmount(curValue);
 
-                        if (instruction == 'autotagjsIncrement') {
+                        if (instruction == 'atgIncrement') {
                             curAmount += amount;
-                        } else if (instruction == 'autotagjsDecrement') {
+                        } else if (instruction == 'atgDecrement') {
                             curAmount -= amount;
                         }
 
@@ -333,14 +346,15 @@ var AutotagJS = (function() {
             }
         };
 
-        var createPalette = function(menu, fill) {
-            var palette = menu.getElementsByClassName(submenuClassName)[0];
+        var createPalette = function(menu, type) {
+            var palette = menu.getElementsByClassName(_submenuClassName)[0];
             if (palette) {
                 palette.style.display = '';
             } else {
                 palette = document.createElement('div');
-                palette.classList.add(submenuClassName);
-                palette.classList.add(paletteClassName);
+                palette.classList.add(_submenuClassName);
+                palette.classList.add(_paletteClassName);
+                palette.dataset.atgPalette = type;
                 menu.appendChild(palette);
 
                 // Color palette
@@ -353,7 +367,7 @@ var AutotagJS = (function() {
                 for (var i = 0, s = 100, l = 94; i < maxRows; i++, s -= saturationStep, l -= luminosityStep) {
                     row = createPaletteRow(palette);
                     for (var j = 0, h = 0; j < maxCols; j++, h += hueStep) {
-                        createPaletteCell(row, h, s, l, fill);
+                        createPaletteCell(row, h, s, l, type);
                     }
                 }
 
@@ -361,76 +375,81 @@ var AutotagJS = (function() {
                 luminosityStep = Math.round(100 / (maxCols-1));
 
                 for (i = 0, l = luminosityStep; i < maxCols-1; i++, l += luminosityStep) {
-                    createPaletteCell(row, 0, 0, l, fill);
+                    createPaletteCell(row, 0, 0, l, type);
                 }
-                createCrossedPaletteCell(row, fill);
+                createCrossedPaletteCell(row, type);
             }
             activeSubmenu = palette;
         };
 
+        // If the palette cell does not already have a style set,
+        // extract the same from the cell. Noe that we do this only on a need
+        // basis and hence this is not created at the time of cell creation.
         var createPaletteCellAction = function(cell, type) {
             var dataset = cell.dataset;
-            if (!dataset.autotagjsSet) {
-                var style, color = dataset.autotagjsPaletteColor;
+            if (!dataset.atgSet) {
+                var style, color = dataset.atgPaletteColor;
 
-                if (type == 'color') {
+                if (type === 'color') {
                     style = 'color: ' + color;
 
-                } else if (type == 'fill') {
+                } else if (type === 'highlight') {
                     style = 'background-color: ' + color;
 
-                    var contrast = dataset.autotagjsPaletteContrastColor;
+                    var contrast = dataset.atgPaletteContrastColor;
                     if (contrast) {
                         style = style + '; color: ' + contrast;
                     }
                 }
-                dataset.autotagjsSet = style;
+                dataset.atgSet = style;
             }
         };
 
-        var createCrossedPaletteCell = function(row, fill) {
+        // Created the palette cell that clears formatting.
+        var createCrossedPaletteCell = function(row, type) {
             var cell = createPaletteCell(row, 0, 0, 100);
-            cell.classList.add(paletteCellCrossClassName);
-            if (!fill) {
-                cell.dataset.autotagjsPaletteColor = '#000';
+            cell.classList.add(_paletteCellCrossClassName);
+            if (type === 'color') {
+                cell.dataset.atgPaletteColor = '#000';
             }
             return cell;
         };
 
-        var createPaletteCell = function(row, h, s, l, fill) {
+        // Create the palette cells for a given row.
+        var createPaletteCell = function(row, h, s, l, type) {
             var cell = document.createElement('div'),
                 hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
-            cell.className = paletteCellClassName;
+            cell.className = _paletteCellClassName;
             cell.style.background = hsla;
-            cell.dataset.autotagjsPaletteColor = hsla;
-            if (fill) {
-                cell.dataset.autotagjsPaletteContrastColor =
+            cell.dataset.atgPaletteColor = hsla;
+            if (type === 'highlight') {
+                cell.dataset.atgPaletteContrastColor =
                     generateContrastColor(cell.style.background);
             }
             return row.appendChild(cell);
         };
 
         var generateContrastColor = function(rgbStr) {
-            var rgb = rgbStr.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
-            for (var i=1; i < rgb.length; i++) {
+            var rgb = rgbStr.match(/[.?\d]+/g);
+            for (var i=0; i < 3; i++) {
                 rgb[i] = rgb[i]/255.0;
                 rgb[i] =
                     (rgb[i] <= 0.03928) ? rgb[i]/12.92
                                         : Math.pow((rgb[i] + 0.055)/1.055, 2.4);
             }
-            var lumin = rgb[1] * 0.2126 + rgb[2] * 0.7152 + rgb[3] * 0.0722;
+            var lumin = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
             return (lumin > 0.179) ? '#000' : '#FFF';
         };
 
         var createPaletteRow = function(palette) {
             var row = document.createElement('div');
-            row.className = paletteRowClassName;
+            row.className = _paletteRowClassName;
             return palette.appendChild(row);
         };
 
         var createNewLine = function(refLine, options) {
             options = options || {};
-            var line = document.createElement(autoLineTag);
+            var line = document.createElement(_autoLineTag);
             if (refLine) {
                 // By default, attach as child of node.
                 if (options.asSibling) {
@@ -460,7 +479,7 @@ var AutotagJS = (function() {
 
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(stringOrText, style) {
-            var tag = document.createElement(autoWordTag),
+            var tag = document.createElement(_autoWordTag),
                 text;
             if (typeof stringOrText === 'string') {
                 text = createTextNode(stringOrText);
@@ -490,7 +509,7 @@ var AutotagJS = (function() {
             if (isTag(node)) {
                 setCaret(node.lastChild, 0);
             } else if (isLine(node)) {
-                var tags = node.querySelectorAll(autoWordTag);
+                var tags = node.querySelectorAll(_autoWordTag);
                 if (tags.length > 0) {
                     var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
                     setCaret(tag.lastChild);
@@ -530,50 +549,72 @@ var AutotagJS = (function() {
 
         var fixText = function(text) {
             if (isTextNode(text) && !isTag(text.parentNode)) {
-                var tag = document.createElement(autoWordTag);
+                var tag = document.createElement(_autoWordTag);
                 text.parentNode.insertBefore(tag, text);
                 tag.appendChild(text);
             }
         };
 
-        var formatSelection = function(dataset) {
+        var formatSelection = function(dataset, scope) {
             if (selectionRange && dataset) {
-                var nodes;
-                switch (dataset.autotagjsScope) {
-                    case 'line':
-                        nodes = getLinesInRange(selectionRange);
-                        break;
-                    case 'selection':
-                        var tags = getTagsInRange(selectionRange);
-                        var lines = getLinesInRange(selectionRange);
-                        if (lines.length > 1 ||
-                            tags.length == getTagsInLine(getActiveLine()).length) {
-                            nodes = tags.concat(lines);
-                        } else {
-                            nodes = tags;
-                        }
-                        break;
-                    default:
-                        nodes = getTagsInRange(selectionRange);
-                }
+                var nodes = getSelectionNodes(scope);
 
-                nodes = nodes.filter(Boolean);
                 for (var key in dataset) {
                     if (dataset.hasOwnProperty(key)) {
                         applyInstruction(nodes, key, dataset[key].split(/\s*;\s*/));
                     }
                 }
+
+                // Ensure that the selection does not disapper after we have
+                // applied formatting.
                 resetRange(selectionRange);
             }
         };
 
-        var getActiveLine = function(range) {
-            range = range || getRange();
+        var getSelectionNodes = function(scope) {
+            var nodes;
+            var lines = getLinesInRange(selectionRange);
+
+            switch (scope) {
+                // Apply the formatting only to the lines in the selection.
+                case 'line':
+                    // Exclude parent lines in selection if multiple lines
+                    // are present.
+                    if (lines.length >  1 &&
+                        isLine(selectionRange.commonAncestorContainer)) {
+                        lines.shift();
+                    }
+                    nodes = lines;
+                    break;
+
+                // Apply formatting to both tags and lines.
+                case 'selection':
+                    var tags = getTagsInRange(selectionRange),
+                        activeTags = getTagsInLine(getActiveLine());
+                    if (lines.length > 1 || tags.length == activeTags.length) {
+                        nodes = tags.concat(lines);
+                    } else {
+                        nodes = tags;
+                    }
+                    break;
+
+                // Else, apply only to tags.
+                default:
+                    nodes = getTagsInRange(selectionRange);
+            }
+
+            nodes = nodes.filter(Boolean);
+            return nodes;
+        };
+
+        // The line on which the selection starts (and ends if collapsed).
+        var getActiveLine = function() {
+            var range = selectionRange;
             return range && getLine(range.startContainer, false);
         };
 
         var getFirstLine = function() {
-            return editor.querySelector(autoLineTag + ':first-child');
+            return editor.querySelector(_autoLineTag + ':first-child');
         };
 
         var getIndentationIndex = function(line) {
@@ -613,7 +654,7 @@ var AutotagJS = (function() {
         // found, go check ancestors.
         var getListPrefix = function(line) {
             if (isEditor(line)) {
-                return 'autotagjs';
+                return 'atg';
             }
 
             var names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
@@ -714,13 +755,14 @@ var AutotagJS = (function() {
 
         var gotoLine = function(line) {
             if (isLine(line)) {
-                setCaret(line.querySelector(autoWordTag + ':first-child'), 0);
+                setCaret(line.querySelector(_autoWordTag + ':first-child'), 0);
             }
         };
 
-        var hideSubmenu = function() {
-            if (activeSubmenu) {
-                activeSubmenu.style.display = 'none';
+        var hideSubmenus = function() {
+            var submenus = menubar.querySelectorAll('.' + _submenuClassName);
+            for(var i=0; i<submenus.length; i++) {
+                hideNode(submenus[i]);
             }
         };
 
@@ -762,11 +804,11 @@ var AutotagJS = (function() {
         // Enable every root line to be list capable.
         var initList = function(line) {
             if (isEditor(line.parentNode)) {
-                updateListStyle(line, defaultListClassName);
+                updateListStyle(line, _defaultListClassName);
                 return true;
             }
 
-            line.classList.remove(defaultListClassName);
+            line.classList.remove(_defaultListClassName);
             return false;
         };
 
@@ -782,7 +824,7 @@ var AutotagJS = (function() {
         };
 
         var isBlankList = function(line) {
-            return line.classList.contains(blankListClassName);
+            return line && line.classList.contains(_blankListClassName);
         };
 
         var isEditor = function(node) {
@@ -795,21 +837,21 @@ var AutotagJS = (function() {
 
         var isLine = function(node) {
             return node &&
-                node.tagName == autoLineTag.toUpperCase() &&
+                node.tagName == _autoLineTag.toUpperCase() &&
                 !isEditor(node);
         };
 
         var isListIndenter = function(line) {
-            return !isEditor(line.parentNode) &&
+            return line && !isEditor(line.parentNode) &&
                 !line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
         };
 
         var isRootList = function(line) {
-            return line.classList.contains(defaultListClassName);
+            return line && line.classList.contains(_defaultListClassName);
         };
 
         var isTag = function(node) {
-            return node && node.tagName == autoWordTag.toUpperCase();
+            return node && node.tagName == _autoWordTag.toUpperCase();
         };
 
         var insertTab = function(node, index, shifted) {
@@ -870,7 +912,8 @@ var AutotagJS = (function() {
                         line.appendChild(line.nextSibling);
                     }
 
-                    parentLine.parentNode.insertBefore(line, parentLine.nextSibling);
+                    parentLine.parentNode.insertBefore(line,
+                        parentLine.nextSibling);
 
                     var indentIndex = getIndentationIndex(parentLine),
                         level = updateList(line, prefix, indentIndex, refresh);
@@ -885,18 +928,6 @@ var AutotagJS = (function() {
             }
         };
 
-        var performMenuAction = function(menu) {
-            hideSubmenu();
-            if (menu.dataset.autotagjsPalette) {
-                createPalette(menu, menu.dataset.autotagjsPalette == 'fill');
-            } else if (menu.dataset.autotagjsSelect) {
-                activeSubmenu = menu.getElementsByClassName(submenuClassName)[0];
-                toggleSubmenu();
-            } else {
-                formatSelection(menu.dataset);
-            }
-        };
-
         var processInput = function() {
             var range = getRange();
             var container = range.endContainer;
@@ -904,12 +935,14 @@ var AutotagJS = (function() {
             if (isTextNode(container)) {
                 var value = container.nodeValue;
                 if (value.match(/^\u200b/)) {
-                    range.startContainer.nodeValue =
-                        range.startContainer.nodeValue.replace(/\u200b/g, '');
+                    container.nodeValue = value.replace(/\u200b/g, '');
                     range = setCaret(container, range.endOffset + 1);
                 }
 
+                // Note that the offset within the range object will update
+                // on its own if the container's node value is changed.
                 var offset = range.endOffset;
+
                 var refTag = container.parentNode,
                     parts = splitter(container.nodeValue || '');
 
@@ -925,7 +958,7 @@ var AutotagJS = (function() {
                     for (var i = 0; i < numparts; i++) {
                         newTag = createTagNode(
                             parts[i], refTag.getAttribute('style'));
-                        newTag.style.display = 'inline-block';
+                        newTag.style.removeProperty('display');
 
                         decorator(newTag, newTag.firstChild.nodeValue);
                         refTag.parentNode.insertBefore(newTag, refTag.nextSibling);
@@ -939,8 +972,9 @@ var AutotagJS = (function() {
                         refTag = newTag;
                     }
                     removeNode(container.parentNode);
+
                 } else {
-                    refTag.style.display = 'inline-block';
+                    refTag.style.removeProperty('display');
                     decorator(refTag, refTag.firstChild.nodeValue);
                 }
             } else if (isTag(container) && isTextNode(container.firstChild)) {
@@ -953,6 +987,7 @@ var AutotagJS = (function() {
             if (e.clipboardData) {
                 content = (e.originalEvent || e)
                     .clipboardData.getData('text/plain');
+
             } else if (window.clipboardData) {
                 content = window.clipboardData.getData('Text');
             }
@@ -968,6 +1003,7 @@ var AutotagJS = (function() {
             if (isTextNode(container)) {
                 container.nodeValue = container.nodeValue + content;
                 setCaret(container);
+
             } else {
                 var textNode = document.createTextNode(content);
                 container.insertBefore(textNode, container.firstChild);
@@ -1006,7 +1042,8 @@ var AutotagJS = (function() {
                     newLine.appendChild(newTag);
                     setCaret(newNode, 0);
 
-                    // Collect remaining tags and append them to the new line.
+                    // Collect remaining tags and append them to the
+                    // new line.
                     var tags = [];
                     while ((tag = tag.nextSibling)) {
                         tags.push(tag);
@@ -1031,7 +1068,7 @@ var AutotagJS = (function() {
         };
 
         var setBlankList = function(line) {
-            updateListStyle(line, blankListClassName);
+            updateListStyle(line, _blankListClassName);
         };
 
         // Takes in the current node and sets the cursor location
@@ -1097,14 +1134,6 @@ var AutotagJS = (function() {
             return range;
         };
 
-        var toggleSubmenu = function() {
-            if (activeSubmenu) {
-                var style = window.getComputedStyle(activeSubmenu);
-                activeSubmenu.style.display =
-                    style.display === 'none' ? '' : 'none';
-            }
-        };
-
         var updateIndentation = function(keyCode, line, shifted) {
             if (isTabKey(keyCode)) {
                 if (shifted) {
@@ -1125,7 +1154,8 @@ var AutotagJS = (function() {
         };
 
         var isBeginingOfLine = function(tag, offset) {
-            return (isBlankNode(tag) || offset == 0) && !tag.previousSibling;
+            return (isBlankNode(tag) || offset == 0) &&
+                !tag.previousSibling;
         };
 
         var isEndOfLine = function(tag, offset) {
@@ -1148,8 +1178,8 @@ var AutotagJS = (function() {
                 }
             }
 
-            // Perform regular delete operation if above conditions fail to
-            // satisfy.
+            // Perform regular delete operation if above conditions fail
+            // to satisfy.
             if (isDeleteKey(keyCode)) {
                 processDelete(getRange());
             }
@@ -1160,13 +1190,15 @@ var AutotagJS = (function() {
                 textNode = tag.firstChild;
 
             offset = initObject(offset, str.length);
-            textNode.nodeValue = str.slice(0, offset - 1) + str.slice(offset);
+            textNode.nodeValue =
+                str.slice(0, offset - 1) + str.slice(offset);
 
             if (textNode.nodeValue.length == 0 && offset == 1) {
                 if (!tag.previousSibling) {
                     textNode.nodeValue = '\u200b';
                     tag.style.display = 'inline';
                     setCaret(tag);
+
                 } else {
                     setCaret(tag.previousSibling);
                     removeNode(tag);
@@ -1185,9 +1217,11 @@ var AutotagJS = (function() {
 
                 if (isBlankLine(prevLine)) {
                     removeNode(prevLine);
+
                 } else if (isBlankLine(line)) {
                     setCaret(lastPrevTag);
                     removeNode(line);
+
                 } else {
                     setCaret(lastPrevTag);
                     var curTags = getTagsInLine(line);
@@ -1252,7 +1286,8 @@ var AutotagJS = (function() {
         };
 
         var updateListStyle = function(line, klass) {
-            line.className = line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
+            line.className =
+                line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
             line.classList.add(klass);
         };
 
@@ -1261,7 +1296,7 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('click', function(e) {
-            hideSubmenu();
+            hideSubmenus();
             fixEditor();
             fixCaret();
         });
@@ -1292,7 +1327,7 @@ var AutotagJS = (function() {
                 e.preventDefault();
 
             } else if (e.metaKey && isFormatKey(keyCode)) {
-                formatSelection({ autotagjsToggle: styleKeyMap[keyCode] });
+                formatSelection({ atgToggle: _styleKeyMap[keyCode] });
                 e.preventDefault();
             }
         });
@@ -1312,26 +1347,59 @@ var AutotagJS = (function() {
             }
         }, 200));
 
+        var getParentMenu = function(node) {
+            while(!node.classList.contains(_submenuClassName) &&
+                !node.classList.contains(_menuClassName)) {
+                node = node.parentNode;
+
+                // Should not happen! Ever.
+                if (isEditor(node)) return;
+            }
+            return node;
+        };
+
         return {
             attachMenubar: function(menubar) {
                 if (menubar) {
                     editorMenubar = menubar;
                     editorMenubar.addEventListener('click', function(e) {
+                        hideSubmenus();
 
                         // Ensure that the selection does not disapper after we have
                         // applied formatting.
                         resetRange(selectionRange);
 
                         var target = e.target;
-                        var parent = target.parentNode;
-                        if (parent.classList.contains(menuClassName)) {
-                            target = parent;
+                        var menu = getParentMenu(target);
+                        var submenu = menu.querySelector('.' + _submenuClassName);
 
-                        } else if (target.classList.contains(paletteCellClassName)) {
-                            createPaletteCellAction( target,
-                                activeSubmenu.parentNode.dataset.autotagjsPalette);
+                        // If a submenu already exists, just display it.
+                        if (submenu) {
+                            toggleNodeVisibility(submenu);
+
+                        // If atg-submenu is specified (and no submenu exists),
+                        // proceed to take action.
+                        } else if ((submenu = menu.dataset.atgSubmenu)) {
+
+                            // If atg-submenu eludes to palette, create it and
+                            // display the submenu.
+                            if (submenu.match(/Palette$/)) {
+                                createPalette(menu, submenu.split('Palette')[0]);
+                            }
+
+                        } else {
+
+                            // If the submenu alludes to atg-palette, extract
+                            // the color properties into the target (a palette
+                            // cell in this case).
+                            if (menu.dataset.atgPalette) {
+                                createPaletteCellAction(target,
+                                    menu.dataset.atgPalette);
+                            }
+
+                            formatSelection(target.dataset, menu.dataset.atgScope);
+                            hideSubmenus();
                         }
-                        performMenuAction(target);
                     });
                 }
             }
