@@ -39,24 +39,24 @@ var AutotagJS = (function() {
 
 
     // Map keeyboard controls to format options since we override them.
-    var styleKeyMap = {
+    var _styleKeyMap = {
         66: 'font-weight:bold',
         73: 'font-style:italic',
         85: 'text-decoration:underline'
     };
 
-    var autoWordTag = 'span',
-        autoLineTag = 'div',
+    var _autoWordTag = 'span',
+        _autoLineTag = 'div',
 
         // Reserved class names
-        blankListClassName = 'atg-list-blank',
-        defaultListClassName = 'atg-list',
-        menuClassName = 'atg-menu',
-        paletteClassName = 'atg-palette',
-        paletteCellClassName = 'atg-palette-cell',
-        paletteRowClassName = 'atg-palette-row',
-        paletteCellCrossClassName = 'atg-crossed-cell',
-        submenuClassName = 'atg-submenu';
+        _blankListClassName = 'atg-list-blank',
+        _defaultListClassName = 'atg-list',
+        _menuClassName = 'atg-menu',
+        _paletteClassName = 'atg-palette',
+        _paletteCellClassName = 'atg-palette-cell',
+        _paletteRowClassName = 'atg-palette-row',
+        _paletteCellCrossClassName = 'atg-crossed-cell',
+        _submenuClassName = 'atg-submenu';
 
     function initObject(obj, toObj) {
         return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
@@ -347,13 +347,13 @@ var AutotagJS = (function() {
         };
 
         var createPalette = function(menu, type) {
-            var palette = menu.getElementsByClassName(submenuClassName)[0];
+            var palette = menu.getElementsByClassName(_submenuClassName)[0];
             if (palette) {
                 palette.style.display = '';
             } else {
                 palette = document.createElement('div');
-                palette.classList.add(submenuClassName);
-                palette.classList.add(paletteClassName);
+                palette.classList.add(_submenuClassName);
+                palette.classList.add(_paletteClassName);
                 palette.dataset.atgPalette = type;
                 menu.appendChild(palette);
 
@@ -408,7 +408,7 @@ var AutotagJS = (function() {
         // Created the palette cell that clears formatting.
         var createCrossedPaletteCell = function(row, type) {
             var cell = createPaletteCell(row, 0, 0, 100);
-            cell.classList.add(paletteCellCrossClassName);
+            cell.classList.add(_paletteCellCrossClassName);
             if (type === 'color') {
                 cell.dataset.atgPaletteColor = '#000';
             }
@@ -419,7 +419,7 @@ var AutotagJS = (function() {
         var createPaletteCell = function(row, h, s, l, type) {
             var cell = document.createElement('div'),
                 hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
-            cell.className = paletteCellClassName;
+            cell.className = _paletteCellClassName;
             cell.style.background = hsla;
             cell.dataset.atgPaletteColor = hsla;
             if (type === 'highlight') {
@@ -443,13 +443,13 @@ var AutotagJS = (function() {
 
         var createPaletteRow = function(palette) {
             var row = document.createElement('div');
-            row.className = paletteRowClassName;
+            row.className = _paletteRowClassName;
             return palette.appendChild(row);
         };
 
         var createNewLine = function(refLine, options) {
             options = options || {};
-            var line = document.createElement(autoLineTag);
+            var line = document.createElement(_autoLineTag);
             if (refLine) {
                 // By default, attach as child of node.
                 if (options.asSibling) {
@@ -479,7 +479,7 @@ var AutotagJS = (function() {
 
         // Every text node in the editor is wrapped in a Tag node.
         var createTagNode = function(stringOrText, style) {
-            var tag = document.createElement(autoWordTag),
+            var tag = document.createElement(_autoWordTag),
                 text;
             if (typeof stringOrText === 'string') {
                 text = createTextNode(stringOrText);
@@ -509,7 +509,7 @@ var AutotagJS = (function() {
             if (isTag(node)) {
                 setCaret(node.lastChild, 0);
             } else if (isLine(node)) {
-                var tags = node.querySelectorAll(autoWordTag);
+                var tags = node.querySelectorAll(_autoWordTag);
                 if (tags.length > 0) {
                     var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
                     setCaret(tag.lastChild);
@@ -549,7 +549,7 @@ var AutotagJS = (function() {
 
         var fixText = function(text) {
             if (isTextNode(text) && !isTag(text.parentNode)) {
-                var tag = document.createElement(autoWordTag);
+                var tag = document.createElement(_autoWordTag);
                 text.parentNode.insertBefore(tag, text);
                 tag.appendChild(text);
             }
@@ -614,7 +614,7 @@ var AutotagJS = (function() {
         };
 
         var getFirstLine = function() {
-            return editor.querySelector(autoLineTag + ':first-child');
+            return editor.querySelector(_autoLineTag + ':first-child');
         };
 
         var getIndentationIndex = function(line) {
@@ -755,12 +755,12 @@ var AutotagJS = (function() {
 
         var gotoLine = function(line) {
             if (isLine(line)) {
-                setCaret(line.querySelector(autoWordTag + ':first-child'), 0);
+                setCaret(line.querySelector(_autoWordTag + ':first-child'), 0);
             }
         };
 
         var hideSubmenus = function() {
-            var submenus = menubar.querySelectorAll('.' + submenuClassName);
+            var submenus = menubar.querySelectorAll('.' + _submenuClassName);
             for(var i=0; i<submenus.length; i++) {
                 hideNode(submenus[i]);
             }
@@ -804,11 +804,11 @@ var AutotagJS = (function() {
         // Enable every root line to be list capable.
         var initList = function(line) {
             if (isEditor(line.parentNode)) {
-                updateListStyle(line, defaultListClassName);
+                updateListStyle(line, _defaultListClassName);
                 return true;
             }
 
-            line.classList.remove(defaultListClassName);
+            line.classList.remove(_defaultListClassName);
             return false;
         };
 
@@ -824,7 +824,7 @@ var AutotagJS = (function() {
         };
 
         var isBlankList = function(line) {
-            return line && line.classList.contains(blankListClassName);
+            return line && line.classList.contains(_blankListClassName);
         };
 
         var isEditor = function(node) {
@@ -837,7 +837,7 @@ var AutotagJS = (function() {
 
         var isLine = function(node) {
             return node &&
-                node.tagName == autoLineTag.toUpperCase() &&
+                node.tagName == _autoLineTag.toUpperCase() &&
                 !isEditor(node);
         };
 
@@ -847,11 +847,11 @@ var AutotagJS = (function() {
         };
 
         var isRootList = function(line) {
-            return line && line.classList.contains(defaultListClassName);
+            return line && line.classList.contains(_defaultListClassName);
         };
 
         var isTag = function(node) {
-            return node && node.tagName == autoWordTag.toUpperCase();
+            return node && node.tagName == _autoWordTag.toUpperCase();
         };
 
         var insertTab = function(node, index, shifted) {
@@ -1068,7 +1068,7 @@ var AutotagJS = (function() {
         };
 
         var setBlankList = function(line) {
-            updateListStyle(line, blankListClassName);
+            updateListStyle(line, _blankListClassName);
         };
 
         // Takes in the current node and sets the cursor location
@@ -1327,7 +1327,7 @@ var AutotagJS = (function() {
                 e.preventDefault();
 
             } else if (e.metaKey && isFormatKey(keyCode)) {
-                formatSelection({ atgToggle: styleKeyMap[keyCode] });
+                formatSelection({ atgToggle: _styleKeyMap[keyCode] });
                 e.preventDefault();
             }
         });
@@ -1348,8 +1348,8 @@ var AutotagJS = (function() {
         }, 200));
 
         var getParentMenu = function(node) {
-            while(!node.classList.contains(submenuClassName) &&
-                !node.classList.contains(menuClassName)) {
+            while(!node.classList.contains(_submenuClassName) &&
+                !node.classList.contains(_menuClassName)) {
                 node = node.parentNode;
 
                 // Should not happen! Ever.
@@ -1363,6 +1363,7 @@ var AutotagJS = (function() {
                 if (menubar) {
                     editorMenubar = menubar;
                     editorMenubar.addEventListener('click', function(e) {
+                        hideSubmenus();
 
                         // Ensure that the selection does not disapper after we have
                         // applied formatting.
@@ -1370,7 +1371,7 @@ var AutotagJS = (function() {
 
                         var target = e.target;
                         var menu = getParentMenu(target);
-                        var submenu = menu.querySelector('.' + submenuClassName);
+                        var submenu = menu.querySelector('.' + _submenuClassName);
 
                         // If a submenu already exists, just display it.
                         if (submenu) {
