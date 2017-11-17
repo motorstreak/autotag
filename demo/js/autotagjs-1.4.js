@@ -1311,10 +1311,13 @@ var AutotagJS = (function() {
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
-            fixCaret();
+            var keyCode = getKeyCode(e);
+            if (!isDeleteKey(keyCode)) {
+                fixCaret();
+            }
+
             inputLineNumber = getLineNumber();
-            var range = getRange(),
-                keyCode = getKeyCode(e);
+            var range = getRange();
 
             if (isDeleteKey(keyCode) || isTabKey(keyCode)) {
                 processTabOrDeleteKey(range, keyCode, e.shiftKey);
