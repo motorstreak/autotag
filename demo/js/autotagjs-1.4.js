@@ -58,11 +58,30 @@ var AutotagJS = (function() {
         _paletteCellCrossClassName = 'atg-crossed-cell',
         _submenuClassName = 'atg-submenu';
 
+    /**
+     * Callback for node selection.
+     * @callback nodeFilterCallback
+     * @param {Node} node - The node to be examined.
+     * @returns {boolean} - Returns true or false based on the filter.
+     */
+
+    /**
+     * Initializes the given object to a given value if it is undefined or null.
+     * Returns the object as is otherwise.
+     * @param {Object} obj - The object to initialize.
+     * @param {Object} toObj - The value to initialize the object to.
+     * @returns {Object} - The initialized object.
+     */
     function initObject(obj, toObj) {
         return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
     }
 
-    // A debounce function to damp event firing.
+    /**
+     * A debounce function to damp event firing.
+     * @param {Object} func - The callback function.
+     * @param {number} wait - Milliseconds to wait between invocations.
+     * @param {boolean=} immediate - Set to true to force invocation.
+     */
     function debounce(func, wait, immediate) {
         var timeout;
         return function() {
@@ -86,70 +105,141 @@ var AutotagJS = (function() {
         };
     }
 
-    // Some utility functions.
+    /**
+     * Returns the code of the key event.
+     * @param {Object} e - The captured event.
+     * @return {number} - The numerical key value.
+     */
     function getKeyCode(e) {
         return (e.which || e.keyCode || 0);
     }
 
+    /**
+     * Appends one node to another.
+     * @param {Node} toNode - The node to append to.
+     * @param {Node} node - The node being appended.
+     * @return {Node} - The appended node.
+     */
     function appendNode(toNode, node) {
         return toNode.parentNode.insertBefore(node, toNode.nextSibling);
     }
 
-    function appendNodes(node, nodeList) {
+    /**
+     * Appends the nodes in the list to the given node.
+     * @param {Node} toNode - The node to append to.
+     * @param {NodeList} nodeList - The list of nodes to append.
+     */
+    function appendNodes(toNode, nodeList) {
         for (var i=0; i<nodeList.length; i++) {
-            node = appendNode(node, nodeList[i]);
+            toNode = appendNode(toNode, nodeList[i]);
         }
     }
 
+    /**
+     * Hides (if visible) or shows (if hidden) the given node.
+     * @param {Node} node - The node to hide or show.
+     */
     function toggleNodeVisibility(node) {
         var style = window.getComputedStyle(node);
         node.style.display = (style.display === 'none') ? '' : 'none';
     }
 
+    /**
+     * Hides the provided node.
+     * @param {Node} node - The node to hide.
+     */
     function hideNode (node) {
         node.style.display = 'none';
     }
 
+    /**
+     * Shows the provided node.
+     * @param {Node} node - The node to make visible.
+     */
     function showNode (node) {
         if (window.getComputedStyle(node).display === 'none') {
             node.style.display = '';
         }
     }
 
+    /**
+     * Removes the given node from the DOM and return it.
+     * @param {Node} node - The node to be removed.
+     * @returns {Node} - The removed node.
+     */
     function removeNode(node) {
         return node && node.parentNode.removeChild(node);
     }
 
+    /**
+     * Removes the node in the NodeList from the DOM.
+     * @param {NodeList} nodeList - The list of nodes to be removed.
+     */
     function removeNodesInList(nodeList) {
         for (var i=0; nodeList && i<nodeList.length; i++) {
             removeNode(nodeList[i]);
         }
     }
 
+    /**
+     * Removes all immediate child nodes of the given node from the DOM.
+     * @param {Node} node - The node whose children are to be removed.
+     */
     function removeAllChildNodes (node) {
         while (node && node.hasChildNodes()) {
             node.removeChild(node.lastChild);
         }
     }
 
+    /**
+     * Validates if the given node is a TextNode.
+     * @param {Node} node - The node to be validated.
+     * @returns {boolean} - Returns true is the node is a Text Node, false
+     * otherwise
+     */
     function isTextNode(node) {
         return node && node.nodeType == Node.TEXT_NODE;
     }
 
+    /**
+     * Validates if the given key code is that of a Tab key.
+     * @param {numbet} code - The key code to be validated.
+     * @returns {boolean} - Returns true if it is a Tab key code, false
+     * otherwise.
+     */
     function isTabKey(code) {
         return code == 9;
     }
 
+    /**
+     * Validates if the given key code is that of a Return key.
+     * @param {numbet} code - The key code to be validated.
+     * @returns {boolean} - Returns true if it is a Return key code, false
+     * otherwise.
+     */
     function isReturnKey(code) {
         return code == 13;
     }
 
+    /**
+     * Validates if the given key code is that of a Delete key.
+     * @param {numbet} code - The key code to be validated.
+     * @returns {boolean} - Returns true if it is a Delete key code, false
+     * otherwise.
+     */
     function isDeleteKey(code) {
         return code == 8;
     }
 
-    // Returns all direct childrten of node after applying
-    // the filter function.
+
+    /**
+     * Gets all the children of a node that satisfy the conditions in the
+     * provided filter. If none match, an empty list is returned.
+     * @param {Node} node - The node whose children are to be extracted.
+     * @param {nodeFilterCallback} filter - A node filter callback that
+     * determines if this node should be included in the list.
+     * @returns {Array} - An Array containing the selected children.
+     */
     function getChildren(node, filter) {
         var children = [];
         node = node.firstChild;
@@ -626,6 +716,13 @@ var AutotagJS = (function() {
             return (level == 0 ? null : (level % 3 || 3));
         };
 
+        /**
+         * Returns the line this node is on.
+         *
+         * @param {Node} node - The node for which the line should be returned.
+         * @param {boolean=} walkTree - If set to true, the outermost line
+         *      is returned.
+         */
         var getLine = function(node, walkTree) {
             while (node && !isEditor(node) && (walkTree || !isLine(node))) {
                 node = node.parentNode;
@@ -744,10 +841,11 @@ var AutotagJS = (function() {
         var getTreeWalker = function(container, whatToShow, filter) {
             return document.createTreeWalker(
                 container,
-                whatToShow,
-                function(node) {
-                    return (!filter || filter(node)) ? NodeFilter.FILTER_ACCEPT
+                whatToShow, {
+                    acceptNode: function(node) {
+                        return (!filter || filter(node)) ? NodeFilter.FILTER_ACCEPT
                                                      : NodeFilter.FILTER_REJECT;
+                    }
                 },
                 false
             );
@@ -766,6 +864,14 @@ var AutotagJS = (function() {
             }
         };
 
+        /**
+         * Indents the provided line by one point.
+         *
+         * @param {Node} line - The line to indent.
+         * @param {string=} prefix - The list class prefix to apply.
+         * @param {boolean=} refresh - If set to false, the list style will
+         *   not be updated. Defaults to true.
+         */
         var indentLine = function(line, prefix, refresh) {
             if(!isListIndenter(line)) {
                 refresh = initObject(refresh, true);
@@ -1071,8 +1177,13 @@ var AutotagJS = (function() {
             updateListStyle(line, _blankListClassName);
         };
 
-        // Takes in the current node and sets the cursor location
-        // on the first child, if the child is a Text node.
+        /**
+         * Takes in the current node and sets the cursor location
+         * on the first child, if the child is a Text node.
+         *
+         * @param {Node} node - The node on which to set the caret.
+         * @param {number=} offset - The offest at which to set the caret.
+         */
         var setCaret = function(node, offset) {
             if (node) {
                 if (isTag(node)) {
@@ -1382,8 +1493,8 @@ var AutotagJS = (function() {
 
                         // If atg-submenu is specified (and no submenu exists),
                         // proceed to take action.
-                        } else if ((submenu = menu.dataset.atgSubmenu)) {
-
+                        } else if (menu.dataset.atgSubmenu) {
+                            submenu = menu.dataset.atgSubmenu;
                             // If atg-submenu eludes to palette, create it and
                             // display the submenu.
                             if (submenu.match(/Palette$/)) {
@@ -1400,7 +1511,9 @@ var AutotagJS = (function() {
                                     menu.dataset.atgPalette);
                             }
 
-                            formatSelection(target.dataset, menu.dataset.atgScope);
+                            /** @type {{atgScope}} **/
+                            var scope = menu.dataset.atgScope;
+                            formatSelection(target.dataset, scope);
                             hideSubmenus();
                         }
                     });
