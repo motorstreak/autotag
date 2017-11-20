@@ -253,10 +253,21 @@ var AutotagJS = (function() {
         return children;
     }
 
+    /**
+     * Returns all siblings of the given node.
+     * @param {Node} node - the node whose siblings are requested.
+     * @param {nodeFilterCallback} filter - A node filter callback that
+     * determines if this node should be included in the list.
+     * @returns {Array} - An Array containing sibling nodes.
+     */
     function getSiblings(node, filter) {
         return getChildren(node.parentNode, filter);
     }
 
+    /**
+     * Returns the current Range for the selection.
+     * @returns {Range} - The Range object for the current selection.
+     */
     function getRange() {
         var selection, range;
         if (typeof window.getSelection != 'undefined') {
@@ -268,11 +279,13 @@ var AutotagJS = (function() {
             selection.type != 'Control') {
             range = selection.createRange();
         }
-
         return range;
     }
 
-    // Clears all existing ranges and sets it to the provided one.
+    /**
+     * Clears all existing ranges and sets it to the provided one.
+     * @param {Range} - The new Range.
+     */
     function resetRange(range) {
         if (range) {
             if (window.getSelection) {
@@ -289,7 +302,13 @@ var AutotagJS = (function() {
         }
     }
 
-    // Returns true if the node is contained within the Range.
+    /**
+     * Determines if the given node lies within the selection.
+     * @param {Range} range - The Range to search within.
+     * @param {Node} node - The node to search for.
+     * @returns {boolean} - True if the node falls within the range, false
+     * otherwise.
+     */
     function rangeIntersectsNode(range, node) {
         var nodeRange;
         if (range.intersectsNode) {
@@ -307,25 +326,36 @@ var AutotagJS = (function() {
         }
     }
 
+    /**
+     * Splits the provided string and tokenizes at word boundary.
+     * Example:
+     *    splitAtWord("This is a sentence.")
+     *    => ["This", " ", "is", " ", "a", " ", "sentence", "."]
+     * @param {string} str - The string to split.
+     * @returns {Array} - Returns an array containing the parts of the string.
+     */
     function splitAtWord(str) {
         return str.match(/([^,\s\.]+)|[,\s\.]+/ig);
     }
 
+    /**
+     * Checks if the keycode is a format key (B, I & U for Bold, Italic and
+     * Underline).
+     * @param {number} code - The key code.
+     * @returns {boolean} - True if code is a format key.
+     */
+    function isFormatKey(code) {
+        return (code == 66 || code == 73 || code == 85);
+    }
+
     return function(editor, config) {
-        var activeSubmenu,
+        // Stores the last selection made in the editor.
+        var _selectionRange,
+            _editorMenubar,
 
-            // The line on which the input was captured. This is updated
-            // each time a keyup event is triggered.
-            inputLineNumber,
-
-            // Stores the last selection made in the editor.
-            selectionRange,
-
-            editorMenubar;
-
-        // Continues the current text style to the next line and
-        // across line breaks.
-        var continuingTagStyle = '';
+            // Continues the current text style to the next line and
+            // across line breaks.
+            _continuingTagStyle = '';
 
         // Initialize configuration.
         config = config || {};
@@ -347,6 +377,12 @@ var AutotagJS = (function() {
 
         var doOnMenuClick = config.onMenuClick || function() {};
 
+        /**
+         * Processes one or more atg-command instructions on the targets
+         * specified.
+         * @param {Object} target - A single Node or an array of nodes.
+         * @param {Array} commands - An array of autotag commands.
+         */
         var applyCommand = function(target, commands) {
             if (Array.isArray(target)) {
                 for (var i = 0; i < target.length; i++) {
@@ -382,7 +418,14 @@ var AutotagJS = (function() {
             }
         };
 
-        var applyInstruction = function(nodes, instruction, declarations) {
+        /**
+         * Process the autotag instructions on the given set of nodes.
+         * @param {Array} nodes - An array of nodes on which to apply the
+         * instrcution.
+         * @param {string} instruction - The autotag instruction to process.
+         * @param {Array} declarations - An array of CSS declarations to apply.
+         */
+        var processInstruction = function(nodes, instruction, declarations) {
             if (instruction == 'atgCommand') {
                 applyCommand(nodes, declarations);
             } else if (instruction == 'atgCallback') {
@@ -392,6 +435,13 @@ var AutotagJS = (function() {
             }
         };
 
+        /**
+         * Apply the declarations specified in the autotag instruction.
+         * @param {Object} target - A single Node or an array of nodes to apply
+         * the css declarations on.
+         * @param {string} instruction - The autotag instruction to process.
+         * @param {Array} declarations - An array of CSS declarations to apply.
+         */
         var applyStyle = function(target, instruction, declarations) {
             if (Array.isArray(target)) {
                 for (var i = 0; i < target.length; i++) {
@@ -417,8 +467,8 @@ var AutotagJS = (function() {
 
                     } else if (instruction.match(/^atg(Increment|Decrement)/)) {
                         curValue = curValue || getComputedStyle(target).getPropertyValue(property);
-                        var amount = getPixelAmount(value),
-                            curAmount = getPixelAmount(curValue);
+                        var amount = extractAmount(value),
+                            curAmount = extractAmount(curValue);
 
                         if (instruction == 'atgIncrement') {
                             curAmount += amount;
@@ -436,6 +486,11 @@ var AutotagJS = (function() {
             }
         };
 
+        /**
+         * Creates the palette submenu.
+         * @param {Node} menu - The menu to attach the submenu to.
+         * @param {string} type - The kind of palette to show.
+         */
         var createPalette = function(menu, type) {
             var palette = menu.getElementsByClassName(_submenuClassName)[0];
             if (palette) {
@@ -469,12 +524,15 @@ var AutotagJS = (function() {
                 }
                 createCrossedPaletteCell(row, type);
             }
-            activeSubmenu = palette;
+            _activeSubmenu = palette;
         };
 
-        // If the palette cell does not already have a style set,
-        // extract the same from the cell. Noe that we do this only on a need
-        // basis and hence this is not created at the time of cell creation.
+        /**
+         * Create the style to apply on the selection and set it on the palette
+         * cell.
+         * @param {Node} cell - The palette cell to set the selected color.
+         * @param {string} type - The palette type.
+         */
         var createPaletteCellAction = function(cell, type) {
             var dataset = cell.dataset;
             if (!dataset.atgSet) {
@@ -495,7 +553,12 @@ var AutotagJS = (function() {
             }
         };
 
-        // Created the palette cell that clears formatting.
+        /**
+         * Create the palette cell used to clear color/highlight formatting.
+         * @param {Node} row - The node corresponing to the row in which to
+         * create the 'clear' cell.
+         * @param {string} type - The palette type.
+         */
         var createCrossedPaletteCell = function(row, type) {
             var cell = createPaletteCell(row, 0, 0, 100);
             cell.classList.add(_paletteCellCrossClassName);
@@ -505,7 +568,17 @@ var AutotagJS = (function() {
             return cell;
         };
 
-        // Create the palette cells for a given row.
+        /**
+         * Create the palette cell on the given row with the provided hsla
+         * color values.
+         * @param {Node} row - The node corresponing to the row in which to
+         * create the cell.
+         * @param {number} h - The hue value of the cell color.
+         * @param {number} s - The saturaltion value of the cell color.
+         * @param {number} l - The luminance value of the cell color.
+         * @param {string} type - The palette type.
+         */
+
         var createPaletteCell = function(row, h, s, l, type) {
             var cell = document.createElement('div'),
                 hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
@@ -519,6 +592,13 @@ var AutotagJS = (function() {
             return row.appendChild(cell);
         };
 
+        /**
+         * Generates and returns the contrast color value for a given RGB value.
+         * The contrast color is used for the text color in the 'highlight'
+         * palette.
+         * @param {string} rgbStr - The RGB CSS color value.
+         * @returns {string} - Color value of the contrast color.
+         */
         var generateContrastColor = function(rgbStr) {
             var rgb = rgbStr.match(/[.?\d]+/g);
             for (var i=0; i < 3; i++) {
@@ -531,6 +611,11 @@ var AutotagJS = (function() {
             return (lumin > 0.179) ? '#000' : '#FFF';
         };
 
+        /**
+         * Creates the node corresponding to the palette row.
+         * @param {Node} palette - The palette node to add the new row to.
+         * @returns {Node} - The newly created palette row.
+         */
         var createPaletteRow = function(palette) {
             var row = document.createElement('div');
             row.className = _paletteRowClassName;
@@ -567,7 +652,16 @@ var AutotagJS = (function() {
             return line;
         };
 
-        // Every text node in the editor is wrapped in a Tag node.
+        /**
+         * Creates a node (Tag Node) containing the provided string or Text
+         * node and applies the provided style to it. If a style is not
+         * provided, set style to the last applied one. Every text node in
+         * the editor is wrapped in a Tag node.
+         * @param {Object} stringOrText - A string or Text node object to be
+         * wrapped as a Tag.
+         * @param {string} style - A string containing CSS style declarations.
+         * @returns {Node} - The newly create Tag node.
+         */
         var createTagNode = function(stringOrText, style) {
             var tag = document.createElement(_autoWordTag),
                 text;
@@ -581,10 +675,15 @@ var AutotagJS = (function() {
                 tag.appendChild(text);
             }
 
-            tag.setAttribute('style', style || continuingTagStyle);
+            tag.setAttribute('style', style || _continuingTagStyle);
             return tag;
         };
 
+        /**
+         * Create a new Text Node with the provided string.
+         * @param {string} str - The string to be converted to Text Node.
+         * @returns {Node} - The newly created Text node.
+         */
         var createTextNode = function(str) {
             // Firefox hack - without this, firefox will ignore the leading
             // space in the element causing all sorts of headache.
@@ -592,6 +691,12 @@ var AutotagJS = (function() {
             return document.createTextNode(str);
         };
 
+        /**
+         * Corrects the range object to point to a text node if it is on
+         * a Tag or Line node. If on a Tag, set caret at the begining of the
+         * text node. If on a Line, set caret on the last Tag on the line, at
+         * the end of the contained Text node.
+         */
         var fixCaret = function() {
             var range = getRange();
             var node = range.endContainer;
@@ -607,7 +712,11 @@ var AutotagJS = (function() {
             }
         };
 
-        var fixEditor = function(clear) {
+        /**
+         * If the Editor Node has no Lines, create a new one. If there are one
+         * or more lines, remove the empty ones.
+         */
+        var fixEditor = function() {
             var lines = getChildren(editor, isLine);
             // If editor is empty, add a new break node.
             if (lines.length == 0) {
@@ -621,49 +730,69 @@ var AutotagJS = (function() {
             }
         };
 
-        var fixLine = function(line, walkTree) {
-            var tags = getChildren(line, isTag);
-            for(var i=0; i<tags.length; i++) {
-                if (isBlankNode(tags[i])) {
-                    removeNode(tags[i]);
-                }
-            }
+        // /**
+        //  * Fixes Lines by removing Blank Tags.
+        //  * @param {Node} line - The Line to fix.
+        //  * @param {boolean=} deep  - If set to true (default)
+        //  */
+        // var fixLine = function(line, deep) {
+        //     var tags = getChildren(line, isTag);
+        //     for(var i=0; i<tags.length; i++) {
+        //         if (isBlankNode(tags[i])) {
+        //             removeNode(tags[i]);
+        //         }
+        //     }
+        //
+        //     var lines = getChildren(line, isLine);
+        //     for (i=0; deep && i<lines.length; i++) {
+        //         fixLine(lines[i], deep);
+        //     }
+        //
+        //     fixEditor();
+        // };
 
-            var lines = getChildren(line, isLine);
-            for (i=0; walkTree && i<lines.length; i++) {
-                fixLine(lines[i], walkTree);
-            }
+        // var fixText = function(text) {
+        //     if (isTextNode(text) && !isTag(text.parentNode)) {
+        //         var tag = document.createElement(_autoWordTag);
+        //         text.parentNode.insertBefore(tag, text);
+        //         tag.appendChild(text);
+        //     }
+        // };
 
-            fixEditor();
-        };
-
-        var fixText = function(text) {
-            if (isTextNode(text) && !isTag(text.parentNode)) {
-                var tag = document.createElement(_autoWordTag);
-                text.parentNode.insertBefore(tag, text);
-                tag.appendChild(text);
-            }
-        };
-
+        /**
+         * Formats selection based on the instructions provided.
+         * @param {Dataset} dataset - Dataset containing autotagjs instructions.
+         * @param {string} scope - The scope of the instrcution (line,
+         * selection or other).
+         */
         var formatSelection = function(dataset, scope) {
-            if (selectionRange && dataset) {
+            if (_selectionRange && dataset) {
                 var nodes = getSelectionNodes(scope);
 
                 for (var key in dataset) {
                     if (dataset.hasOwnProperty(key)) {
-                        applyInstruction(nodes, key, dataset[key].split(/\s*;\s*/));
+                        processInstruction(nodes, key,
+                            dataset[key].split(/\s*;\s*/));
                     }
                 }
 
                 // Ensure that the selection does not disapper after we have
                 // applied formatting.
-                resetRange(selectionRange);
+                resetRange(_selectionRange);
             }
         };
 
+        /**
+         * Returns the nodes (Tags and/or Lines) included in the current
+         * selection, based on scope. The scope 'selection' may include both
+         * Tags and Lines, while scope 'line' will only include lines. The
+         * default is to include only Tags.
+         * @param {string} scope - The scope of nodes to be returned.
+         * @returns {Array} - Returns an array of nodes.
+         */
         var getSelectionNodes = function(scope) {
             var nodes;
-            var lines = getLinesInRange(selectionRange);
+            var lines = getLinesInRange(_selectionRange);
 
             switch (scope) {
                 // Apply the formatting only to the lines in the selection.
@@ -671,7 +800,7 @@ var AutotagJS = (function() {
                     // Exclude parent lines in selection if multiple lines
                     // are present.
                     if (lines.length >  1 &&
-                        isLine(selectionRange.commonAncestorContainer)) {
+                        isLine(_selectionRange.commonAncestorContainer)) {
                         lines.shift();
                     }
                     nodes = lines;
@@ -679,7 +808,7 @@ var AutotagJS = (function() {
 
                 // Apply formatting to both tags and lines.
                 case 'selection':
-                    var tags = getTagsInRange(selectionRange),
+                    var tags = getTagsInRange(_selectionRange),
                         activeTags = getTagsInLine(getActiveLine());
                     if (lines.length > 1 || tags.length == activeTags.length) {
                         nodes = tags.concat(lines);
@@ -690,23 +819,38 @@ var AutotagJS = (function() {
 
                 // Else, apply only to tags.
                 default:
-                    nodes = getTagsInRange(selectionRange);
+                    nodes = getTagsInRange(_selectionRange);
             }
 
             nodes = nodes.filter(Boolean);
             return nodes;
         };
 
-        // The line on which the selection starts (and ends if collapsed).
+        /**
+         * The line on which the current selection starts (and ends if
+         * collapsed).
+         * @returns {Node} - The Line node.
+         */
+
         var getActiveLine = function() {
-            var range = selectionRange;
+            var range = _selectionRange;
             return range && getLine(range.startContainer, false);
         };
 
+        /**
+         * Returns the first line in the Editor.
+         * @returns {Node} - The Line node.
+         */
         var getFirstLine = function() {
             return editor.querySelector(_autoLineTag + ':first-child');
         };
 
+        /**
+         * Returns the index value of the indentation of the given line.. The
+         * index value is a number between 0 & 2.
+         * @param {Node} line - The Line node.
+         * @returns {number} - The indentation index.
+         */
         var getIndentationIndex = function(line) {
             var level = 0;
             while ((line = line.parentNode) && !isEditor(line)) {
@@ -718,7 +862,6 @@ var AutotagJS = (function() {
 
         /**
          * Returns the line this node is on.
-         *
          * @param {Node} node - The node for which the line should be returned.
          * @param {boolean=} walkTree - If set to true, the outermost line
          *      is returned.
@@ -730,25 +873,21 @@ var AutotagJS = (function() {
             return isLine(node) ? node : getFirstLine();
         };
 
+        /**
+         * Returns the lines in the given range.
+         * @param {Range} range - A range object.
+         * @returns {Array} - The Lines in the given range.
+         */
         var getLinesInRange = function(range) {
             return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isLine);
         };
 
-        var getLineNumber = function(line) {
-            line = initObject(line, getActiveLine());
-
-            var lineNumber;
-            if (isLine(line)) {
-                lineNumber = 1;
-                while ((line = line.previousSibling)) {
-                    lineNumber++;
-                }
-            }
-            return lineNumber;
-        };
-
-        // Gets the list prefix for the given line. If no prefix is
-        // found, go check ancestors.
+        /**
+         * Gets the list style prefix for the given indented line. If no prefix
+         * is found, check ancestors. The default Editor prefix is 'atg';
+         * @param {Node} line - The Line node to get List prefix.
+         * @returns {string} - The indentation style prefix.
+         */
         var getListPrefix = function(line) {
             if (isEditor(line)) {
                 return 'atg';
@@ -759,6 +898,16 @@ var AutotagJS = (function() {
             return (prefix ? prefix : getListPrefix(line.parentNode));
         };
 
+        /**
+         * Gets the nodes collected by the TreeWalker after applying the
+         * filter. If a limit value is provided, only that many nodes are
+         * returned.
+         * @param {TreeWalker} walker - The TreeWalker object.
+         * @param {nodeFilterCallback=} filter - An optional callback filter.
+         * @param {number=} limit - A number indicating the maximum number of
+         * nodes to be returned.
+         * @returns {Array} - The list of nodes from the TreeWalker.
+         */
         var getNodesFromTree = function(walker, filter, limit) {
             var nodes = [];
             do {
@@ -770,15 +919,50 @@ var AutotagJS = (function() {
             return nodes;
         };
 
+        /**
+         * Returns nodes in a given range.
+         * @param {Range} range - A Range object.
+         * @param {NodeFilter} nodeFilter - NodeFilter determining what to show.
+         * @param {nodeFilterCallback} filter - A filter to apply.
+         * @return {Array} - Array of nodes.
+         */
         var getNodesInRange = function(range, nodeFilter, filter) {
             var walker = getRangeWalker(range, nodeFilter, filter);
             return getNodesFromTree(walker, filter);
         };
 
-        var getPixelAmount = function(value) {
-            return parseInt(value && value.match(/^[-]*[0-9]+/)[0] || 0);
+        /**
+         * Returns the parent menu this node belongs to. The parent may also
+         * be a submenu.
+         * @param {Node} node - A node in the menu.
+         * @returns {Node} - The parent menu of the given node.
+         */
+        var getParentMenu = function(node) {
+            while(!node.classList.contains(_submenuClassName) &&
+                !node.classList.contains(_menuClassName)) {
+                node = node.parentNode;
+
+                // Should not happen! Ever.
+                if (isEditor(node)) return;
+            }
+            return node;
         };
 
+        /**
+         * Returns the amount value from a string with amount and unit.
+         * Example: extractAmount('32px') => 32
+         * @param {string} value - The value from which to extract amount.
+         * @returns {string} - The extracted amount.
+         */
+        var extractAmount = function(value) {
+            return parseInt(value && value.match(/^[-+]?\d*\.?\d+/)[0] || 0);
+        };
+
+        /**
+         * Returns the containers and offsets of the given range as an object.
+         * @param {Range} range - A Range.
+         * @returns {Object} - The start and end containers with their offsets.
+         */
         var getRangeContainersAndOffsets = function(range) {
             return {
                 startContainer : range.startContainer,
@@ -788,11 +972,19 @@ var AutotagJS = (function() {
             };
         };
 
+        /**
+         * Returns a TreeWalker object that traverses the nodes in a Range.
+         * @param {Range} range - The Range object to walk.
+         * @param {NodeFilter} whatToShow - NodeFilter determining what to show.
+         * @param {nodeFilterCallback} ancestorFilter - A filter used to
+         * identify the right common ancestor node. For example, use the
+         * Line node if collecting Tag nodes.
+         * @returns {TreeWalker} - The TreeWalker object for this traversal.
+         */
         var getRangeWalker = function(range, whatToShow, ancestorFilter) {
             ancestorFilter =  ancestorFilter || isTag;
             var ancestor = range.commonAncestorContainer ;
 
-            // The ancestor node should be
             while(!ancestorFilter(ancestor) &&
                 !isLine(ancestor) && !isEditor(ancestor)) {
                 ancestor = ancestor.parentNode;
@@ -803,18 +995,38 @@ var AutotagJS = (function() {
             });
         };
 
+        /**
+         * Returns the Line node that is a direct child of Editor and is an
+         * ancestor of the given node.
+         * @param {Node} node - The node to get the root Line for.
+         * @returns {Node} - A Line which is the root.
+         */
         var getRootLine = function(node) {
             var range = getRange();
             node = initObject(node, range && range.endContainer);
             return getLine(node, true);
         };
 
+        /**
+         * Gets the property values of the CSS style declaration of the node.
+         * @param {Node} node - The node to get the style property.
+         * @param {string} property - The name of the css property whose value
+         * needs to be extracted.
+         * @returns {DOMString} - The value of the property.
+         */
         var getStylePropertyValue = function(node, property) {
             return node &&
                 property &&
                 window.getComputedStyle(node, null).getPropertyValue(property);
         };
 
+        /**
+         * Returns the asscociated Tag for the given node. If the node is a
+         * Text Node, return its parent node, which in all probabality is
+         * a Tag. If the node is a Line, return the first Tag in the line.
+         * @param {Node} node - A Node.
+         * @returns {Node} - The Tag node.
+         */
         var getTag = function(node) {
             if (isTextNode(node)) {
                 return node.parentNode;
@@ -825,6 +1037,14 @@ var AutotagJS = (function() {
             }
         };
 
+        /**
+         * Get all the Tags in the given line and optionally all descendant
+         * lines.
+         * @param {Node} line - A Line node.
+         * @param {boolean=} deep - If set to true, get Tags from descendant
+         * lines, else (default) only Tags on the given line.
+         * @returns {Array} - An array of Tag nodes.
+         */
         var getTagsInLine = function(line, deep) {
             if (deep) {
                 var walker = getTreeWalker(line, NodeFilter.SHOW_ELEMENT);
@@ -834,10 +1054,24 @@ var AutotagJS = (function() {
             }
         };
 
+        /**
+         * Returns all the Tag nodes in the given range.
+         * @param {Range} range - A Range object.
+         * @returns {Array} - An array of Tag Nodes from the given Range.
+         */
         var getTagsInRange = function(range) {
             return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isTag);
         };
 
+        /**
+         * Returns a TreeWalker object.
+         * @param {Node} container - The root node for the traversal.
+         * @param {unsigned long} whatToShow - Bitmask formed from combining
+         * NodeFilter properties.
+         * @param {nodeFilterCallback} filter - A filter to apply on node
+         * selection.
+         * @returns {TreeWalker} - The TreeWalker object.
+         */
         var getTreeWalker = function(container, whatToShow, filter) {
             return document.createTreeWalker(
                 container,
@@ -851,12 +1085,15 @@ var AutotagJS = (function() {
             );
         };
 
-        var gotoLine = function(line) {
-            if (isLine(line)) {
-                setCaret(line.querySelector(_autoWordTag + ':first-child'), 0);
-            }
-        };
+        // var gotoLine = function(line) {
+        //     if (isLine(line)) {
+        //         setCaret(line.querySelector(_autoWordTag + ':first-child'), 0);
+        //     }
+        // };
 
+        /**
+         * Hides all submenus.
+         */
         var hideSubmenus = function() {
             var submenus = menubar.querySelectorAll('.' + _submenuClassName);
             for(var i=0; i<submenus.length; i++) {
@@ -877,13 +1114,16 @@ var AutotagJS = (function() {
                 refresh = initObject(refresh, true);
                 prefix = initObject(prefix, getListPrefix(line));
 
-                var selection = getRangeContainersAndOffsets(selectionRange);
+                var selection = getRangeContainersAndOffsets(_selectionRange);
 
-                // The second check (isEdi..) is required to acomodate Firefox which
-                // appends the next lines class to the top line on a delete.
-                if (isBlankList(line) || !isEditor(line.parentNode) &&
-                    isRootList(line)) {
-                    updateList(line, prefix, getIndentationIndex(line), refresh);
+                // The second check is required to acomodate Firefox which
+                // appends the current lines classname to the previous line on
+                // delete.
+                if (isBlankList(line) ||
+                    !isRootLine(line) && isRootList(line)) {
+
+                    updateList(line, prefix, getIndentationIndex(line),
+                        refresh);
                 } else {
                     var rootLine = getRootLine(line),
                         anchor = line.previousSibling;
@@ -893,9 +1133,10 @@ var AutotagJS = (function() {
                         line.parentNode.insertBefore(anchor, line);
                     }
 
-                    initList(anchor);
                     anchor.appendChild(line);
-                    updateList(line, prefix, getIndentationIndex(line), refresh);
+                    initList(anchor);
+                    updateList(line, prefix, getIndentationIndex(line),
+                        refresh);
 
                     // Now make line's children it's peer.
                     var children = getChildren(line, isLine);
@@ -907,17 +1148,31 @@ var AutotagJS = (function() {
             }
         };
 
-        // Enable every root line to be list capable.
+        /**
+         * Prepares the given Line node for use.
+         * @param {Node} line - The root line node.
+         * @returns {boolean} - True if the list clas name was applied.
+         */
         var initList = function(line) {
-            if (isEditor(line.parentNode)) {
+            if (isRootLine(line)) {
                 updateListStyle(line, _defaultListClassName);
                 return true;
             }
 
-            line.classList.remove(_defaultListClassName);
+            if (line.classList.contains(_defaultListClassName)) {
+                console.log(line.classList);
+                line.classList.remove(_defaultListClassName);
+            }
             return false;
         };
 
+        /**
+         * Checks if the given node is a Blank Node. A Blank Node is one that
+         * has no text content or has only zero length characters.
+         * @param {Node} node - The node to check.
+         * @returns {boolean} - True if node has no text content, or if it
+         * contains zero length characters.
+         */
         var isBlankNode = function(node) {
             if (node) {
                 var str = node.textContent;
@@ -925,20 +1180,34 @@ var AutotagJS = (function() {
             }
         };
 
-        var isBlankLine = function(node) {
-            return isLine(node) && isBlankNode(node);
+        /**
+         * Checks if the given Line is a blank line. A blank line is a node
+         * that is a Blank Node.
+         * @param {Node} line - The Line node to check.
+         * @returns {boolean} - True if the node is a line and is a Blank Node.
+         */
+        var isBlankLine = function(line) {
+            return isLine(line) && isBlankNode(line);
         };
 
+        /**
+         * Checks if the line is a Blank List. A Blank List is one that does
+         * not have a list indicator (e.g bullet, numbering etc) but is still
+         * part of the List.
+         * @param {Node} line - The Line node to check.
+         * @returns {boolean} - True if the line is a Blank List.
+         */
         var isBlankList = function(line) {
             return line && line.classList.contains(_blankListClassName);
         };
 
+        /**
+         * Checks if the node is the Editor.
+         * @param {Node} node - The node to check.
+         * @returns {boolean} - True if the node is the Editor node.
+         */
         var isEditor = function(node) {
             return node && node.isSameNode(editor);
-        };
-
-        var isFormatKey = function(code) {
-            return (code == 66 || code == 73 || code == 85);
         };
 
         var isLine = function(node) {
@@ -950,6 +1219,10 @@ var AutotagJS = (function() {
         var isListIndenter = function(line) {
             return line && !isEditor(line.parentNode) &&
                 !line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
+        };
+
+         var isRootLine = function(node) {
+            return isLine(node) && isEditor(node.parentNode);
         };
 
         var isRootList = function(line) {
@@ -998,8 +1271,8 @@ var AutotagJS = (function() {
                 refresh = initObject(refresh, true);
                 var parentLine = line.parentNode;
 
-                if (!initList(line)) {
-                    var selection = getRangeContainersAndOffsets(selectionRange);
+                if (!isEditor(line.parentNode)) {
+                    var selection = getRangeContainersAndOffsets(_selectionRange);
                     prefix = getListPrefix(line);
 
                     // Now make line's children the anchor's children.
@@ -1057,9 +1330,6 @@ var AutotagJS = (function() {
                 var numparts = parts.length;
 
                 if (numparts > 1) {
-                    // Prevent caret jump in Safari by hiding the original node.
-                    // refTag.style.display = 'none';
-
                     var newTag, length;
                     for (var i = 0; i < numparts; i++) {
                         newTag = createTagNode(
@@ -1168,11 +1438,16 @@ var AutotagJS = (function() {
         var saveSelectionRange = function() {
             var range = getRange();
             if (range && range.startContainer.nodeType != 9) {
-                selectionRange = getRange() || selectionRange;
-                return selectionRange;
+                _selectionRange = getRange() || _selectionRange;
+                return _selectionRange;
             }
         };
 
+        /**
+         * Updates the Line's list to be a blank list (one without the list
+         * indicator).
+         * @param {Node} line - The Line to update to blank list.
+         */
         var setBlankList = function(line) {
             updateListStyle(line, _blankListClassName);
         };
@@ -1205,37 +1480,66 @@ var AutotagJS = (function() {
             if (range) {
                 var tag = getTagsInRange(range).pop();
                 if (tag) {
-                    continuingTagStyle = tag.getAttribute('style');
+                    _continuingTagStyle = tag.getAttribute('style');
                 }
             }
         };
 
-        var setListStyle = function(line, prefix, level, force) {
-            if (prefix && level && (force || !isBlankList(line))) {
-                updateListStyle(line, prefix + "-list-" + level);
+        /**
+         * Generate the the list style CSS class name and updates the
+         * Line with it. If 'overrideStyle' is true, overrides the line's
+         * existing List style.
+         * @param {Node} line - The Line to update list style.
+         * @param {string} stylePrefix - The list's style prefix string.
+         * @param {number} indentIndex - The indentation index of the line.
+         * @param {boolean} overrideStyle - Overrides the list style of the
+         */
+        var setListStyle = function(line, stylePrefix, indentIndex,
+                overrideStyle) {
+            if (stylePrefix && indentIndex &&
+                (overrideStyle || !isBlankList(line))) {
+                updateListStyle(line, stylePrefix + "-list-" + indentIndex);
             }
         };
 
-        var setListCounter = function(line, prefix, level) {
+        /**
+         * Generate the list counter style and updates the line with it.
+         * @param {Node} line - The Line to update list style.
+         * @param {string} stylePrefix - The list's style prefix string.
+         * @param {number} indentIndex - The indentation index of the line.
+         */
+        var setListCounter = function(line, stylePrefix, indentIndex) {
             line.parentNode.style.setProperty(
-                'counter-reset', prefix + "-counter-" + level);
+                'counter-reset', stylePrefix + "-counter-" + indentIndex);
             line.style.setProperty(
-                'counter-reset', prefix + "-counter-" + (level + 1));
+                'counter-reset', stylePrefix + "-counter-" + (indentIndex + 1));
         };
 
-        var setSelection = function(obj) {
+        /**
+         * Sets the selection range to the containers and offsets provided in
+         * the selection object.
+         * @param {Object} obj - The object with the containers and offsets.
+         * @param {Node} obj.startContainer - The selection start container.
+         * @param {Node} obj.endContainer - The selection end container.
+         * @param {number=} obj.startOffset - The start container's offset. If
+         * not provided, it is defaulted to 0 (i.e begining of container).
+         * @param {number=} obj.endOffset - The end container's offset. If not
+         * provided, it is defaulted to the length of the container.
+         * @returns {Range} - The newly created Range.
+         */
+        var setSelection = function(selection) {
             var range,
-                startNode = obj.startContainer,
-                endNode = obj.endContainer;
+                startNode = selection.startContainer,
+                endNode = selection.endContainer;
 
             if (startNode && endNode) {
-                var startOffset = initObject(obj.startOffset, 0),
-                    endOffset = initObject(obj.endOffset, endNode.length);
+                var startOffset = initObject(selection.startOffset, 0),
+                    endOffset = initObject(selection.endOffset, endNode.length);
                 range = document.createRange();
                 try {
                     range.setStart(startNode, startOffset);
                     range.setEnd(endNode, endOffset);
-                    selectionRange = range;
+                    _selectionRange = range;
                 } catch (err) {
                     // Chrome does not like setting an offset of 1
                     // on an empty node.
@@ -1245,6 +1549,12 @@ var AutotagJS = (function() {
             return range;
         };
 
+        /**
+         * Updates the indentation of the Line based on the key pressed.
+         * @param {number} keyCode - The key pressed.
+         * @param {Node} line - The Line to update indentation.
+         * @param {boolean} shifted - Indicates if the Shift key is pressed.
+         */
         var updateIndentation = function(keyCode, line, shifted) {
             if (isTabKey(keyCode)) {
                 if (shifted) {
@@ -1264,15 +1574,35 @@ var AutotagJS = (function() {
             return true;
         };
 
+        /**
+         * Checks if the given Tag is the first one on the line.
+         * @param {Node} tag - The Tag to check.
+         * @param {number} offset - The offset to check in addition.
+         * @returns {boolean} - True if this is the first node in the line.
+         */
         var isBeginingOfLine = function(tag, offset) {
             return (isBlankNode(tag) || offset == 0) &&
                 !tag.previousSibling;
         };
 
+        /**
+         * Checks if the given tag is the last in the given line and the offset
+         * points to the end of the line.
+         * @param {Node} tag - The tag to check.
+         * @param {number} offset - The offset within the tag.
+         * @returns {boolean} - True if end of line, false otherwise.
+         */
         var isEndOfLine = function(tag, offset) {
             return !tag.nextSibling && offset == tag.textContent.length;
         };
 
+        /**
+         * If a Tab or Delete key is pressed, either update the indendation
+         * of the line (in case of a list) or process deletion as usual.
+         * @param {Range} range - The range for deletion.
+         * @param {number} keyCode - The numeric code of the key pressed.
+         * @param {boolean} shifted - Indicates if the shift key is pressed.
+         */
         var processTabOrDeleteKey = function(range, keyCode, shifted) {
             if (range.collapsed) {
                 var node = range.startContainer,
@@ -1296,6 +1626,11 @@ var AutotagJS = (function() {
             }
         };
 
+        /**
+         * Deletes the character proceeeding the caret.
+         * @param {Node} tag - The Tag node from which to delete the character.
+         * @param {number} offset - The location of the character.
+         */
         var deleteChar = function(tag, offset) {
             var str = tag.textContent,
                 textNode = tag.firstChild;
@@ -1319,6 +1654,10 @@ var AutotagJS = (function() {
             }
         };
 
+        /**
+         * Deletes the given Line.
+         * @param {Node} line - The line to delete.
+         */
         var deleteLine = function(line) {
             var prevLine = line.previousSibling;
             if (prevLine && isLine(prevLine)) {
@@ -1348,6 +1687,10 @@ var AutotagJS = (function() {
             }
         };
 
+        /**
+         * Deletes the Tags and Lines in the current selection.
+         * @param {Range} range - The selection range.
+         */
         var deleteSelection = function(range) {
             removeNodesInList(getTagsInRange(range));
             var lines = getLinesInRange(range);
@@ -1359,6 +1702,10 @@ var AutotagJS = (function() {
             fixEditor();
         };
 
+        /**
+         * Proceeds with performing a delete operation.
+         * @param {Range} range - The Range on which to perform the delete.
+         */
         var processDelete = function(range) {
             var offset = range.startOffset,
                 container = range.startContainer;
@@ -1387,15 +1734,29 @@ var AutotagJS = (function() {
             }
         };
 
-        // Updates the list style and counter for the given line.
-        var updateList = function(line, prefix, level, force) {
-            force = initObject(force, true);
+        /**
+         * Updates the list style and counter for the given line. If
+         * 'overrideStyle' is true, overrides the line's existing List style.
+         * @param {Node} line - The Line whose list is to be updated.
+         * @param {string} stylePrefix - The list's style prefix string.
+         * @param {number} indentIndex - The indentation index of the line.
+         * @param {boolean=} overrideStyle - Overrides the list style of the
+         * given line if true (default).
+         */
+        var updateList = function(line, stylePrefix, indentIndex, overrideStyle) {
+            overrideStyle = initObject(overrideStyle, true);
             if (!initList(line)) {
-                setListCounter(line, prefix, level);
-                setListStyle(line, prefix, level, force);
+                setListCounter(line, stylePrefix, indentIndex);
+                setListStyle(line, stylePrefix, indentIndex, overrideStyle);
             }
         };
 
+        /**
+         * Updates the list by replacing the existing list class with the
+         * one provided.
+         * @param {Node} line - The Line node whose list style to update.
+         * @param {string} klass - The list style CSS classname to update with.
+         */
         var updateListStyle = function(line, klass) {
             line.className =
                 line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
@@ -1427,7 +1788,8 @@ var AutotagJS = (function() {
                 fixCaret();
             }
 
-            inputLineNumber = getLineNumber();
+            // inputLineNumber = getLineNumber();
+
             var range = getRange();
 
             if (isDeleteKey(keyCode) || isTabKey(keyCode)) {
@@ -1457,31 +1819,21 @@ var AutotagJS = (function() {
         document.addEventListener('selectionchange', debounce(function(e) {
             if (saveSelectionRange()) {
                 setContinuingTagStyle();
-                doAfterSelection(getTagsInRange(selectionRange));
+                doAfterSelection(getTagsInRange(_selectionRange));
             }
         }, 200));
 
-        var getParentMenu = function(node) {
-            while(!node.classList.contains(_submenuClassName) &&
-                !node.classList.contains(_menuClassName)) {
-                node = node.parentNode;
-
-                // Should not happen! Ever.
-                if (isEditor(node)) return;
-            }
-            return node;
-        };
 
         return {
             attachMenubar: function(menubar) {
                 if (menubar) {
-                    editorMenubar = menubar;
-                    editorMenubar.addEventListener('click', function(e) {
+                    _editorMenubar = menubar;
+                    _editorMenubar.addEventListener('click', function(e) {
                         hideSubmenus();
 
                         // Ensure that the selection does not disapper after we have
                         // applied formatting.
-                        resetRange(selectionRange);
+                        resetRange(_selectionRange);
 
                         var target = e.target;
                         var menu = getParentMenu(target);
