@@ -1335,6 +1335,7 @@ var AutotagJS = (function() {
                         newTag = createTagNode(
                             parts[i], refTag.getAttribute('style'));
                         newTag.style.removeProperty('display');
+                        clearNodeStyle(newTag);
 
                         decorator(newTag, newTag.firstChild.nodeValue);
                         refTag.parentNode.insertBefore(newTag, refTag.nextSibling);
@@ -1351,6 +1352,7 @@ var AutotagJS = (function() {
 
                 } else {
                     refTag.style.removeProperty('display');
+                    clearNodeStyle(refTag);
                     decorator(refTag, refTag.firstChild.nodeValue);
                 }
             } else if (isTag(container) && isTextNode(container.firstChild)) {
@@ -1761,6 +1763,13 @@ var AutotagJS = (function() {
             line.className =
                 line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
             line.classList.add(klass);
+        };
+
+        var clearNodeStyle = function(node, force) {
+            // Clear up the style attribute.
+            if (force || !node.getAttribute('style')) {
+                node.removeAttribute('style');
+            }
         };
 
         editor.addEventListener('dblclick', function(e) {
