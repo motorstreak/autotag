@@ -730,35 +730,6 @@ var AutotagJS = (function() {
             }
         };
 
-        // /**
-        //  * Fixes Lines by removing Blank Tags.
-        //  * @param {Node} line - The Line to fix.
-        //  * @param {boolean=} deep  - If set to true (default)
-        //  */
-        // var fixLine = function(line, deep) {
-        //     var tags = getChildren(line, isTag);
-        //     for(var i=0; i<tags.length; i++) {
-        //         if (isBlankNode(tags[i])) {
-        //             removeNode(tags[i]);
-        //         }
-        //     }
-        //
-        //     var lines = getChildren(line, isLine);
-        //     for (i=0; deep && i<lines.length; i++) {
-        //         fixLine(lines[i], deep);
-        //     }
-        //
-        //     fixEditor();
-        // };
-
-        // var fixText = function(text) {
-        //     if (isTextNode(text) && !isTag(text.parentNode)) {
-        //         var tag = document.createElement(_autoWordTag);
-        //         text.parentNode.insertBefore(tag, text);
-        //         tag.appendChild(text);
-        //     }
-        // };
-
         /**
          * Formats selection based on the instructions provided.
          * @param {Dataset} dataset - Dataset containing autotagjs instructions.
@@ -1085,12 +1056,6 @@ var AutotagJS = (function() {
             );
         };
 
-        // var gotoLine = function(line) {
-        //     if (isLine(line)) {
-        //         setCaret(line.querySelector(_autoWordTag + ':first-child'), 0);
-        //     }
-        // };
-
         /**
          * Hides all submenus.
          */
@@ -1120,7 +1085,7 @@ var AutotagJS = (function() {
                 // appends the current lines classname to the previous line on
                 // delete.
                 if (isBlankList(line) ||
-                    !isRootLine(line) && isRootList(line)) {
+                    !isRootLine(line) && isListRoot(line)) {
 
                     updateList(line, prefix, getIndentationIndex(line),
                         refresh);
@@ -1210,32 +1175,65 @@ var AutotagJS = (function() {
             return node && node.isSameNode(editor);
         };
 
+        /**
+         * Checks if the provided node is a Line.
+         * @param {Node} node - The node to check.
+         * @returns {boolean} - True if the ndoe is Line.
+         */
         var isLine = function(node) {
             return node &&
                 node.tagName == _autoLineTag.toUpperCase() &&
                 !isEditor(node);
         };
 
+        /**
+         * Checks if the given Line is indented.
+         * @param {Node} line - The Line to check for indentation.
+         * @returns {boolean} - True if the Line is indented.
+         */
         var isListIndenter = function(line) {
             return line && !isEditor(line.parentNode) &&
                 !line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
         };
 
-         var isRootLine = function(node) {
-            return isLine(node) && isEditor(node.parentNode);
+        /**
+         * Checks if the provided Line is a direct child of Editor.
+         * @param {Node} line - The Line to check.
+         * @returns {boolean} - True if the Line is a Roor Line.
+         */
+        var isRootLine = function(line) {
+            return isLine(line) && isEditor(line.parentNode);
         };
 
-        var isRootList = function(line) {
+        /**
+         * Checks if the given Line has is a list root. A line is a Root list
+         * if it has the default List class name.
+         * @param {Node} line - The Line to check.
+         * @returns {boolean} - True if the Line is a Root Line.
+         */
+        var isListRoot = function(line) {
             return line && line.classList.contains(_defaultListClassName);
         };
 
+        /**
+         * Checks if the given node is a Tag node.
+         * @param {Node} node - The node to check.
+         * @returns {boolean} - True if the node is a Tag node.
+         */
         var isTag = function(node) {
             return node && node.tagName == _autoWordTag.toUpperCase();
         };
 
-        var insertTab = function(node, index, shifted) {
+        /**
+         * Inserts a tab in a Text or Tag node at the provided offset.
+         * @param {Node} node - The Text or Tag node to insert the Tab.
+         * @param {number} index - The position to insert the Tab.
+         * @returns {boolean} - Returns true on success (tab is inserted),
+         * false otherwise.
+         */
+        var insertTab = function(node, index) {
             var tag = isTextNode(node) ? node.parentNode : node;
-            if (isTag(tag) && !shifted) {
+            if (isTag(tag)) {
                 var content = tag.textContent,
                     parent = tag.parentNode,
                     sibling = tag.nextSibling;
@@ -1266,6 +1264,12 @@ var AutotagJS = (function() {
             return false;
         };
 
+        /**
+         * Outdents the given line and updates its list.
+         * @param {Node} line - The Line node to outdent.
+         * @param {boolean=} refresh - If set to true, the lists's style
+         * is overwritten.
+         */
         var outdentLine = function(line, refresh) {
             if(!isListIndenter(line)) {
                 refresh = initObject(refresh, true);
@@ -1303,6 +1307,19 @@ var AutotagJS = (function() {
                     }
 
                     setSelection(selection);
+                }
+            }
+        };
+
+        var processInputV2 = function() {
+            var range = getRange();
+            var container = range.endContainer;
+
+            if (isTextNode(container)) {
+                var value = container.nodeValue;
+                if (value.match(/^\u200b/)) {
+                    container.nodeValue = value.replace(/\u200b/g, '');
+                    range = setCaret(container, range.endOffset + 1);
                 }
             }
         };
@@ -1360,6 +1377,10 @@ var AutotagJS = (function() {
             }
         };
 
+        /**
+         * Inserts the pasted text into the Editor and formats it for editing.
+         * @param {Event} e - The paste event.
+         */
         var processPastedInput = function(e) {
             var content;
             if (e.clipboardData) {
@@ -1372,6 +1393,7 @@ var AutotagJS = (function() {
 
             var container = getRange().endContainer;
 
+            // TODO : Does not do anything. Test and remove.
             // In IE, selecting full text (Ctrl + A) will position the caret
             // on the editor element.
             if (isEditor(container)) {
@@ -1390,6 +1412,12 @@ var AutotagJS = (function() {
             processInput();
         };
 
+        /**
+         * Captures the Return key and performs the requisite action. Note
+         * that we override the default browser action ude to inconsistencies
+         * the the way browsers process the return action.
+         * @param {Range} range - The range to act on.
+         */
         var processReturnKey = function(range) {
             if (range.collapsed) {
                 var newLine,
@@ -1430,6 +1458,9 @@ var AutotagJS = (function() {
                 }
                 newLine.style = line.style;
                 newLine.className = line.className;
+            } else {
+                // If a selection, proceed to delete the selection.
+                processDelete(range);
             }
         };
 
@@ -1437,6 +1468,10 @@ var AutotagJS = (function() {
             updateListStyle(line, '');
         };
 
+
+        /**
+         * Saves the current selection range.
+         */
         var saveSelectionRange = function() {
             var range = getRange();
             if (range && range.startContainer.nodeType != 9) {
@@ -1616,8 +1651,8 @@ var AutotagJS = (function() {
                     return updateIndentation(keyCode, line, shifted);
                 }
 
-                if (isTabKey(keyCode)) {
-                    return insertTab(node, offset, shifted);
+                if (isTabKey(keyCode) && !shifted) {
+                    return insertTab(node, offset);
                 }
             }
 
@@ -1787,7 +1822,8 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('input', function() {
-            processInput();
+            // processInput();
+            processInputV2();
         });
 
         // Start handling events.
@@ -1796,8 +1832,6 @@ var AutotagJS = (function() {
             if (!isDeleteKey(keyCode)) {
                 fixCaret();
             }
-
-            // inputLineNumber = getLineNumber();
 
             var range = getRange();
 
@@ -1831,7 +1865,6 @@ var AutotagJS = (function() {
                 doAfterSelection(getTagsInRange(_selectionRange));
             }
         }, 200));
-
 
         return {
             attachMenubar: function(menubar) {
