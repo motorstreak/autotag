@@ -231,7 +231,6 @@ var AutotagJS = (function() {
         return code == 8;
     }
 
-
     /**
      * Gets all the children of a node that satisfy the conditions in the
      * provided filter. If none match, an empty list is returned.
@@ -766,7 +765,8 @@ var AutotagJS = (function() {
             var lines = getLinesInRange(_selectionRange);
 
             switch (scope) {
-                // Apply the formatting only to the lines in the selection.
+                // Apply the formatting only to the lines in the selection or to
+                // the current line where the caret rests.
                 case 'line':
                     // Exclude parent lines in selection if multiple lines
                     // are present.
@@ -778,19 +778,24 @@ var AutotagJS = (function() {
                     break;
 
                 // Apply formatting to both tags and lines.
-                case 'selection':
-                    var tags = getTagsInRange(_selectionRange),
-                        activeTags = getTagsInLine(getActiveLine());
-                    if (lines.length > 1 || tags.length == activeTags.length) {
-                        nodes = tags.concat(lines);
+                default:
+                    if (_selectionRange.collapsed) {
+                        nodes = [];
                     } else {
-                        nodes = tags;
+                        buildTags(_selectionRange);
+                        var tags = getTagsInRange(_selectionRange),
+                            activeTags = getTagsInLine(getActiveLine());
+                        if (lines.length > 1 || tags.length == activeTags.length) {
+                            nodes = tags.concat(lines);
+                        } else {
+                            nodes = tags;
+                        }
                     }
                     break;
 
-                // Else, apply only to tags.
-                default:
-                    nodes = getTagsInRange(_selectionRange);
+                // // Else, apply only to tags.
+                // default:
+                //     nodes = getTagsInRange(_selectionRange);
             }
 
             nodes = nodes.filter(Boolean);
@@ -1125,7 +1130,6 @@ var AutotagJS = (function() {
             }
 
             if (line.classList.contains(_defaultListClassName)) {
-                console.log(line.classList);
                 line.classList.remove(_defaultListClassName);
             }
             return false;
@@ -1804,6 +1808,51 @@ var AutotagJS = (function() {
             // Clear up the style attribute.
             if (force || !node.getAttribute('style')) {
                 node.removeAttribute('style');
+            }
+        };
+
+        var splitTag = function(tag, offset) {
+            var text = tag.firstChild;
+
+            // Splitting at boundaries will result in blank nodes.
+            if (offset == 0 || offset == text.nodeValue.length) {
+                return tag;
+            }
+
+            var newText = text.splitText(offset);
+            var newTag = createTagNode(removeNode(newText));
+            appendNode(tag, newTag);
+            newTag.setAttribute('style', tag.getAttribute('style'));
+
+            return newTag;
+        };
+
+        var buildTags = function(range) {
+            if (!range.collapsed) {
+                console.log(range);
+                var selection = getRangeContainersAndOffsets(range);
+                var container = selection.startContainer;
+                var offset = selection.startOffset;
+
+                // Split the start point.
+                var newTag = splitTag(container.parentNode, offset);
+
+                if (container.isSameNode(selection.endContainer)) {
+                    offset = selection.endOffset - offset;
+                    container = newTag.firstChild;
+                } else {
+                    offset = selection.endOffset;
+                    container = selection.endContainer;
+                }
+                splitTag(container.parentNode, offset);
+
+                // Rebuild original selection range for further processing.
+                _selectionRange = setSelection({
+                    startContainer: newTag.firstChild,
+                    startOffset: 0,
+                    endContainer: container,
+                    endOffset: container.length
+                });
             }
         };
 
