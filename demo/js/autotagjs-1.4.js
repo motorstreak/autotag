@@ -351,8 +351,8 @@ var AutotagJS = (function() {
     }
 
     return function(editor, config) {
-        // Stores the last selection made in the editor.
-        var _selectionRange,
+        // The latest selection made in the editor.
+        var _range,
             _editorMenubar,
 
             // Continues the current text style to the next line and
@@ -726,7 +726,7 @@ var AutotagJS = (function() {
          * selection or other).
          */
         var formatSelection = function(dataset, scope) {
-            if (_selectionRange && dataset) {
+            if (_range && dataset) {
                 var nodes = getSelectionNodes(scope);
 
                 for (var key in dataset) {
@@ -738,7 +738,7 @@ var AutotagJS = (function() {
 
                 // Ensure that the selection does not disapper after we have
                 // applied formatting.
-                resetRange(_selectionRange);
+                resetRange(_range);
             }
         };
 
@@ -752,7 +752,7 @@ var AutotagJS = (function() {
          */
         var getSelectionNodes = function(scope) {
             var nodes;
-            var lines = getLinesInRange(_selectionRange);
+            var lines = getLinesInRange(_range);
 
             switch (scope) {
                 // Apply the formatting only to the lines in the selection or to
@@ -761,7 +761,7 @@ var AutotagJS = (function() {
                     // Exclude parent lines in selection if multiple lines
                     // are present.
                     if (lines.length >  1 &&
-                        isLine(_selectionRange.commonAncestorContainer)) {
+                        isLine(_range.commonAncestorContainer)) {
                         lines.shift();
                     }
                     nodes = lines;
@@ -769,11 +769,11 @@ var AutotagJS = (function() {
 
                 // Apply formatting to both tags and lines.
                 default:
-                    if (_selectionRange.collapsed) {
+                    if (_range.collapsed) {
                         nodes = [];
                     } else {
-                        buildTags(_selectionRange);
-                        var tags = getTagsInRange(_selectionRange),
+                        buildTags(_range);
+                        var tags = getTagsInRange(_range),
                             activeTags = getTagsInLine(getActiveLine());
                         if (lines.length > 1 || tags.length == activeTags.length) {
                             nodes = tags.concat(lines);
@@ -785,7 +785,7 @@ var AutotagJS = (function() {
 
                 // // Else, apply only to tags.
                 // default:
-                //     nodes = getTagsInRange(_selectionRange);
+                //     nodes = getTagsInRange(_range);
             }
 
             nodes = nodes.filter(Boolean);
@@ -799,7 +799,7 @@ var AutotagJS = (function() {
          */
 
         var getActiveLine = function() {
-            var range = _selectionRange;
+            var range = _range;
             return range && getLine(range.startContainer, false);
         };
 
@@ -968,9 +968,7 @@ var AutotagJS = (function() {
          * @returns {Node} - A Line which is the root.
          */
         var getRootLine = function(node) {
-            // var range = getRange();
-            // var range = _selectionRange;
-            node = initObject(node, _selectionRange && _selectionRange.endContainer);
+            node = initObject(node, _range && _range.endContainer);
             return getLine(node, true);
         };
 
@@ -1075,7 +1073,7 @@ var AutotagJS = (function() {
                 refresh = initObject(refresh, true);
                 prefix = initObject(prefix, getListPrefix(line));
 
-                var selection = getRangeContainersAndOffsets(_selectionRange);
+                var selection = getRangeContainersAndOffsets(_range);
 
                 // The second check is required to acomodate Firefox which
                 // appends the current lines classname to the previous line on
@@ -1271,7 +1269,7 @@ var AutotagJS = (function() {
                 var parentLine = line.parentNode;
 
                 if (!isEditor(line.parentNode)) {
-                    var selection = getRangeContainersAndOffsets(_selectionRange);
+                    var selection = getRangeContainersAndOffsets(_range);
                     prefix = getListPrefix(line);
 
                     // Now make line's children the anchor's children.
@@ -1307,34 +1305,30 @@ var AutotagJS = (function() {
         };
 
         var processInputV2 = function() {
-            // var range = getRange();
-            // var range = _selectionRange;
-            var container = _selectionRange.endContainer;
+            var container = _range.endContainer;
 
             if (isTextNode(container)) {
                 var value = container.nodeValue;
                 if (value.match(/^\u200b/)) {
                     container.nodeValue = value.replace(/\u200b/g, '');
-                    range = setCaret(container, _selectionRange.endOffset + 1);
+                    range = setCaret(container, _range.endOffset + 1);
                 }
             }
         };
 
         var processInput = function() {
-            // var range = getRange();
-            // var range = _selectionRange;
-            var container = _selectionRange.endContainer;
+            var container = _range.endContainer;
 
             if (isTextNode(container)) {
                 var value = container.nodeValue;
                 if (value.match(/^\u200b/)) {
                     container.nodeValue = value.replace(/\u200b/g, '');
-                    range = setCaret(container, _selectionRange.endOffset + 1);
+                    range = setCaret(container, _range.endOffset + 1);
                 }
 
                 // Note that the offset within the range object will update
                 // on its own if the container's node value is changed.
-                var offset = _selectionRange.endOffset;
+                var offset = _range.endOffset;
 
                 var refTag = container.parentNode,
                     parts = splitter(container.nodeValue || '');
@@ -1380,7 +1374,7 @@ var AutotagJS = (function() {
          */
         var pasteClipboardContent = function(e) {
             var content;
-            // if (_selectionRange.)
+            // if (_range.)
             if (e.clipboardData) {
                 content = (e.originalEvent || e)
                     .clipboardData.getData('text/plain');
@@ -1389,8 +1383,7 @@ var AutotagJS = (function() {
                 content = window.clipboardData.getData('Text');
             }
 
-            // var container = getRange().endContainer;
-            var container = _selectionRange.endContainer;
+            var container = _range.endContainer;
 
             if (isTextNode(container)) {
                 container.nodeValue = container.nodeValue + content;
@@ -1467,8 +1460,8 @@ var AutotagJS = (function() {
         var saveSelectionRange = function() {
             var range = getRange();
             if (range && range.startContainer.nodeType != 9) {
-                _selectionRange = getRange() || _selectionRange;
-                return _selectionRange;
+                _range = getRange() || _range;
+                return _range;
             }
         };
 
@@ -1505,10 +1498,8 @@ var AutotagJS = (function() {
         };
 
         var setContinuingTagStyle = function() {
-            // var range = getRange();
-            // var range = _selectionRange;
-            if (_selectionRange) {
-                var tag = getTagsInRange(_selectionRange).pop();
+            if (_range) {
+                var tag = getTagsInRange(_range).pop();
                 if (tag) {
                     _continuingTagStyle = tag.getAttribute('style');
                 }
@@ -1569,7 +1560,7 @@ var AutotagJS = (function() {
                 try {
                     range.setStart(startNode, startOffset);
                     range.setEnd(endNode, endOffset);
-                    _selectionRange = range;
+                    _range = range;
                 } catch (err) {
                     // Chrome does not like setting an offset of 1
                     // on an empty node.
@@ -1652,8 +1643,7 @@ var AutotagJS = (function() {
             // Perform regular delete operation if above conditions fail
             // to satisfy.
             if (isDeleteKey(keyCode)) {
-                // processDelete(getRange());
-                processDelete(_selectionRange);
+                processDelete(_range);
             }
         };
 
@@ -1838,7 +1828,7 @@ var AutotagJS = (function() {
                 splitTag(container.parentNode, offset);
 
                 // Rebuild original selection range for further processing.
-                _selectionRange = setSelection({
+                _range = setSelection({
                     startContainer: newTag.firstChild,
                     startOffset: 0,
                     endContainer: container,
@@ -1907,7 +1897,7 @@ var AutotagJS = (function() {
         document.addEventListener('selectionchange', debounce(function(e) {
             if (saveSelectionRange()) {
                 setContinuingTagStyle();
-                doAfterSelection(getTagsInRange(_selectionRange));
+                doAfterSelection(getTagsInRange(_range));
             }
         }, 200));
 
@@ -1921,7 +1911,7 @@ var AutotagJS = (function() {
                         // The click event remove the text selection. Reinstate
                         // the selection so that we can format the content in
                         // the highlighted text.
-                        resetRange(_selectionRange);
+                        resetRange(_range);
 
                         var target = e.target;
                         var menu = getParentMenu(target);
