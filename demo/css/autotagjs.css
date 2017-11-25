@@ -1,10 +1,11 @@
 
 [contenteditable] div > span {
     caret-color: #777;
-    display: inline-block;
 }
 
-/* Prevent words from breaking */
+/* Prevent words from breaking.
+ * Courtesy: https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/
+ */
 [contenteditable] div > span {
     /* These are technically the same, but use both */
     overflow-wrap: break-word;

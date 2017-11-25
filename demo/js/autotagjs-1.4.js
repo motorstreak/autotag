@@ -638,11 +638,6 @@ var AutotagJS = (function() {
                     var pilot = createTagNode('\u200b');
                     line.appendChild(pilot);
 
-                    // Ensure that the pilot node is not an inline-block element.
-                    // Inline Block elements do not get cursor when text is not
-                    // present.
-                    pilot.style.display = 'inline';
-
                     if (options.setCaret) {
                         setCaret(pilot);
                     }
@@ -716,16 +711,8 @@ var AutotagJS = (function() {
          * or more lines, remove the empty ones.
          */
         var fixEditor = function() {
-            var lines = getChildren(editor, isLine);
-            // If editor is empty, add a new break node.
-            if (lines.length == 0) {
+            if (getChildren(editor, isLine).length == 0) {
                 createNewLine(editor, {addPilotNode: true, setCaret: true});
-            } else {
-                for (var i=0; i<lines.length; i++) {
-                    if (!lines[i].hasChildNodes()) {
-                        removeNode(lines[i]);
-                    }
-                }
             }
         };
 
@@ -1413,7 +1400,7 @@ var AutotagJS = (function() {
                 container.insertBefore(textNode, container.firstChild);
                 setCaret(textNode);
             }
-            processInput();
+            // processInput();
         };
 
         /**
@@ -1683,7 +1670,6 @@ var AutotagJS = (function() {
             if (textNode.nodeValue.length == 0 && offset == 1) {
                 if (!tag.previousSibling) {
                     textNode.nodeValue = '\u200b';
-                    tag.style.display = 'inline';
                     setCaret(tag);
 
                 } else {
@@ -1821,22 +1807,24 @@ var AutotagJS = (function() {
 
             var newText = text.splitText(offset);
             var newTag = createTagNode(removeNode(newText));
-            appendNode(tag, newTag);
             newTag.setAttribute('style', tag.getAttribute('style'));
 
-            return newTag;
+            // Firefox hack to remove break nodes.
+            removeNode(tag.querySelector('br'));
+
+            return appendNode(tag, newTag);
         };
 
         var buildTags = function(range) {
             if (!range.collapsed) {
-                console.log(range);
                 var selection = getRangeContainersAndOffsets(range);
                 var container = selection.startContainer;
                 var offset = selection.startOffset;
 
-                // Split the start point.
+                // Split the start Text node.
                 var newTag = splitTag(container.parentNode, offset);
 
+                // Now split the end Text node.
                 if (container.isSameNode(selection.endContainer)) {
                     offset = selection.endOffset - offset;
                     container = newTag.firstChild;
