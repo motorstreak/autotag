@@ -48,9 +48,6 @@ var AutotagJS = (function() {
     var _autoWordTag = 'span',
         _autoLineTag = 'div',
 
-        // All selection is copied to the clipboard buffer.
-        _clipboardBuffer,
-
         // Reserved class names
         _blankListClassName = 'atg-list-blank',
         _defaultListClassName = 'atg-list',
@@ -353,6 +350,9 @@ var AutotagJS = (function() {
     return function(editor, config) {
         // The latest selection made in the editor.
         var _range,
+
+            // All selection is copied to the clipboard buffer.
+            _copiedRange,
             _editorMenubar,
 
             // Continues the current text style to the next line and
@@ -405,15 +405,15 @@ var AutotagJS = (function() {
                                 // clearList(target);
                                 break;
                             case 'indent':
-                                indentLine(target);
+                                indentList(target);
                                 break;
 
                             case 'outdent':
-                                outdentLine(target);
+                                outdentList(target);
                                 break;
 
                             default:
-                                indentLine(target, listPrefix);
+                                indentList(target, listPrefix);
                         }
                     }
                 }
@@ -799,8 +799,7 @@ var AutotagJS = (function() {
          */
 
         var getActiveLine = function() {
-            var range = _range;
-            return range && getLine(range.startContainer, false);
+            return _range && getLine(_range.startContainer, false);
         };
 
         /**
@@ -1068,8 +1067,8 @@ var AutotagJS = (function() {
          * @param {boolean=} refresh - If set to false, the list style will
          *   not be updated. Defaults to true.
          */
-        var indentLine = function(line, prefix, refresh) {
-            if(!isListIndenter(line)) {
+        var indentList = function(line, prefix, refresh) {
+            // if(isList(line)) {
                 refresh = initObject(refresh, true);
                 prefix = initObject(prefix, getListPrefix(line));
 
@@ -1104,7 +1103,7 @@ var AutotagJS = (function() {
                     }
                 }
                 setSelection(selection);
-            }
+            // }
         };
 
         /**
@@ -1180,13 +1179,15 @@ var AutotagJS = (function() {
         };
 
         /**
-         * Checks if the given Line is indented.
+         * Checks if the given Line is a list.
          * @param {Node} line - The Line to check for indentation.
-         * @returns {boolean} - True if the Line is indented.
+         * @returns {boolean} - True if the Line is indented and is a list.
          */
-        var isListIndenter = function(line) {
-            return line && !isEditor(line.parentNode) &&
-                !line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
+        var isList = function(line) {
+            return line &&
+                !isEditor(line.parentNode) &&
+                line.className &&
+                line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
         };
 
         /**
@@ -1263,8 +1264,8 @@ var AutotagJS = (function() {
          * @param {boolean=} refresh - If set to true, the lists's style
          * is overwritten.
          */
-        var outdentLine = function(line, refresh) {
-            if(!isListIndenter(line)) {
+        var outdentList = function(line, refresh) {
+            if(isList(line)) {
                 refresh = initObject(refresh, true);
                 var parentLine = line.parentNode;
 
@@ -1309,6 +1310,8 @@ var AutotagJS = (function() {
 
             if (isTextNode(container)) {
                 var value = container.nodeValue;
+
+                // Remove the lead character as it is no longer required.
                 if (value.match(/^\u200b/)) {
                     container.nodeValue = value.replace(/\u200b/g, '');
                     range = setCaret(container, _range.endOffset + 1);
@@ -1374,27 +1377,35 @@ var AutotagJS = (function() {
          */
         var pasteClipboardContent = function(e) {
             var content;
-            // if (_range.)
-            if (e.clipboardData) {
-                content = (e.originalEvent || e)
-                    .clipboardData.getData('text/plain');
-
-            } else if (window.clipboardData) {
-                content = window.clipboardData.getData('Text');
-            }
-
             var container = _range.endContainer;
+            if (!_copiedRange || _copiedRange.collapsed) {
+                if (e.clipboardData) {
+                    content = (e.originalEvent || e)
+                        .clipboardData.getData('text/plain');
 
-            if (isTextNode(container)) {
-                container.nodeValue = container.nodeValue + content;
-                setCaret(container);
+                } else if (window.clipboardData) {
+                    content = window.clipboardData.getData('Text');
+                }
 
+                if (isTextNode(container)) {
+                    container.nodeValue = container.nodeValue + content;
+                    setCaret(container);
+
+                } else {
+                    var textNode = document.createTextNode(content);
+                    container.insertBefore(textNode, container.firstChild);
+                    setCaret(textNode);
+                }
+                processInputV2();
             } else {
-                var textNode = document.createTextNode(content);
-                container.insertBefore(textNode, container.firstChild);
-                setCaret(textNode);
+                var tag = splitTag(container.parentNode, _range.endOffset);
+                console.log(_copiedRange.cloneContents());
+                appendNode(tag, _copiedRange.cloneContents());
+                if (isBlankNode(tag) && !isList(tag.nextSibling)) {
+                    removeNode(tag);
+                }
             }
-            // processInput();
+
         };
 
         /**
@@ -1579,15 +1590,15 @@ var AutotagJS = (function() {
         var updateIndentation = function(keyCode, line, shifted) {
             if (isTabKey(keyCode)) {
                 if (shifted) {
-                    outdentLine(line, false);
+                    outdentList(line, false);
                 } else {
-                    indentLine(line, null, false);
+                    indentList(line, null, false);
                 }
             } else if (isDeleteKey(keyCode)) {
                 if (!isBlankList(line)) {
                     setBlankList(line);
                 } else {
-                    outdentLine(line, false);
+                    outdentList(line, false);
                 }
             } else {
                 return false;
@@ -1694,14 +1705,19 @@ var AutotagJS = (function() {
 
                 } else {
                     setCaret(lastPrevTag);
-                    var curTags = getTagsInLine(line);
+                    var tag = lastPrevTag,
+                        curTags = getTagsInLine(line);
+
                     for(var i=0; i<curTags.length; i++) {
-                        appendNode(lastPrevTag, curTags[i]);
-                        lastPrevTag = curTags[i];
+                        tag = appendNode(tag, curTags[i]);
                     }
 
                     if (isBlankLine(line)) {
                         removeNode(line);
+                    }
+
+                    if (isBlankNode(lastPrevTag)) {
+                        removeNode(lastPrevTag);
                     }
                 }
             }
@@ -1853,7 +1869,7 @@ var AutotagJS = (function() {
 
         editor.addEventListener('input', function() {
             // processInput();
-            // processInputV2();
+            processInputV2();
         });
 
         // Start handling events.
@@ -1863,6 +1879,8 @@ var AutotagJS = (function() {
                 fixCaret();
             }
 
+            // Get the latest and greatest range since we cannot rely on
+            // any buffered selection range (_range).
             var range = getRange();
 
             if (isDeleteKey(keyCode) || isTabKey(keyCode)) {
@@ -1885,7 +1903,7 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('copy', function(e) {
-            saveSelectionRange();
+            _copiedRange = saveSelectionRange();
             e.preventDefault();
         });
 
