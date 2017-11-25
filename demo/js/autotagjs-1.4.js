@@ -48,6 +48,9 @@ var AutotagJS = (function() {
     var _autoWordTag = 'span',
         _autoLineTag = 'div',
 
+        // All selection is copied to the clipboard buffer.
+        _clipboardBuffer,
+
         // Reserved class names
         _blankListClassName = 'atg-list-blank',
         _defaultListClassName = 'atg-list',
@@ -965,7 +968,8 @@ var AutotagJS = (function() {
          * @returns {Node} - A Line which is the root.
          */
         var getRootLine = function(node) {
-            var range = getRange();
+            // var range = getRange();
+            var range = _selectionRange;
             node = initObject(node, range && range.endContainer);
             return getLine(node, true);
         };
@@ -1303,7 +1307,8 @@ var AutotagJS = (function() {
         };
 
         var processInputV2 = function() {
-            var range = getRange();
+            // var range = getRange();
+            var range = _selectionRange;
             var container = range.endContainer;
 
             if (isTextNode(container)) {
@@ -1316,7 +1321,8 @@ var AutotagJS = (function() {
         };
 
         var processInput = function() {
-            var range = getRange();
+            // var range = getRange();
+            var range = _selectionRange;
             var container = range.endContainer;
 
             if (isTextNode(container)) {
@@ -1372,8 +1378,9 @@ var AutotagJS = (function() {
          * Inserts the pasted text into the Editor and formats it for editing.
          * @param {Event} e - The paste event.
          */
-        var processPastedInput = function(e) {
+        var pasteClipboardContent = function(e) {
             var content;
+            // if (_selectionRange.)
             if (e.clipboardData) {
                 content = (e.originalEvent || e)
                     .clipboardData.getData('text/plain');
@@ -1383,13 +1390,6 @@ var AutotagJS = (function() {
             }
 
             var container = getRange().endContainer;
-
-            // TODO : Does not do anything. Test and remove.
-            // In IE, selecting full text (Ctrl + A) will position the caret
-            // on the editor element.
-            if (isEditor(container)) {
-                container = getRange().endContainer;
-            }
 
             if (isTextNode(container)) {
                 container.nodeValue = container.nodeValue + content;
@@ -1504,7 +1504,8 @@ var AutotagJS = (function() {
         };
 
         var setContinuingTagStyle = function() {
-            var range = getRange();
+            // var range = getRange();
+            var range = _selectionRange;
             if (range) {
                 var tag = getTagsInRange(range).pop();
                 if (tag) {
@@ -1650,7 +1651,8 @@ var AutotagJS = (function() {
             // Perform regular delete operation if above conditions fail
             // to satisfy.
             if (isDeleteKey(keyCode)) {
-                processDelete(getRange());
+                // processDelete(getRange());
+                processDelete(_selectionRange);
             }
         };
 
@@ -1860,7 +1862,7 @@ var AutotagJS = (function() {
 
         editor.addEventListener('input', function() {
             // processInput();
-            processInputV2();
+            // processInputV2();
         });
 
         // Start handling events.
@@ -1891,9 +1893,14 @@ var AutotagJS = (function() {
         editor.addEventListener('keyup', function(e) {
         });
 
-        editor.addEventListener('paste', function(e) {
+        editor.addEventListener('copy', function(e) {
+            saveSelectionRange();
             e.preventDefault();
-            processPastedInput(e);
+        });
+
+        editor.addEventListener('paste', function(e) {
+            pasteClipboardContent(e);
+            e.preventDefault();
         });
 
         document.addEventListener('selectionchange', debounce(function(e) {
@@ -1910,8 +1917,9 @@ var AutotagJS = (function() {
                     _editorMenubar.addEventListener('click', function(e) {
                         hideSubmenus();
 
-                        // Ensure that the selection does not disapper after we have
-                        // applied formatting.
+                        // The click event remove the text selection. Reinstate
+                        // the selection so that we can format the content in
+                        // the highlighted text.
                         resetRange(_selectionRange);
 
                         var target = e.target;
