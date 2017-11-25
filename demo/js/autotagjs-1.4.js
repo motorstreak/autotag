@@ -969,8 +969,8 @@ var AutotagJS = (function() {
          */
         var getRootLine = function(node) {
             // var range = getRange();
-            var range = _selectionRange;
-            node = initObject(node, range && range.endContainer);
+            // var range = _selectionRange;
+            node = initObject(node, _selectionRange && _selectionRange.endContainer);
             return getLine(node, true);
         };
 
@@ -1308,33 +1308,33 @@ var AutotagJS = (function() {
 
         var processInputV2 = function() {
             // var range = getRange();
-            var range = _selectionRange;
-            var container = range.endContainer;
+            // var range = _selectionRange;
+            var container = _selectionRange.endContainer;
 
             if (isTextNode(container)) {
                 var value = container.nodeValue;
                 if (value.match(/^\u200b/)) {
                     container.nodeValue = value.replace(/\u200b/g, '');
-                    range = setCaret(container, range.endOffset + 1);
+                    range = setCaret(container, _selectionRange.endOffset + 1);
                 }
             }
         };
 
         var processInput = function() {
             // var range = getRange();
-            var range = _selectionRange;
-            var container = range.endContainer;
+            // var range = _selectionRange;
+            var container = _selectionRange.endContainer;
 
             if (isTextNode(container)) {
                 var value = container.nodeValue;
                 if (value.match(/^\u200b/)) {
                     container.nodeValue = value.replace(/\u200b/g, '');
-                    range = setCaret(container, range.endOffset + 1);
+                    range = setCaret(container, _selectionRange.endOffset + 1);
                 }
 
                 // Note that the offset within the range object will update
                 // on its own if the container's node value is changed.
-                var offset = range.endOffset;
+                var offset = _selectionRange.endOffset;
 
                 var refTag = container.parentNode,
                     parts = splitter(container.nodeValue || '');
@@ -1389,7 +1389,8 @@ var AutotagJS = (function() {
                 content = window.clipboardData.getData('Text');
             }
 
-            var container = getRange().endContainer;
+            // var container = getRange().endContainer;
+            var container = _selectionRange.endContainer;
 
             if (isTextNode(container)) {
                 container.nodeValue = container.nodeValue + content;
@@ -1505,9 +1506,9 @@ var AutotagJS = (function() {
 
         var setContinuingTagStyle = function() {
             // var range = getRange();
-            var range = _selectionRange;
-            if (range) {
-                var tag = getTagsInRange(range).pop();
+            // var range = _selectionRange;
+            if (_selectionRange) {
+                var tag = getTagsInRange(_selectionRange).pop();
                 if (tag) {
                     _continuingTagStyle = tag.getAttribute('style');
                 }
