@@ -1,6 +1,7 @@
 
 [contenteditable] div > span {
     caret-color: #777;
+    /*display: inline-block;*/
 }
 
 /* Prevent words from breaking.
@@ -130,11 +131,11 @@
     text-align: right;
 }
 
-.atg-list-1:before,
+/*.atg-list-1:before,
 .atg-list-2:before,
 .atg-list-3:before {
     content: '';
-}
+}*/
 
 .atg-numbered-list-1:before {
     content: counter(atg-numbered-counter-1) ".";

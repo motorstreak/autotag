@@ -727,7 +727,7 @@ var AutotagJS = (function() {
          */
         var formatSelection = function(dataset, scope) {
             if (_range && dataset) {
-                var nodes = getSelectionNodes(scope);
+                var nodes = getNodesInSelection(scope);
 
                 for (var key in dataset) {
                     if (dataset.hasOwnProperty(key)) {
@@ -750,7 +750,7 @@ var AutotagJS = (function() {
          * @param {string} scope - The scope of nodes to be returned.
          * @returns {Array} - Returns an array of nodes.
          */
-        var getSelectionNodes = function(scope) {
+        var getNodesInSelection = function(scope) {
             var nodes;
             var lines = getLinesInRange(_range);
 
@@ -758,16 +758,16 @@ var AutotagJS = (function() {
                 // Apply the formatting only to the lines in the selection or to
                 // the current line where the caret rests.
                 case 'line':
-                    // Exclude parent lines in selection if multiple lines
-                    // are present.
-                    if (lines.length >  1 &&
-                        isLine(_range.commonAncestorContainer)) {
-                        lines.shift();
-                    }
+                    // // Exclude parent lines in selection if multiple lines
+                    // // are present.
+                    // if (lines.length >  1 &&
+                    //     isLine(_range.commonAncestorContainer)) {
+                    //     lines.shift();
+                    // }
                     nodes = lines;
                     break;
 
-                // Apply formatting to both tags and lines.
+                // Return both
                 default:
                     if (_range.collapsed) {
                         nodes = [];
@@ -782,10 +782,6 @@ var AutotagJS = (function() {
                         }
                     }
                     break;
-
-                // // Else, apply only to tags.
-                // default:
-                //     nodes = getTagsInRange(_range);
             }
 
             nodes = nodes.filter(Boolean);
@@ -814,15 +810,18 @@ var AutotagJS = (function() {
          * Returns the index value of the indentation of the given line.. The
          * index value is a number between 0 & 2.
          * @param {Node} line - The Line node.
+         * @param {number=} maxIndex - The maximum index allowed
+         * before the list repeats.
          * @returns {number} - The indentation index.
          */
-        var getIndentationIndex = function(line) {
+        var getIndentationIndex = function(line, maxIndex) {
+            maxIndex = initObject(maxIndex, 3);
+
             var level = 0;
             while ((line = line.parentNode) && !isEditor(line)) {
                 level++;
             }
-            // Indentation index is only 3 levels deep.
-            return (level == 0 ? null : (level % 3 || 3));
+            return (level == 0 ? 0 : (level % maxIndex || maxIndex));
         };
 
         /**
@@ -844,7 +843,14 @@ var AutotagJS = (function() {
          * @returns {Array} - The Lines in the given range.
          */
         var getLinesInRange = function(range) {
-            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isLine);
+            var lines =  getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isLine);
+            // Exclude parent lines in selection if multiple lines
+            // are present.
+            if (lines.length >  1 &&
+                isLine(range.commonAncestorContainer)) {
+                lines.shift();
+            }
+            return lines;
         };
 
         /**
@@ -1184,10 +1190,25 @@ var AutotagJS = (function() {
          * @returns {boolean} - True if the Line is indented and is a list.
          */
         var isList = function(line) {
-            return line &&
-                !isEditor(line.parentNode) &&
-                line.className &&
-                line.className.match(/(\w+(-\w+)*)-list(-.+)*/g);
+            var className = line && line.className;
+            return className &&
+                className.match(/(\w+(-\w+)*)-list(-.+)*/g) &&
+                !isEditor(line.parentNode);
+        };
+
+        /**
+         * Checks if the given line is the first line in the new indentation.
+         * @param {Node} line - The Line to check for indentation.
+         * @returns {boolean} - True if the Line is the first indented line in
+         * the list.
+         */
+        var isListHead = function(line) {
+            var previousLine = line.previousSibling;
+            return isList(line) && (
+                !previousLine ||
+                getIndentationIndex(line) == 1 &&
+                    getIndentationIndex(previousLine) == 0
+            );
         };
 
         /**
@@ -1226,8 +1247,11 @@ var AutotagJS = (function() {
          * false otherwise.
          */
         var insertTab = function(node, index) {
-            var tag = isTextNode(node) ? node.parentNode : node;
-            if (isTag(tag)) {
+            if (isLine(node)) {
+
+            } else {
+                var tag = getTag(node);
+
                 var content = tag.textContent,
                     parent = tag.parentNode,
                     sibling = tag.nextSibling;
@@ -1585,25 +1609,44 @@ var AutotagJS = (function() {
          * Updates the indentation of the Line based on the key pressed.
          * @param {number} keyCode - The key pressed.
          * @param {Node} line - The Line to update indentation.
-         * @param {boolean} shifted - Indicates if the Shift key is pressed.
+         * @param {boolean} shiftKey - Indicates if the Shift key is pressed.
          */
-        var updateIndentation = function(keyCode, line, shifted) {
-            if (isTabKey(keyCode)) {
-                if (shifted) {
-                    outdentList(line, false);
+        // var updateIndentation = function(keyCode, line, shiftKey) {
+        //     if (isTabKey(keyCode)) {
+        //         if (shiftKey) {
+        //             outdentList(line, false);
+        //         } else {
+        //             indentList(line, null, false);
+        //         }
+        //     } else if (isDeleteKey(keyCode)) {
+        //         if (!isBlankList(line)) {
+        //             setBlankList(line);
+        //         } else {
+        //             outdentList(line, false);
+        //         }
+        //     } else {
+        //         return false;
+        //     }
+        //
+        //     return true;
+        // };
+
+        var updateIndentation = function(line, decreaseIndent) {
+            if (isList(line)) {
+                if (decreaseIndent) {
+                    if (!isBlankList(line)) {
+                        setBlankList(line);
+                    } else {
+                        outdentList(line, false);
+                    }
                 } else {
-                    indentList(line, null, false);
-                }
-            } else if (isDeleteKey(keyCode)) {
-                if (!isBlankList(line)) {
-                    setBlankList(line);
-                } else {
-                    outdentList(line, false);
+                    // if (!isListHead(line)) {
+                        indentList(line, null, false);
+                    // }
                 }
             } else {
-                return false;
+                console.log("Updating Line Indentation");
             }
-            return true;
         };
 
         /**
@@ -1633,30 +1676,88 @@ var AutotagJS = (function() {
          * of the line (in case of a list) or process deletion as usual.
          * @param {Range} range - The range for deletion.
          * @param {number} keyCode - The numeric code of the key pressed.
-         * @param {boolean} shifted - Indicates if the shift key is pressed.
+         * @param {boolean} shiftKey - Indicates if the shift key is pressed.
          */
-        var processTabOrDeleteKey = function(range, keyCode, shifted) {
-            if (range.collapsed) {
-                var node = range.startContainer,
-                    offset = range.startOffset,
-                    line = getActiveLine();
+        var processTabOrDeleteKey = function(range, keyCode, shiftKey) {
+            // if (range.collapsed) {
+            //     var node = range.startContainer,
+            //         offset = range.startOffset,
+            //         line = getActiveLine();
+            //
+            //     if (isBeginingOfLine(getTag(node), offset) &&
+            //         getIndentationIndex(line)) {
+            //         return updateIndentation(keyCode, line, shiftKey);
+            //     }
+            //
+            //     if (isTabKey(keyCode) && !shiftKey) {
+            //         return insertTab(node, offset);
+            //     }
+            // }
+            //
+            // // Perform regular delete operation if above conditions fail
+            // // to satisfy.
+            // if (isDeleteKey(keyCode)) {
+            //     processDelete(_range);
+            // }
 
-                if (isBeginingOfLine(getTag(node), offset) &&
-                    getIndentationIndex(line)) {
-                    return updateIndentation(keyCode, line, shifted);
+            // var node = range.startContainer;
+            // var tag = getTag(node),
+            //     lines = getLinesInRange(range);
+            //
+            // if (isBeginingOfLine(tag, range.startOffset)) {
+            //     if (isListHead(lines[0])) {
+            //         console.log("Indent Line");
+            //
+            //     } else {
+            //         for(var i=0; i<lines.length; i++) {
+            //             updateIndentation(keyCode, lines[i], shiftKey);
+            //         }
+            //     }
+            // } else {
+            //     if (isTabKey(keyCode) && !shiftKey) {
+            //         insertTab(node, offset);
+            //
+            //     } else if (isDeleteKey(keyCode)) {
+            //         processDelete(_range);
+            //     }
+            // }
+        };
+
+        var processTabKey = function(range, shiftKey) {
+            var node = range.startContainer,
+                offset = range.startOffset;
+
+            var tag = getTag(node),
+                lines = getLinesInRange(range);
+
+            if (lines.length > 1 || isBeginingOfLine(tag, offset)) {
+                for(var i=0; i<lines.length; i++) {
+                    updateIndentation(lines[i], shiftKey);
                 }
-
-                if (isTabKey(keyCode) && !shifted) {
-                    return insertTab(node, offset);
-                }
-            }
-
-            // Perform regular delete operation if above conditions fail
-            // to satisfy.
-            if (isDeleteKey(keyCode)) {
-                processDelete(_range);
+            } else {
+                // Shift has no effect. Tab will be inserted anyways.
+                insertTab(node, offset);
             }
         };
+
+        var processDeleteKey = function(range, shiftKey) {
+            var node = range.startContainer,
+                offset = range.startOffset;
+
+            var tag = getTag(node),
+                lines = getLinesInRange(range);
+
+            if (lines.length == 1 &&
+                    isBeginingOfLine(tag, offset) &&
+                    isList(lines[0])) {
+
+                // Shift has no effect.
+                updateIndentation(lines[0], true);
+            } else {
+                processDelete(range);
+            }
+        };
+
 
         /**
          * Deletes the character proceeeding the caret.
@@ -1874,7 +1975,9 @@ var AutotagJS = (function() {
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
-            var keyCode = getKeyCode(e);
+            var keyCode = getKeyCode(e),
+                shiftKey = e.shiftKey;
+
             if (!isDeleteKey(keyCode)) {
                 fixCaret();
             }
@@ -1883,8 +1986,12 @@ var AutotagJS = (function() {
             // any buffered selection range (_range).
             var range = getRange();
 
-            if (isDeleteKey(keyCode) || isTabKey(keyCode)) {
-                processTabOrDeleteKey(range, keyCode, e.shiftKey);
+            if (isDeleteKey(keyCode)) {
+                processDeleteKey(range, shiftKey);
+                e.preventDefault();
+
+            } else if (isTabKey(keyCode)) {
+                processTabKey(range, shiftKey);
                 e.preventDefault();
 
             } else if (isReturnKey(keyCode)) {
