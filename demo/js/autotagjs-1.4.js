@@ -1135,10 +1135,6 @@ var AutotagJS = (function() {
             }
 
             if (klass) {
-                var className = line.className;
-                // if (className) {
-                //     line.className = className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
-                // }
                 line.classList.add(klass);
             }
             return false;
@@ -1507,7 +1503,6 @@ var AutotagJS = (function() {
             updateListStyle(line, '');
         };
 
-
         /**
          * Saves the current selection range.
          */
@@ -1625,46 +1620,20 @@ var AutotagJS = (function() {
         };
 
         /**
-         * Updates the indentation of the Line based on the key pressed.
-         * @param {number} keyCode - The key pressed.
+         * Increases or decreases the indentation of the given Line.
          * @param {Node} line - The Line to update indentation.
-         * @param {boolean} shiftKey - Indicates if the Shift key is pressed.
+         * @param {boolean} decreaseIndent - If set to true, will decreate
+         * indentation; increase otherwies.
          */
-        // var updateIndentation = function(keyCode, line, shiftKey) {
-        //     if (isTabKey(keyCode)) {
-        //         if (shiftKey) {
-        //             outdentList(line, false);
-        //         } else {
-        //             indentList(line, null, false);
-        //         }
-        //     } else if (isDeleteKey(keyCode)) {
-        //         if (!isBlankList(line)) {
-        //             setBlankList(line);
-        //         } else {
-        //             outdentList(line, false);
-        //         }
-        //     } else {
-        //         return false;
-        //     }
-        //
-        //     return true;
-        // };
-
         var updateIndentation = function(line, decreaseIndent) {
             if (isList(line)) {
                 if (decreaseIndent) {
-                    // if (!isBlankList(line)) {
-                    //     setBlankList(line);
-                    // } else {
-                        outdentList(line, false);
-                    // }
+                    outdentList(line, false);
                 } else {
-                    // if (!isListHead(line)) {
-                        indentList(line, null, true);
-                    // }
+                    indentList(line, null, true);
                 }
             } else {
-                console.log("Updating Line Indentation");
+                console.log("Update Line Indentation");
             }
         };
 
@@ -1691,57 +1660,10 @@ var AutotagJS = (function() {
         };
 
         /**
-         * If a Tab or Delete key is pressed, either update the indendation
-         * of the line (in case of a list) or process deletion as usual.
+         * Update the line or list indentation on a Tab key press.
          * @param {Range} range - The range for deletion.
-         * @param {number} keyCode - The numeric code of the key pressed.
          * @param {boolean} shiftKey - Indicates if the shift key is pressed.
          */
-        var processTabOrDeleteKey = function(range, keyCode, shiftKey) {
-            // if (range.collapsed) {
-            //     var node = range.startContainer,
-            //         offset = range.startOffset,
-            //         line = getActiveLine();
-            //
-            //     if (isBeginingOfLine(getTag(node), offset) &&
-            //         getIndentationIndex(line)) {
-            //         return updateIndentation(keyCode, line, shiftKey);
-            //     }
-            //
-            //     if (isTabKey(keyCode) && !shiftKey) {
-            //         return insertTab(node, offset);
-            //     }
-            // }
-            //
-            // // Perform regular delete operation if above conditions fail
-            // // to satisfy.
-            // if (isDeleteKey(keyCode)) {
-            //     processDelete(_range);
-            // }
-
-            // var node = range.startContainer;
-            // var tag = getTag(node),
-            //     lines = getLinesInRange(range);
-            //
-            // if (isBeginingOfLine(tag, range.startOffset)) {
-            //     if (isListHead(lines[0])) {
-            //         console.log("Indent Line");
-            //
-            //     } else {
-            //         for(var i=0; i<lines.length; i++) {
-            //             updateIndentation(keyCode, lines[i], shiftKey);
-            //         }
-            //     }
-            // } else {
-            //     if (isTabKey(keyCode) && !shiftKey) {
-            //         insertTab(node, offset);
-            //
-            //     } else if (isDeleteKey(keyCode)) {
-            //         processDelete(_range);
-            //     }
-            // }
-        };
-
         var processTabKey = function(range, shiftKey) {
             var node = range.startContainer,
                 offset = range.startOffset;
@@ -1759,7 +1681,13 @@ var AutotagJS = (function() {
             }
         };
 
-        var processDeleteKey = function(range, shiftKey) {
+        /**
+         * Delete the indentation, text under the selection or character
+         * preceeding the caret. Note that the Shift key has no effect on the
+         * operation.
+         * @param {Range} range - The range for deletion.
+         */
+        var processDeleteKey = function(range) {
             var node = range.startContainer,
                 offset = range.startOffset;
 
@@ -1777,7 +1705,6 @@ var AutotagJS = (function() {
                 processDelete(range);
             }
         };
-
 
         /**
          * Deletes the character proceeeding the caret.
