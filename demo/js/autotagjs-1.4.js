@@ -49,6 +49,7 @@ var AutotagJS = (function() {
         _autoLineTag = 'div',
 
         // Reserved class names
+        _anchorListClassName = 'atg-list-anchor',
         _blankListClassName = 'atg-list-blank',
         _defaultListClassName = 'atg-list',
         _menuClassName = 'atg-menu',
@@ -1105,7 +1106,7 @@ var AutotagJS = (function() {
                 }
 
                 anchor.appendChild(line);
-                initList(anchor);
+                initList(anchor, _anchorListClassName);
                 updateList(line, prefix, getIndentationIndex(line),
                     refresh);
 
@@ -1123,7 +1124,7 @@ var AutotagJS = (function() {
          * @param {Node} line - The root line node.
          * @returns {boolean} - True if the list clas name was applied.
          */
-        var initList = function(line) {
+        var initList = function(line, klass) {
             if (isRootLine(line)) {
                 updateListStyle(line, _defaultListClassName);
                 return true;
@@ -1131,6 +1132,14 @@ var AutotagJS = (function() {
 
             if (line.classList.contains(_defaultListClassName)) {
                 line.classList.remove(_defaultListClassName);
+            }
+
+            if (klass) {
+                var className = line.className;
+                // if (className) {
+                //     line.className = className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
+                // }
+                line.classList.add(klass);
             }
             return false;
         };
@@ -1168,6 +1177,11 @@ var AutotagJS = (function() {
          */
         var isBlankList = function(line) {
             return isList(line) && line.classList.contains(_blankListClassName);
+        };
+
+
+        var isAnchorList = function(line) {
+            return isList(line) && line.classList.contains(_anchorListClassName);
         };
 
         /**
@@ -1307,7 +1321,7 @@ var AutotagJS = (function() {
                     var children = getChildren(line, isLine);
                     if (children.length > 0) {
                         var anchor = createNewLine();
-                        initList(anchor);
+                        initList(anchor, _anchorListClassName);
 
                         line.insertBefore(anchor, children[0]);
                         for (var i=0; i < children.length; i++) {
@@ -1558,7 +1572,7 @@ var AutotagJS = (function() {
         var setListStyle = function(line, stylePrefix, indentIndex,
                 overrideStyle) {
             if (stylePrefix && indentIndex &&
-                (overrideStyle || !isBlankList(line))) {
+                (overrideStyle || (!isBlankList(line) && !isAnchorList(line)))) {
                 updateListStyle(line, stylePrefix + "-list-" + indentIndex);
             }
         };
