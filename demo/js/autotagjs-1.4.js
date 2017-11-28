@@ -772,7 +772,7 @@ var AutotagJS = (function() {
                     if (_range.collapsed) {
                         nodes = [];
                     } else {
-                        buildTags(_range);
+                        createRangeBoundaryTags(_range);
                         var tags = getTagsInRange(_range),
                             activeTags = getTagsInLine(getActiveLine());
                         if (lines.length > 1 || tags.length == activeTags.length) {
@@ -1423,7 +1423,6 @@ var AutotagJS = (function() {
                 processInputV2();
             } else {
                 var tag = splitTag(container.parentNode, _range.endOffset);
-                console.log(_copiedRange.cloneContents());
                 appendNode(tag, _copiedRange.cloneContents());
                 if (isBlankNode(tag) && !isList(tag.nextSibling)) {
                     removeNode(tag);
@@ -1829,13 +1828,24 @@ var AutotagJS = (function() {
          * @param {Range} range - The selection range.
          */
         var deleteSelection = function(range) {
-            removeNodesInList(getTagsInRange(range));
-            var lines = getLinesInRange(range);
-            for (var i=0; i<lines.length; i++) {
-                if (isBlankLine(lines[i])) {
-                    removeNode(lines[i]);
+            var tag = createRangeBoundaryTags(range).startTag.previousSibling;
+
+            // Building Tags resets the range. The latest range is stored in
+            // _range. Also, retrieve both tags and lines before the range
+            // gets updated by any delete operation.
+            var tags = getTagsInRange(_range),
+                lines = getLinesInRange(_range);
+
+            if (tag) {
+                lines.shift();
+            } else {
+                var prevLine = lines[0].previousSibling;
+                if (prevLine) {
+                    tag = getTagsInLine(prevLine).pop();
                 }
             }
+            setCaret(tag);
+            removeNodesInList(tags.concat(lines));
             fixEditor();
         };
 
@@ -1925,7 +1935,7 @@ var AutotagJS = (function() {
             return appendNode(tag, newTag);
         };
 
-        var buildTags = function(range) {
+        var createRangeBoundaryTags = function(range) {
             if (!range.collapsed) {
                 var selection = getRangeContainersAndOffsets(range);
                 var container = selection.startContainer;
@@ -1951,6 +1961,8 @@ var AutotagJS = (function() {
                     endContainer: container,
                     endOffset: container.length
                 });
+
+                return {startTag: newTag, endTag: container};
             }
         };
 
