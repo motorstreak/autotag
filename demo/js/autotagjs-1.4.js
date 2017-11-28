@@ -394,8 +394,7 @@ var AutotagJS = (function() {
                 for (var j = 0; j < commands.length; j++) {
                     var cmd = commands[j];
                     if (cmd == 'clear') {
-                        // continuingStyle = null;
-                        target.setAttribute('style', '');
+                        target.removeAttribute('style');
 
                     } else if (cmd.match(/^list(\s+\w+(-\w+)*){1}/)) {
                         var listPrefix = cmd.split(/\s+/)[1];
@@ -405,15 +404,14 @@ var AutotagJS = (function() {
                                 // clearList(target);
                                 break;
                             case 'indent':
-                                indentList(target);
+                                indentList(target, false);
                                 break;
-
                             case 'outdent':
                                 outdentList(target);
                                 break;
-
                             default:
-                                indentList(target, listPrefix);
+                                toggleList(target, listPrefix);
+                                break;
                         }
                     }
                 }
@@ -744,30 +742,24 @@ var AutotagJS = (function() {
 
         /**
          * Returns the nodes (Tags and/or Lines) included in the current
-         * selection, based on scope. The scope 'selection' may include both
-         * Tags and Lines, while scope 'line' will only include lines. The
-         * default is to include only Tags.
+         * selection, based on scope. Currently scope has a single value
+         * 'line' indicating that only Line nodes be returned. The defaulted
+         * scope is both Tags and Lines.
          * @param {string} scope - The scope of nodes to be returned.
          * @returns {Array} - Returns an array of nodes.
          */
         var getNodesInSelection = function(scope) {
-            var nodes;
-            var lines = getLinesInRange(_range);
+            var nodes,
+                lines = getLinesInRange(_range);
 
             switch (scope) {
                 // Apply the formatting only to the lines in the selection or to
                 // the current line where the caret rests.
                 case 'line':
-                    // // Exclude parent lines in selection if multiple lines
-                    // // are present.
-                    // if (lines.length >  1 &&
-                    //     isLine(_range.commonAncestorContainer)) {
-                    //     lines.shift();
-                    // }
                     nodes = lines;
                     break;
 
-                // Return both
+                // Return both tags and lines if scope is not defined.
                 default:
                     if (_range.collapsed) {
                         nodes = [];
@@ -775,12 +767,15 @@ var AutotagJS = (function() {
                         createRangeBoundaryTags(_range);
                         var tags = getTagsInRange(_range),
                             activeTags = getTagsInLine(getActiveLine());
-                        if (lines.length > 1 || tags.length == activeTags.length) {
+                        if (lines.length > 1 ||
+                            tags.length == activeTags.length) {
                             nodes = tags.concat(lines);
                         } else {
                             nodes = tags;
                         }
                     }
+
+                    // Not required technically but helps in refactoring.
                     break;
             }
 
@@ -1066,50 +1061,61 @@ var AutotagJS = (function() {
         };
 
         /**
+         * Toggles the list on a line.
+         * @param {Node} line - The line to indent.
+         * @param {string} prefix - The list class prefix to apply.
+         */
+        var toggleList = function(line, prefix) {
+            if (isList(line) && !isBlankList(line)) {
+                setBlankList(line);
+                outdentList(line, false);
+            } else {
+                indentList(line, prefix);
+            }
+        };
+
+        /**
          * Indents the provided line by one point.
-         *
          * @param {Node} line - The line to indent.
          * @param {string=} prefix - The list class prefix to apply.
          * @param {boolean=} refresh - If set to false, the list style will
          *   not be updated. Defaults to true.
          */
         var indentList = function(line, prefix, refresh) {
-            // if(isList(line)) {
-                refresh = initObject(refresh, true);
-                prefix = initObject(prefix, getListPrefix(line));
+            refresh = initObject(refresh, true);
+            prefix = initObject(prefix, getListPrefix(line));
 
-                var selection = getRangeContainersAndOffsets(_range);
+            var selection = getRangeContainersAndOffsets(_range);
 
-                // The second check is required to acomodate Firefox which
-                // appends the current lines classname to the previous line on
-                // delete.
-                if (isBlankList(line) ||
-                    !isRootLine(line) && isListRoot(line)) {
+            // The second check is required to acomodate Firefox which
+            // appends the current lines classname to the previous line on
+            // delete.
+            if (isBlankList(line) ||
+                !isRootLine(line) && isListRoot(line)) {
 
-                    updateList(line, prefix, getIndentationIndex(line),
-                        refresh);
-                } else {
-                    var rootLine = getRootLine(line),
-                        anchor = line.previousSibling;
+                updateList(line, prefix, getIndentationIndex(line),
+                    refresh);
+            } else {
+                var rootLine = getRootLine(line),
+                    anchor = line.previousSibling;
 
-                    if (!isLine(anchor)) {
-                        anchor = createNewLine();
-                        line.parentNode.insertBefore(anchor, line);
-                    }
-
-                    anchor.appendChild(line);
-                    initList(anchor);
-                    updateList(line, prefix, getIndentationIndex(line),
-                        refresh);
-
-                    // Now make line's children it's peer.
-                    var children = getChildren(line, isLine);
-                    for (var i=0; i < children.length; i++) {
-                      line.parentNode.insertBefore(children[i], line.nextSibling);
-                    }
+                if (!isLine(anchor)) {
+                    anchor = createNewLine();
+                    line.parentNode.insertBefore(anchor, line);
                 }
-                setSelection(selection);
-            // }
+
+                anchor.appendChild(line);
+                initList(anchor);
+                updateList(line, prefix, getIndentationIndex(line),
+                    refresh);
+
+                // Now make line's children it's peer.
+                var children = getChildren(line, isLine);
+                for (var i=0; i < children.length; i++) {
+                  line.parentNode.insertBefore(children[i], line.nextSibling);
+                }
+            }
+            setSelection(selection);
         };
 
         /**
@@ -1158,10 +1164,10 @@ var AutotagJS = (function() {
          * not have a list indicator (e.g bullet, numbering etc) but is still
          * part of the List.
          * @param {Node} line - The Line node to check.
-         * @returns {boolean} - True if the line is a Blank List.
+         * @returns {boolean} - True if the line is a List and a Blank List.
          */
         var isBlankList = function(line) {
-            return line && line.classList.contains(_blankListClassName);
+            return isList(line) && line.classList.contains(_blankListClassName);
         };
 
         /**
@@ -1633,14 +1639,14 @@ var AutotagJS = (function() {
         var updateIndentation = function(line, decreaseIndent) {
             if (isList(line)) {
                 if (decreaseIndent) {
-                    if (!isBlankList(line)) {
-                        setBlankList(line);
-                    } else {
+                    // if (!isBlankList(line)) {
+                    //     setBlankList(line);
+                    // } else {
                         outdentList(line, false);
-                    }
+                    // }
                 } else {
                     // if (!isListHead(line)) {
-                        indentList(line, null, false);
+                        indentList(line, null, true);
                     // }
                 }
             } else {
@@ -1729,7 +1735,7 @@ var AutotagJS = (function() {
             var tag = getTag(node),
                 lines = getLinesInRange(range);
 
-            if (lines.length > 1 || isBeginingOfLine(tag, offset)) {
+            if (isBeginingOfLine(tag, offset) || lines.length > 1) {
                 for(var i=0; i<lines.length; i++) {
                     updateIndentation(lines[i], shiftKey);
                 }
@@ -1747,11 +1753,12 @@ var AutotagJS = (function() {
                 lines = getLinesInRange(range);
 
             if (lines.length == 1 &&
-                    isBeginingOfLine(tag, offset) &&
-                    isList(lines[0])) {
-
-                // Shift has no effect.
-                updateIndentation(lines[0], true);
+                    isBeginingOfLine(tag, offset) && isList(lines[0])) {
+                if (!isBlankList(lines[0])) {
+                    setBlankList(lines[0]);
+                } else {
+                    updateIndentation(lines[0], true);
+                }
             } else {
                 processDelete(range);
             }
