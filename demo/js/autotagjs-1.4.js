@@ -492,7 +492,7 @@ var AutotagJS = (function() {
          * @param {Node} menu - The menu to attach the submenu to.
          * @param {string} type - The kind of palette to show.
          */
-        var createPalette = function(menu, type) {
+        var createPalette = function(menu) {
             var palette = menu.getElementsByClassName(_submenuClassName)[0];
             if (palette) {
                 palette.style.display = '';
@@ -500,7 +500,10 @@ var AutotagJS = (function() {
                 palette = document.createElement('div');
                 palette.classList.add(_submenuClassName);
                 palette.classList.add(_paletteClassName);
+
+                var type = menu.dataset.atgSubmenu.split('Palette')[0];
                 palette.dataset.atgPalette = type;
+                palette.dataset.atgScope = menu.dataset.atgScope;
                 menu.appendChild(palette);
 
                 // Color palette
@@ -760,6 +763,10 @@ var AutotagJS = (function() {
                     nodes = lines;
                     break;
 
+                case 'tags':
+                    createRangeBoundaryTags(_range);
+                    nodes = getTagsInRange(_range);
+                    break;
                 // Return both tags and lines if scope is not defined.
                 default:
                     if (_range.collapsed) {
@@ -2009,11 +2016,10 @@ var AutotagJS = (function() {
                         // If atg-submenu is specified (and no submenu exists),
                         // proceed to take action.
                         } else if (menu.dataset.atgSubmenu) {
-                            submenu = menu.dataset.atgSubmenu;
                             // If atg-submenu eludes to palette, create it and
                             // display the submenu.
-                            if (submenu.match(/Palette$/)) {
-                                createPalette(menu, submenu.split('Palette')[0]);
+                            if (menu.dataset.atgSubmenu.match(/Palette$/)) {
+                                createPalette(menu);
                             }
 
                         } else {
