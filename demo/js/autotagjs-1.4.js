@@ -1104,10 +1104,9 @@ var AutotagJS = (function() {
                 updateList(line, prefix, getIndentationIndex(line),
                     refresh);
             } else {
-                var rootLine = getRootLine(line),
-                    anchor = line.previousSibling;
+                var anchor = line.previousSibling;
 
-                if (!isLine(anchor)) {
+                if (!isList(anchor)) {
                     anchor = createNewLine();
                     line.parentNode.insertBefore(anchor, line);
                 }
@@ -1498,7 +1497,7 @@ var AutotagJS = (function() {
                     }
                     appendNodes(newTag, tags);
                 }
-                newLine.style = line.style;
+                newLine.setAttribute('style', line.getAttribute('style'));
                 newLine.className = line.className;
             } else {
                 // If a selection, proceed to delete the selection.
@@ -1640,7 +1639,9 @@ var AutotagJS = (function() {
                     indentList(line, null, true);
                 }
             } else {
-                console.log("Update Line Indentation");
+                var instruction = decreaseIndent ? 'atgDecrement'
+                                                 : 'atgIncrement';
+                applyStyle(line, instruction, ['margin-left:55px']);
             }
         };
 
@@ -1702,7 +1703,9 @@ var AutotagJS = (function() {
                 lines = getLinesInRange(range);
 
             if (lines.length == 1 &&
-                    isBeginingOfLine(tag, offset) && isList(lines[0])) {
+                    isBeginingOfLine(tag, offset) &&
+                    isList(lines[0])) {
+
                 if (!isBlankList(lines[0])) {
                     setBlankList(lines[0]);
                 } else {
