@@ -1482,7 +1482,14 @@ var AutotagJS = (function() {
                         setCaret: true
                     });
 
-                } else if (isBeginingOfLine(tag, offset)) {
+                    // // Now make line's children it's peer.
+                    // var children = getChildren(line, isLine);
+                    // for(var i=0; i<children.length; i++) {
+                    //     newLine.appendChild(children[i]);
+                    // }
+
+                } else
+                if (isBeginingOfLine(tag, offset)) {
                     newLine = createNewLine(line, {
                         asPreviousSibling: true,
                         addPilotNode: true,
@@ -1490,28 +1497,27 @@ var AutotagJS = (function() {
                     });
 
                 } else {
-                    newLine = createNewLine(line, {asSibling: true});
                     var newNode = container.splitText(range.startOffset);
 
-                    var pilotTag;
-                    if (newNode.nodeValue.length > 0) {
-                        pilotTag = createTagNode(removeNode(newNode));
-                    } else {
-                        // If the startOffset was 0, we will get an empty
-                        // text node that should be removed.
-                        removeNode(newNode);
-                        pilotTag = tag.nextSibling;
+                    if (newNode.nodeValue.length == 0) {
+                        newNode.nodeValue = '\u200b';
                     }
-                    newLine.appendChild(pilotTag);
 
-                    // Collect remaining tags and append them to the
-                    // new line.
+                    var newTag = createTagNode(removeNode(newNode));
+                    newLine = createNewLine(line, {asSibling: true});
+                    newLine.appendChild(newTag);
+                    setCaret(newNode, 0);
+
+                    // Collect remaining nodes (tags and lines) and append them
+                    // to the new line.
                     var tags = [];
                     while ((tag = tag.nextSibling)) {
                         tags.push(tag);
                     }
-                    appendNodes(pilotTag, tags);
-                    setCaret(pilotTag, 0);
+                    appendNodes(newTag, tags);
+
+                    // appendNodes(pilotTag, tags);
+                    // setCaret(pilotTag, 0);
                 }
                 newLine.setAttribute('style', line.getAttribute('style'));
                 newLine.className = line.className;
@@ -1723,7 +1729,8 @@ var AutotagJS = (function() {
          * @returns {boolean} - True if end of line, false otherwise.
          */
         var isEndOfLine = function(tag, offset) {
-            return !isTag(tag.nextSibling) && offset == tag.textContent.length;
+            // return !isTag(tag.nextSibling) && offset == tag.textContent.length;
+            return !tag.nextSibling && offset == tag.textContent.length;
         };
 
         /**
@@ -1798,6 +1805,16 @@ var AutotagJS = (function() {
                     for(var i=0; i<curTags.length; i++) {
                         tag = appendNode(tag, curTags[i]);
                     }
+                    // var node = line.firstChild;
+                    // var nodes = [node];
+                    // while ((node = node.nextSibling)) {
+                    //     if (isAnchorList(node)) {
+                    //         nodes.concat(node.childNodes);
+                    //     } else {
+                    //         nodes.push(node);
+                    //     }
+                    // }
+                    // appendNodes(lastPrevTag, nodes);
 
                     if (isBlankLine(line)) {
                         removeNode(line);
