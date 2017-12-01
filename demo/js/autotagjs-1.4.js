@@ -405,7 +405,7 @@ var AutotagJS = (function() {
                                 // clearList(target);
                                 break;
                             case 'indent':
-                                indentList(target, false);
+                                createOrIndentList(target, false);
                                 break;
                             case 'outdent':
                                 outdentList(target);
@@ -849,8 +849,8 @@ var AutotagJS = (function() {
             var lines =  getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isLine);
             // Exclude parent lines in selection if multiple lines
             // are present.
-            if (lines.length >  1 &&
-                isLine(range.commonAncestorContainer)) {
+            if (lines.length >  1 && (isLine(range.commonAncestorContainer) ||
+                isEditor(range.commonAncestorContainer))) {
                 lines.shift();
             }
             return lines;
@@ -1074,11 +1074,10 @@ var AutotagJS = (function() {
          * @param {string} prefix - The list class prefix to apply.
          */
         var toggleList = function(line, prefix) {
-            if (isList(line) && !isBlankList(line)) {
-                setBlankList(line);
+            if (isList(line)) {
                 outdentList(line, false);
             } else {
-                indentList(line, prefix);
+                createOrIndentList(line, prefix);
             }
         };
 
@@ -1089,7 +1088,7 @@ var AutotagJS = (function() {
          * @param {boolean=} refresh - If set to false, the list style will
          *   not be updated. Defaults to true.
          */
-        var indentList = function(line, prefix, refresh) {
+        var createOrIndentList = function(line, prefix, refresh) {
             refresh = initObject(refresh, true);
             prefix = initObject(prefix, getListPrefix(line));
 
@@ -1098,7 +1097,7 @@ var AutotagJS = (function() {
             // The second check is required to acomodate Firefox which
             // appends the current lines classname to the previous line on
             // delete.
-            if (isBlankList(line) ||
+            if (isAnonymousList(line) ||
                 !isRootLine(line) && isListRoot(line)) {
 
                 updateList(line, prefix, getIndentationIndex(line),
@@ -1112,6 +1111,9 @@ var AutotagJS = (function() {
                 }
 
                 anchor.appendChild(line);
+
+                // line.style.removeProperty('margin-left');
+
                 initList(anchor, _anchorListClassName);
                 updateList(line, prefix, getIndentationIndex(line),
                     refresh);
@@ -1177,7 +1179,7 @@ var AutotagJS = (function() {
          * @param {Node} line - The Line node to check.
          * @returns {boolean} - True if the line is a List and a Blank List.
          */
-        var isBlankList = function(line) {
+        var isAnonymousList = function(line) {
             return isList(line) && line.classList.contains(_blankListClassName);
         };
 
@@ -1311,11 +1313,16 @@ var AutotagJS = (function() {
          * is overwritten.
          */
         var outdentList = function(line, refresh) {
-            if(isList(line)) {
-                refresh = initObject(refresh, true);
-                var parentLine = line.parentNode;
+            refresh = initObject(refresh, true);
 
-                if (!isEditor(line.parentNode)) {
+            if(isList(line)) {
+                // Anonymize the list if not already anonymized.
+                // if (anonymizeList(line)) {
+                //     return;
+                // }
+
+                var parentLine = line.parentNode;
+                if (!isEditor(parentLine)) {
                     var selection = getRangeContainersAndOffsets(_range);
                     prefix = getListPrefix(line);
 
@@ -1483,11 +1490,19 @@ var AutotagJS = (function() {
                     });
 
                 } else {
-                    var newNode = container.splitText(range.startOffset);
-                    var newTag = createTagNode(removeNode(newNode));
                     newLine = createNewLine(line, {asSibling: true});
-                    newLine.appendChild(newTag);
-                    setCaret(newNode, 0);
+                    var newNode = container.splitText(range.startOffset);
+
+                    var pilotTag;
+                    if (newNode.nodeValue.length > 0) {
+                        pilotTag = createTagNode(removeNode(newNode));
+                    } else {
+                        // If the startOffset was 0, we will get an empty
+                        // text node that should be removed.
+                        removeNode(newNode);
+                        pilotTag = tag.nextSibling;
+                    }
+                    newLine.appendChild(pilotTag);
 
                     // Collect remaining tags and append them to the
                     // new line.
@@ -1495,7 +1510,8 @@ var AutotagJS = (function() {
                     while ((tag = tag.nextSibling)) {
                         tags.push(tag);
                     }
-                    appendNodes(newTag, tags);
+                    appendNodes(pilotTag, tags);
+                    setCaret(pilotTag, 0);
                 }
                 newLine.setAttribute('style', line.getAttribute('style'));
                 newLine.className = line.className;
@@ -1525,8 +1541,10 @@ var AutotagJS = (function() {
          * indicator).
          * @param {Node} line - The Line to update to blank list.
          */
-        var setBlankList = function(line) {
-            updateListStyle(line, _blankListClassName);
+        var anonymizeList = function(line) {
+            if (!isAnonymousList(line)) {
+                return updateListStyle(line, _blankListClassName);
+            }
         };
 
         /**
@@ -1573,7 +1591,7 @@ var AutotagJS = (function() {
         var setListStyle = function(line, stylePrefix, indentIndex,
                 overrideStyle) {
             if (stylePrefix && indentIndex &&
-                (overrideStyle || (!isBlankList(line) && !isAnchorList(line)))) {
+                (overrideStyle || (!isAnonymousList(line) && !isAnchorList(line)))) {
                 updateListStyle(line, stylePrefix + "-list-" + indentIndex);
             }
         };
@@ -1626,22 +1644,63 @@ var AutotagJS = (function() {
         };
 
         /**
-         * Increases or decreases the indentation of the given Line.
-         * @param {Node} line - The Line to update indentation.
-         * @param {boolean} decreaseIndent - If set to true, will decreate
-         * indentation; increase otherwies.
+         * Extracts the ancestors of the lines from within the lines.
+         * @param {Array} lines - The lines from which to extract ancestors.
+         * @returns {Array} - The list of ancestor Lines.
          */
-        var updateIndentation = function(line, decreaseIndent) {
-            if (isList(line)) {
-                if (decreaseIndent) {
-                    outdentList(line, false);
+        var getAncestorLines = function(lines) {
+            var ancestorNodes = [];
+            for(var i=0; i<lines.length; i++) {
+                var curNode = lines[i];
+                while (lines.indexOf(curNode.parentNode) != -1) {
+                    curNode = curNode.parentNode;
+                }
+                if (ancestorNodes.indexOf(curNode) == -1) {
+                    ancestorNodes.push(curNode);
+                }
+            }
+            return ancestorNodes;
+        };
+
+        var updateIndentation = function(range, increase) {
+            var lines = getLinesInRange(range);
+            var instruction = increase ? 'atgIncrement' : 'atgDecrement';
+
+            // If multiple lines are selected, increase the indentation. Note
+            // that the list indentation is unaffected.
+            var ancestorLines;
+            if (lines.length > 1) {
+                ancestorLines = getAncestorLines(lines);
+                for(i=0; i<ancestorLines.length; i++) {
+                    applyStyle(ancestorLines[i], instruction,
+                        ['margin-left:55px']);
+                }
+                return;
+            }
+
+            // If only one line or one or more tasgs in a single line
+            // is selected..
+            var node = range.startContainer,
+                offset = range.startOffset,
+                firstLine = lines[0];
+
+            var isLineBegin = isBeginingOfLine(getTag(node), offset);
+
+            if (increase) {
+                if (isLineBegin) {
+                    if (isList(firstLine) && !isListHead(firstLine)) {
+                        createOrIndentList(firstLine, null, true);
+                    } else {
+                        applyStyle(firstLine, instruction,
+                            ['margin-left:55px']);
+                    }
                 } else {
-                    indentList(line, null, true);
+                    insertTab(node, offset);
                 }
             } else {
-                var instruction = decreaseIndent ? 'atgDecrement'
-                                                 : 'atgIncrement';
-                applyStyle(line, instruction, ['margin-left:55px']);
+                if (isLineBegin && isList(firstLine)) {
+                    outdentList(firstLine, false);
+                }
             }
         };
 
@@ -1664,56 +1723,7 @@ var AutotagJS = (function() {
          * @returns {boolean} - True if end of line, false otherwise.
          */
         var isEndOfLine = function(tag, offset) {
-            return !tag.nextSibling && offset == tag.textContent.length;
-        };
-
-        /**
-         * Update the line or list indentation on a Tab key press.
-         * @param {Range} range - The range for deletion.
-         * @param {boolean} shiftKey - Indicates if the shift key is pressed.
-         */
-        var processTabKey = function(range, shiftKey) {
-            var node = range.startContainer,
-                offset = range.startOffset;
-
-            var tag = getTag(node),
-                lines = getLinesInRange(range);
-
-            if (isBeginingOfLine(tag, offset) || lines.length > 1) {
-                for(var i=0; i<lines.length; i++) {
-                    updateIndentation(lines[i], shiftKey);
-                }
-            } else {
-                // Shift has no effect. Tab will be inserted anyways.
-                insertTab(node, offset);
-            }
-        };
-
-        /**
-         * Delete the indentation, text under the selection or character
-         * preceeding the caret. Note that the Shift key has no effect on the
-         * operation.
-         * @param {Range} range - The range for deletion.
-         */
-        var processDeleteKey = function(range) {
-            var node = range.startContainer,
-                offset = range.startOffset;
-
-            var tag = getTag(node),
-                lines = getLinesInRange(range);
-
-            if (lines.length == 1 &&
-                    isBeginingOfLine(tag, offset) &&
-                    isList(lines[0])) {
-
-                if (!isBlankList(lines[0])) {
-                    setBlankList(lines[0]);
-                } else {
-                    updateIndentation(lines[0], true);
-                }
-            } else {
-                processDelete(range);
-            }
+            return !isTag(tag.nextSibling) && offset == tag.textContent.length;
         };
 
         /**
@@ -1748,6 +1758,25 @@ var AutotagJS = (function() {
          * @param {Node} line - The line to delete.
          */
         var deleteLine = function(line) {
+            // If the line is a list and is not anonymized, nonymize it and
+            // return.
+            if (anonymizeList(line)) {
+                return;
+            }
+
+            // If already anonymized, outdent the list and return.
+            if (isAnonymousList(line)) {
+                outdentList(line, false);
+                return;
+            }
+
+            // If indented, remove the indentation and return.
+            if (getStylePropertyValue(line, 'margin-left') !== '0px') {
+                line.style.removeProperty('margin-left');
+                return;
+            }
+
+            // None of the above, proceede with deleting the line.
             var prevLine = line.previousSibling;
             if (prevLine && isLine(prevLine)) {
 
@@ -1957,11 +1986,11 @@ var AutotagJS = (function() {
             var range = getRange();
 
             if (isDeleteKey(keyCode)) {
-                processDeleteKey(range, shiftKey);
+                processDelete(range);
                 e.preventDefault();
 
             } else if (isTabKey(keyCode)) {
-                processTabKey(range, shiftKey);
+                updateIndentation(range, !shiftKey);
                 e.preventDefault();
 
             } else if (isReturnKey(keyCode)) {
