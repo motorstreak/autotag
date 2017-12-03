@@ -124,43 +124,41 @@
     padding-left: 55px;
 }
 
-.atg-list-root div:before {
+.atg-list-root div::before {
     position: absolute;
     left: 0;
     width: 40px;
     text-align: right;
 }
 
-/*.atg-list-1:before,
-.atg-list-2:before,
-.atg-list-3:before {
-    content: '';
+/*div[class^="atg-"]:hover::before {
+    background-color: #BFD3FA;
 }*/
 
-.atg-numbered-list-1:before {
+.atg-numbered-list-1::before {
     content: counter(atg-numbered-counter-1) ".";
     counter-increment: atg-numbered-counter-1;
 }
 
-.atg-numbered-list-2:before {
+.atg-numbered-list-2::before {
     content: counter(atg-numbered-counter-2, lower-latin) ".";
     counter-increment: atg-numbered-counter-2;
 }
 
-.atg-numbered-list-3:before {
+.atg-numbered-list-3::before {
     content: counter(atg-numbered-counter-3, lower-roman) ".";
     counter-increment: atg-numbered-counter-3;
 }
 
-.atg-bulleted-list-1:before {
+.atg-bulleted-list-1::before {
     content: '●';
 }
 
-.atg-bulleted-list-2:before {
+.atg-bulleted-list-2::before {
     content : '○';
 }
 
-.atg-bulleted-list-3:before {
+.atg-bulleted-list-3::before {
     content : '▪';
 }
 

@@ -51,7 +51,7 @@ var AutotagJS = (function() {
         // Reserved class names
         _anchorListClassName = 'atg-list-anchor',
         _blankListClassName = 'atg-list-blank',
-        _defaultListClassName = 'atg-list-root',
+        _rootListClassName = 'atg-list-root',
         _menuClassName = 'atg-menu',
         _paletteClassName = 'atg-palette',
         _paletteCellClassName = 'atg-palette-cell',
@@ -1074,7 +1074,7 @@ var AutotagJS = (function() {
          * @param {string} prefix - The list class prefix to apply.
          */
         var toggleList = function(line, prefix) {
-            if (isList(line)) {
+            if (isList(line) && !isAnonymousList(line)) {
                 outdentList(line, false);
             } else {
                 createOrIndentList(line, prefix);
@@ -1092,6 +1092,8 @@ var AutotagJS = (function() {
             refresh = initObject(refresh, true);
             prefix = initObject(prefix, getListPrefix(line));
 
+            // Store the current selection nodes and offsets so that we can
+            // reinstate the selection after indentation.
             var selection = getRangeContainersAndOffsets(_range);
 
             // The second check is required to acomodate Firefox which
@@ -1099,24 +1101,21 @@ var AutotagJS = (function() {
             // delete.
             if (isAnonymousList(line) ||
                 !isRootLine(line) && isListRoot(line)) {
+                updateList(line, prefix, getIndentationIndex(line), refresh);
 
-                updateList(line, prefix, getIndentationIndex(line),
-                    refresh);
             } else {
                 var anchor = line.previousSibling;
-
-                if (!isList(anchor) && !isListRoot(anchor)) {
+                if (!isList(anchor)) {
                     anchor = createNewLine();
                     line.parentNode.insertBefore(anchor, line);
+
+                    // If the newly created line is not a root list, make it
+                    // one. Else, make this an anchor list node.
+                    initList(anchor, _anchorListClassName);
                 }
 
                 anchor.appendChild(line);
-
-                // line.style.removeProperty('margin-left');
-
-                initList(anchor, _anchorListClassName);
-                updateList(line, prefix, getIndentationIndex(line),
-                    refresh);
+                updateList(line, prefix, getIndentationIndex(line), refresh);
 
                 // Now make line's children it's peer.
                 var children = getChildren(line, isLine);
@@ -1124,6 +1123,8 @@ var AutotagJS = (function() {
                   line.parentNode.insertBefore(children[i], line.nextSibling);
                 }
             }
+
+            // Reset the range to the original selection if possible.
             setSelection(selection);
         };
 
@@ -1134,16 +1135,12 @@ var AutotagJS = (function() {
          */
         var initList = function(line, klass) {
             if (isRootLine(line)) {
-                updateListStyle(line, _defaultListClassName);
+                updateListStyle(line, _rootListClassName);
                 return true;
             }
 
-            if (line.classList.contains(_defaultListClassName)) {
-                line.classList.remove(_defaultListClassName);
-            }
-
             if (klass) {
-                line.classList.add(klass);
+                updateListStyle(line, klass);
             }
             return false;
         };
@@ -1250,7 +1247,7 @@ var AutotagJS = (function() {
          * @returns {boolean} - True if the Line is a Root Line.
          */
         var isListRoot = function(line) {
-            return line && line.classList.contains(_defaultListClassName);
+            return line && line.classList.contains(_rootListClassName);
         };
 
         /**
@@ -1315,11 +1312,6 @@ var AutotagJS = (function() {
             refresh = initObject(refresh, true);
 
             if(isList(line)) {
-                // Anonymize the list if not already anonymized.
-                // if (anonymizeList(line)) {
-                //     return;
-                // }
-
                 var parentLine = line.parentNode;
                 if (!isEditor(parentLine)) {
                     var selection = getRangeContainersAndOffsets(_range);
@@ -1481,14 +1473,7 @@ var AutotagJS = (function() {
                         setCaret: true
                     });
 
-                    // // Now make line's children it's peer.
-                    // var children = getChildren(line, isLine);
-                    // for(var i=0; i<children.length; i++) {
-                    //     newLine.appendChild(children[i]);
-                    // }
-
-                } else
-                if (isBeginingOfLine(tag, offset)) {
+                } else if (isBeginingOfLine(tag, offset)) {
                     newLine = createNewLine(line, {
                         asPreviousSibling: true,
                         addPilotNode: true,
@@ -1547,9 +1532,6 @@ var AutotagJS = (function() {
          * @param {Node} line - The Line to update to blank list.
          */
         var anonymizeList = function(line) {
-            // if (isList(line) && !isAnonymousList(line)) {
-            //     return updateListStyle(line, _blankListClassName);
-            // }
             updateListStyle(line, _blankListClassName);
         };
 
@@ -1596,10 +1578,9 @@ var AutotagJS = (function() {
          */
         var setListStyle = function(line, stylePrefix, indentIndex,
                 overrideStyle) {
-            console.log(indentIndex);
 
             if (indentIndex == 0) {
-                updateListStyle(line, _defaultListClassName);
+                updateListStyle(line, _rootListClassName);
 
             } else {
                 if (stylePrefix && indentIndex &&
@@ -1775,18 +1756,6 @@ var AutotagJS = (function() {
          * @param {Node} line - The line to delete.
          */
         var deleteLine = function(line) {
-            // If the line is a list and is not anonymized, anonymize it and
-            // return.
-            // if (anonymizeList(line)) {
-            //     return;
-            // }
-
-            // If already anonymized, outdent the list and return.
-            // if (isAnonymousList(line)) {
-            //     outdentList(line, false);
-            //     return;
-            // }
-
             if (isList(line) && !isListRoot(line)) {
                 if (isAnonymousList(line)) {
                     outdentList(line, false);
@@ -1824,16 +1793,6 @@ var AutotagJS = (function() {
                     for(var i=0; i<curTags.length; i++) {
                         tag = appendNode(tag, curTags[i]);
                     }
-                    // var node = line.firstChild;
-                    // var nodes = [node];
-                    // while ((node = node.nextSibling)) {
-                    //     if (isAnchorList(node)) {
-                    //         nodes.concat(node.childNodes);
-                    //     } else {
-                    //         nodes.push(node);
-                    //     }
-                    // }
-                    // appendNodes(lastPrevTag, nodes);
 
                     if (isBlankLine(line)) {
                         removeNode(line);
