@@ -45,8 +45,8 @@ var AutotagJS = (function() {
         85: 'text-decoration:underline'
     };
 
-    var _autoWordTag = 'span',
-        _autoLineTag = 'div',
+    var _fragmentTag = 'span',
+        _lineTag = 'div',
 
         // Reserved class names
         _anchorListClassName = 'atg-list-anchor',
@@ -628,7 +628,7 @@ var AutotagJS = (function() {
 
         var createNewLine = function(refLine, options) {
             options = options || {};
-            var line = document.createElement(_autoLineTag);
+            var line = document.createElement(_lineTag);
             if (refLine) {
                 // By default, attach as child of node.
                 if (options.asSibling) {
@@ -662,7 +662,7 @@ var AutotagJS = (function() {
          * @returns {Node} - The newly create Tag node.
          */
         var createTagNode = function(stringOrText, style) {
-            var tag = document.createElement(_autoWordTag),
+            var tag = document.createElement(_fragmentTag),
                 text;
             if (typeof stringOrText === 'string') {
                 text = createTextNode(stringOrText);
@@ -703,7 +703,7 @@ var AutotagJS = (function() {
             if (isTag(node)) {
                 setCaret(node.lastChild, 0);
             } else if (isLine(node)) {
-                var tags = node.querySelectorAll(_autoWordTag);
+                var tags = node.querySelectorAll(_fragmentTag);
                 if (tags.length > 0) {
                     var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
                     setCaret(tag.lastChild);
@@ -806,7 +806,7 @@ var AutotagJS = (function() {
          * @returns {Node} - The Line node.
          */
         var getFirstLine = function() {
-            return editor.querySelector(_autoLineTag + ':first-child');
+            return editor.querySelector(_lineTag + ':first-child');
         };
 
         /**
@@ -1201,7 +1201,7 @@ var AutotagJS = (function() {
          */
         var isLine = function(node) {
             return node &&
-                node.tagName == _autoLineTag.toUpperCase() &&
+                node.tagName == _lineTag.toUpperCase() &&
                 !isEditor(node);
         };
 
@@ -1256,7 +1256,7 @@ var AutotagJS = (function() {
          * @returns {boolean} - True if the node is a Tag node.
          */
         var isTag = function(node) {
-            return node && node.tagName == _autoWordTag.toUpperCase();
+            return node && node.tagName == _fragmentTag.toUpperCase();
         };
 
         /**
