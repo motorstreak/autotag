@@ -358,7 +358,7 @@ var AutotagJS = (function() {
 
             // Continues the current text style to the next line and
             // across line breaks.
-            _continuingTagStyle = '';
+            _continuingStyle = '';
 
         // Initialize configuration.
         config = config || {};
@@ -375,8 +375,8 @@ var AutotagJS = (function() {
         // Event callbacks
         var doAfterKeypress = config.afterKeypress || function() {};
 
-        // Returns the tags under the selection.
-        var doAfterSelection = config.afterSelection || function(tags) {};
+        // Returns the fragments under the selection.
+        var doAfterSelection = config.afterSelection || function(fragments) {};
 
         var doOnMenuClick = config.onMenuClick || function() {};
 
@@ -640,7 +640,7 @@ var AutotagJS = (function() {
                 }
 
                 if (options.addPilotNode) {
-                    var pilot = createTagNode('\u200b');
+                    var pilot = createFragment('\u200b');
                     line.appendChild(pilot);
 
                     if (options.setCaret) {
@@ -652,17 +652,17 @@ var AutotagJS = (function() {
         };
 
         /**
-         * Creates a node (Tag Node) containing the provided string or Text
+         * Creates a node (Fragment Node) containing the provided string or Text
          * node and applies the provided style to it. If a style is not
          * provided, set style to the last applied one. Every text node in
-         * the editor is wrapped in a Tag node.
+         * the editor is wrapped in a Fragment node.
          * @param {Object} stringOrText - A string or Text node object to be
-         * wrapped as a Tag.
+         * wrapped as a Fragment.
          * @param {string} style - A string containing CSS style declarations.
-         * @returns {Node} - The newly create Tag node.
+         * @returns {Node} - The newly create Fragment node.
          */
-        var createTagNode = function(stringOrText, style) {
-            var tag = document.createElement(_fragmentTag),
+        var createFragment = function(stringOrText, style) {
+            var fragment = document.createElement(_fragmentTag),
                 text;
             if (typeof stringOrText === 'string') {
                 text = createTextNode(stringOrText);
@@ -671,11 +671,11 @@ var AutotagJS = (function() {
             }
 
             if (text) {
-                tag.appendChild(text);
+                fragment.appendChild(text);
             }
 
-            tag.setAttribute('style', style || _continuingTagStyle);
-            return tag;
+            fragment.setAttribute('style', style || _continuingStyle);
+            return fragment;
         };
 
         /**
@@ -692,21 +692,22 @@ var AutotagJS = (function() {
 
         /**
          * Corrects the range object to point to a text node if it is on
-         * a Tag or Line node. If on a Tag, set caret at the begining of the
-         * text node. If on a Line, set caret on the last Tag on the line, at
+         * a Fragment or Line node. If on a Fragment, set caret at the begining of the
+         * text node. If on a Line, set caret on the last Fragment on the line, at
          * the end of the contained Text node.
          */
         var fixCaret = function() {
             var range = getRange();
             var node = range.endContainer;
 
-            if (isTag(node)) {
+            if (isFragment(node)) {
                 setCaret(node.lastChild, 0);
             } else if (isLine(node)) {
-                var tags = node.querySelectorAll(_fragmentTag);
-                if (tags.length > 0) {
-                    var tag = tags[range.endOffset - 1] || tags[tags.length - 1];
-                    setCaret(tag.lastChild);
+                var fragments = node.querySelectorAll(_fragmentTag);
+                if (fragments.length > 0) {
+                    var fragment = fragments[range.endOffset - 1] ||
+                        fragments[fragments.length - 1];
+                    setCaret(fragment.lastChild);
                 }
             }
         };
@@ -745,10 +746,10 @@ var AutotagJS = (function() {
         };
 
         /**
-         * Returns the nodes (Tags and/or Lines) included in the current
+         * Returns the nodes (Fragments and/or Lines) included in the current
          * selection, based on scope. Currently scope has a single value
          * 'line' indicating that only Line nodes be returned. The defaulted
-         * scope is both Tags and Lines.
+         * scope is both Fragments and Lines.
          * @param {string} scope - The scope of nodes to be returned.
          * @returns {Array} - Returns an array of nodes.
          */
@@ -764,22 +765,22 @@ var AutotagJS = (function() {
                     break;
 
                 case 'tags':
-                    createRangeBoundaryTags(_range);
-                    nodes = getTagsInRange(_range);
+                    createRangeBoundaryFragments(_range);
+                    nodes = getFragmentsInRange(_range);
                     break;
-                // Return both tags and lines if scope is not defined.
+                // Return both Fragments and Lines if scope is not defined.
                 default:
                     if (_range.collapsed) {
                         nodes = [];
                     } else {
-                        createRangeBoundaryTags(_range);
-                        var tags = getTagsInRange(_range),
-                            activeTags = getTagsInLine(getActiveLine());
+                        createRangeBoundaryFragments(_range);
+                        var fragments = getFragmentsInRange(_range),
+                            activeFragments = getFragmentsInLine(getActiveLine());
                         if (lines.length > 1 ||
-                            tags.length == activeTags.length) {
-                            nodes = tags.concat(lines);
+                            fragments.length == activeFragments.length) {
+                            nodes = fragments.concat(lines);
                         } else {
-                            nodes = tags;
+                            nodes = fragments;
                         }
                     }
 
@@ -952,11 +953,11 @@ var AutotagJS = (function() {
          * @param {NodeFilter} whatToShow - NodeFilter determining what to show.
          * @param {nodeFilterCallback} ancestorFilter - A filter used to
          * identify the right common ancestor node. For example, use the
-         * Line node if collecting Tag nodes.
+         * Line node if collecting Fragment nodes.
          * @returns {TreeWalker} - The TreeWalker object for this traversal.
          */
         var getRangeWalker = function(range, whatToShow, ancestorFilter) {
-            ancestorFilter =  ancestorFilter || isTag;
+            ancestorFilter =  ancestorFilter || isFragment;
             var ancestor = range.commonAncestorContainer ;
 
             while(!ancestorFilter(ancestor) &&
@@ -994,46 +995,46 @@ var AutotagJS = (function() {
         };
 
         /**
-         * Returns the asscociated Tag for the given node. If the node is a
+         * Returns the asscociated fragment for the given node. If the node is a
          * Text Node, return its parent node, which in all probabality is
-         * a Tag. If the node is a Line, return the first Tag in the line.
+         * a Fragments. If the node is a Line, return the first Fragments in the line.
          * @param {Node} node - A Node.
-         * @returns {Node} - The Tag node.
+         * @returns {Node} - The Fragments node.
          */
-        var getTag = function(node) {
+        var getFragment = function(node) {
             if (isTextNode(node)) {
                 return node.parentNode;
-            } else if (isTag(node)) {
+            } else if (isFragment(node)) {
                 return node;
             } else if (isLine(node)) {
-                return getTagsInLine(node)[0];
+                return getFragmentsInLine(node)[0];
             }
         };
 
         /**
-         * Get all the Tags in the given line and optionally all descendant
+         * Get all the Fragments in the given line and optionally all descendant
          * lines.
          * @param {Node} line - A Line node.
-         * @param {boolean=} deep - If set to true, get Tags from descendant
-         * lines, else (default) only Tags on the given line.
-         * @returns {Array} - An array of Tag nodes.
+         * @param {boolean=} deep - If set to true, get Fragments from descendant
+         * lines, else (default) only Fragments on the given line.
+         * @returns {Array} - An array of Fragment nodes.
          */
-        var getTagsInLine = function(line, deep) {
+        var getFragmentsInLine = function(line, deep) {
             if (deep) {
                 var walker = getTreeWalker(line, NodeFilter.SHOW_ELEMENT);
-                return getNodesFromTree(walker, isTag);
+                return getNodesFromTree(walker, isFragment);
             } else {
-                return getChildren(line, isTag);
+                return getChildren(line, isFragment);
             }
         };
 
         /**
-         * Returns all the Tag nodes in the given range.
+         * Returns all the Fragment nodes in the given range.
          * @param {Range} range - A Range object.
-         * @returns {Array} - An array of Tag Nodes from the given Range.
+         * @returns {Array} - An array of Fragment Nodes from the given Range.
          */
-        var getTagsInRange = function(range) {
-            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isTag);
+        var getFragmentsInRange = function(range) {
+            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isFragment);
         };
 
         /**
@@ -1251,17 +1252,17 @@ var AutotagJS = (function() {
         };
 
         /**
-         * Checks if the given node is a Tag node.
+         * Checks if the given node is a Fragment node.
          * @param {Node} node - The node to check.
-         * @returns {boolean} - True if the node is a Tag node.
+         * @returns {boolean} - True if the node is a Fragment node.
          */
-        var isTag = function(node) {
+        var isFragment = function(node) {
             return node && node.tagName == _fragmentTag.toUpperCase();
         };
 
         /**
-         * Inserts a tab in a Text or Tag node at the provided offset.
-         * @param {Node} node - The Text or Tag node to insert the Tab.
+         * Inserts a tab in a Text or Fragment node at the provided offset.
+         * @param {Node} node - The Text or Fragment node to insert the Tab.
          * @param {number} index - The position to insert the Tab.
          * @returns {boolean} - Returns true on success (tab is inserted),
          * false otherwise.
@@ -1270,18 +1271,18 @@ var AutotagJS = (function() {
             if (isLine(node)) {
 
             } else {
-                var tag = getTag(node);
+                var fragment = getFragment(node);
 
-                var content = tag.textContent,
-                    parent = tag.parentNode,
-                    sibling = tag.nextSibling;
+                var content = fragment.textContent,
+                    parent = fragment.parentNode,
+                    sibling = fragment.nextSibling;
 
-                var tab = createTagNode('    ');
+                var tab = createFragment('    ');
                 if (index === 0) {
-                    parent.insertBefore(tab, tag);
-                    setCaret(tag.firstChild, 0);
+                    parent.insertBefore(tab, fragment);
+                    setCaret(fragment.firstChild, 0);
 
-                } else if (index === tag.firstChild.length) {
+                } else if (index === fragment.firstChild.length) {
                     parent.insertBefore(tab, sibling);
                     if (sibling) {
                         setCaret(sibling.firstChild, 0);
@@ -1290,12 +1291,12 @@ var AutotagJS = (function() {
                     }
 
                 } else {
-                    tag.textContent = content.substring(0, index);
+                    fragment.textContent = content.substring(0, index);
                     parent.insertBefore(tab, sibling);
 
-                    var lastTag = createTagNode(content.substring(index));
-                    parent.insertBefore(lastTag, tab.nextSibling);
-                    setCaret(lastTag.firstChild, 0);
+                    var lastFragment = createFragment(content.substring(index));
+                    parent.insertBefore(lastFragment, tab.nextSibling);
+                    setCaret(lastFragment.firstChild, 0);
                 }
                 return true;
             }
@@ -1340,7 +1341,7 @@ var AutotagJS = (function() {
                     updateList(line, prefix, indentIndex, refresh);
 
                     if ((getChildren(parentLine, isLine) +
-                        getChildren(parentLine, isTag)) == 0) {
+                        getChildren(parentLine, isFragment)) == 0) {
                         removeNode(parentLine);
                     }
 
@@ -1377,7 +1378,7 @@ var AutotagJS = (function() {
                 // on its own if the container's node value is changed.
                 var offset = _range.endOffset;
 
-                var refTag = container.parentNode,
+                var refFragment = container.parentNode,
                     parts = splitter(container.nodeValue || '');
 
                 // Trim empty values from the array.
@@ -1385,32 +1386,33 @@ var AutotagJS = (function() {
                 var numparts = parts.length;
 
                 if (numparts > 1) {
-                    var newTag, length;
+                    var newFragment, length;
                     for (var i = 0; i < numparts; i++) {
-                        newTag = createTagNode(
-                            parts[i], refTag.getAttribute('style'));
-                        newTag.style.removeProperty('display');
-                        clearNodeStyle(newTag);
+                        newFragment = createFragment(
+                            parts[i], refFragment.getAttribute('style'));
+                        newFragment.style.removeProperty('display');
+                        clearNodeStyle(newFragment);
 
-                        decorator(newTag, newTag.firstChild.nodeValue);
-                        refTag.parentNode.insertBefore(newTag, refTag.nextSibling);
+                        decorator(newFragment, newFragment.firstChild.nodeValue);
+                        refFragment.parentNode.insertBefore(newFragment,
+                            refFragment.nextSibling);
 
                         length = parts[i].length;
                         if (offset > 0 && offset <= length) {
-                            setCaret(newTag.firstChild, offset);
+                            setCaret(newFragment.firstChild, offset);
                         }
 
                         offset = offset - length;
-                        refTag = newTag;
+                        refFragment = newFragment;
                     }
                     removeNode(container.parentNode);
 
                 } else {
-                    refTag.style.removeProperty('display');
-                    clearNodeStyle(refTag);
-                    decorator(refTag, refTag.firstChild.nodeValue);
+                    refFragment.style.removeProperty('display');
+                    clearNodeStyle(refFragment);
+                    decorator(refFragment, refFragment.firstChild.nodeValue);
                 }
-            } else if (isTag(container) && isTextNode(container.firstChild)) {
+            } else if (isFragment(container) && isTextNode(container.firstChild)) {
                 decorator(container, container.firstChild.nodeValue);
             }
         };
@@ -1442,10 +1444,11 @@ var AutotagJS = (function() {
                 }
                 processInputV2();
             } else {
-                var tag = splitTag(container.parentNode, _range.endOffset);
-                appendNode(tag, _copiedRange.cloneContents());
-                if (isBlankNode(tag) && !isList(tag.nextSibling)) {
-                    removeNode(tag);
+                var fragment =
+                    splitFragment(container.parentNode, _range.endOffset);
+                appendNode(fragment, _copiedRange.cloneContents());
+                if (isBlankNode(fragment) && !isList(fragment.nextSibling)) {
+                    removeNode(fragment);
                 }
             }
 
@@ -1464,16 +1467,16 @@ var AutotagJS = (function() {
                     offset = range.startOffset,
                     line = getLine(container);
 
-                var tag = getTag(container);
+                var fragment = getFragment(container);
 
-                if (isEndOfLine(tag, offset)) {
+                if (isEndOfLine(fragment, offset)) {
                     newLine = createNewLine(line, {
                         asSibling: true,
                         addPilotNode: true,
                         setCaret: true
                     });
 
-                } else if (isBeginingOfLine(tag, offset)) {
+                } else if (isBeginingOfLine(fragment, offset)) {
                     newLine = createNewLine(line, {
                         asPreviousSibling: true,
                         addPilotNode: true,
@@ -1487,18 +1490,18 @@ var AutotagJS = (function() {
                         newNode.nodeValue = '\u200b';
                     }
 
-                    var newTag = createTagNode(removeNode(newNode));
+                    var newFragment = createFragment(removeNode(newNode));
                     newLine = createNewLine(line, {asSibling: true});
-                    newLine.appendChild(newTag);
+                    newLine.appendChild(newFragment);
                     setCaret(newNode, 0);
 
-                    // Collect remaining nodes (tags and lines) and append them
-                    // to the new line.
-                    var tags = [];
-                    while ((tag = tag.nextSibling)) {
-                        tags.push(tag);
+                    // Collect remaining nodes (Fragments and Lines) and append
+                    // them to the new line.
+                    var nodes = [];
+                    while ((fragment = fragment.nextSibling)) {
+                        nodes.push(fragment);
                     }
-                    appendNodes(newTag, tags);
+                    appendNodes(newFragment, nodes);
 
                     // appendNodes(pilotTag, tags);
                     // setCaret(pilotTag, 0);
@@ -1544,7 +1547,7 @@ var AutotagJS = (function() {
          */
         var setCaret = function(node, offset) {
             if (node) {
-                if (isTag(node)) {
+                if (isFragment(node)) {
                     node = node.firstChild;
                 }
 
@@ -1558,11 +1561,11 @@ var AutotagJS = (function() {
             }
         };
 
-        var setContinuingTagStyle = function() {
+        var setContinuingStyle = function() {
             if (_range) {
-                var tag = getTagsInRange(_range).pop();
-                if (tag) {
-                    _continuingTagStyle = tag.getAttribute('style');
+                var fragment = getFragmentsInRange(_range).pop();
+                if (fragment) {
+                    _continuingStyle = fragment.getAttribute('style');
                 }
             }
         };
@@ -1681,7 +1684,7 @@ var AutotagJS = (function() {
                 offset = range.startOffset,
                 firstLine = lines[0];
 
-            var isLineBegin = isBeginingOfLine(getTag(node), offset);
+            var isLineBegin = isBeginingOfLine(getFragment(node), offset);
 
             if (increase) {
                 if (isLineBegin) {
@@ -1702,49 +1705,49 @@ var AutotagJS = (function() {
         };
 
         /**
-         * Checks if the given Tag is the first one on the line.
-         * @param {Node} tag - The Tag to check.
+         * Checks if the given node is the first one on the line.
+         * @param {Node} node - The node to check.
          * @param {number} offset - The offset to check in addition.
          * @returns {boolean} - True if this is the first node in the line.
          */
-        var isBeginingOfLine = function(tag, offset) {
-            return (isBlankNode(tag) || offset == 0) &&
-                !tag.previousSibling;
+        var isBeginingOfLine = function(node, offset) {
+            return (isBlankNode(node) || offset == 0) &&
+                !node.previousSibling;
         };
 
         /**
-         * Checks if the given tag is the last in the given line and the offset
-         * points to the end of the line.
-         * @param {Node} tag - The tag to check.
-         * @param {number} offset - The offset within the tag.
+         * Checks if the given Fragment is the last in the given line and the
+         * offset points to the end of the line.
+         * @param {Node} node - The node to check.
+         * @param {number} offset - The offset within the Fragments.
          * @returns {boolean} - True if end of line, false otherwise.
          */
-        var isEndOfLine = function(tag, offset) {
-            // return !isTag(tag.nextSibling) && offset == tag.textContent.length;
-            return !tag.nextSibling && offset == tag.textContent.length;
+        var isEndOfLine = function(node, offset) {
+            // return !isFragment(tag.nextSibling) && offset == tag.textContent.length;
+            return !node.nextSibling && offset == node.textContent.length;
         };
 
         /**
          * Deletes the character proceeeding the caret.
-         * @param {Node} tag - The Tag node from which to delete the character.
+         * @param {Node} fragment - The fragment from which to delete the character.
          * @param {number} offset - The location of the character.
          */
-        var deleteChar = function(tag, offset) {
-            var str = tag.textContent,
-                textNode = tag.firstChild;
+        var deleteChar = function(fragment, offset) {
+            var str = fragment.textContent,
+                textNode = fragment.firstChild;
 
             offset = initObject(offset, str.length);
             textNode.nodeValue =
                 str.slice(0, offset - 1) + str.slice(offset);
 
             if (textNode.nodeValue.length == 0 && offset == 1) {
-                if (!tag.previousSibling) {
+                if (!fragment.previousSibling) {
                     textNode.nodeValue = '\u200b';
-                    setCaret(tag);
+                    setCaret(fragment);
 
                 } else {
-                    setCaret(tag.previousSibling);
-                    removeNode(tag);
+                    setCaret(fragment.previousSibling);
+                    removeNode(fragment);
                 }
             } else {
                 setCaret(textNode, offset - 1);
@@ -1775,59 +1778,60 @@ var AutotagJS = (function() {
             var prevLine = line.previousSibling;
             if (prevLine && isLine(prevLine)) {
 
-                var prevTags = getTagsInLine(prevLine, true);
-                var lastPrevTag = prevTags[prevTags.length - 1];
+                var fragments = getFragmentsInLine(prevLine, true);
+                var lastFragment = fragments[fragments.length - 1];
 
                 if (isBlankLine(prevLine)) {
                     removeNode(prevLine);
 
                 } else if (isBlankLine(line)) {
-                    setCaret(lastPrevTag);
+                    setCaret(lastFragment);
                     removeNode(line);
 
                 } else {
-                    setCaret(lastPrevTag);
-                    var tag = lastPrevTag,
-                        curTags = getTagsInLine(line);
+                    setCaret(lastFragment);
+                    var fragment = lastFragment;
+                    fragments = getFragmentsInLine(line);
 
-                    for(var i=0; i<curTags.length; i++) {
-                        tag = appendNode(tag, curTags[i]);
+                    for(var i=0; i<fragments.length; i++) {
+                        fragment = appendNode(fragment, fragments[i]);
                     }
 
                     if (isBlankLine(line)) {
                         removeNode(line);
                     }
 
-                    if (isBlankNode(lastPrevTag)) {
-                        removeNode(lastPrevTag);
+                    if (isBlankNode(lastFragment)) {
+                        removeNode(lastFragment);
                     }
                 }
             }
         };
 
         /**
-         * Deletes the Tags and Lines in the current selection.
+         * Deletes the Fragments and Lines in the current selection.
          * @param {Range} range - The selection range.
          */
         var deleteSelection = function(range) {
-            var tag = createRangeBoundaryTags(range).startTag.previousSibling;
+            var fragment =
+                createRangeBoundaryFragments(range).first.previousSibling;
 
-            // Building Tags resets the range. The latest range is stored in
-            // _range. Also, retrieve both tags and lines before the range
+            // Building Fragments resets the range. The latest range is stored in
+            // _range. Also, retrieve both Fragments and Lines before the range
             // gets updated by any delete operation.
-            var tags = getTagsInRange(_range),
+            var fragments = getFragmentsInRange(_range),
                 lines = getLinesInRange(_range);
 
-            if (tag) {
+            if (fragment) {
                 lines.shift();
             } else {
                 var prevLine = lines[0].previousSibling;
                 if (prevLine) {
-                    tag = getTagsInLine(prevLine).pop();
+                    fragment = getFragmentsInLine(prevLine).pop();
                 }
             }
-            setCaret(tag);
-            removeNodesInList(tags.concat(lines));
+            setCaret(fragment);
+            removeNodesInList(fragments.concat(lines));
             fixEditor();
         };
 
@@ -1840,23 +1844,23 @@ var AutotagJS = (function() {
                 container = range.startContainer;
 
             if (range.collapsed) {
-                var tag = getTag(container);
-                var target = tag;
+                var fragment = getFragment(container);
+                var target = fragment;
 
-                if (offset == 0 || isBlankNode(tag)) {
+                if (offset == 0 || isBlankNode(fragment)) {
                     target = target.previousSibling;
                 }
 
-                // The previous sibling may be a tag if this line
+                // The previous sibling may be a fragment if this line
                 // follows a list.
-                if (target && isTag(target)) {
+                if (target && isFragment(target)) {
                     // If offset is zero, send null as argument so that
                     // offset is calculated to be the full length of the
-                    // string value in tag.
+                    // string value in fragment.
                     deleteChar(target, offset || null);
 
                 } else {
-                    deleteLine(getLine(tag));
+                    deleteLine(getLine(fragment));
                 }
             } else {
                 deleteSelection(range);
@@ -1899,52 +1903,52 @@ var AutotagJS = (function() {
             }
         };
 
-        var splitTag = function(tag, offset) {
-            var text = tag.firstChild;
+        var splitFragment = function(fragment, offset) {
+            var text = fragment.firstChild;
 
             // Splitting at boundaries will result in blank nodes.
             if (offset == 0 || offset == text.nodeValue.length) {
-                return tag;
+                return fragment;
             }
 
             var newText = text.splitText(offset);
-            var newTag = createTagNode(removeNode(newText));
-            newTag.setAttribute('style', tag.getAttribute('style'));
+            var newFragment = createFragment(removeNode(newText));
+            newFragment.setAttribute('style', fragment.getAttribute('style'));
 
             // Firefox hack to remove break nodes.
-            removeNode(tag.querySelector('br'));
+            removeNode(fragment.querySelector('br'));
 
-            return appendNode(tag, newTag);
+            return appendNode(fragment, newFragment);
         };
 
-        var createRangeBoundaryTags = function(range) {
+        var createRangeBoundaryFragments = function(range) {
             if (!range.collapsed) {
                 var selection = getRangeContainersAndOffsets(range);
                 var container = selection.startContainer;
                 var offset = selection.startOffset;
 
                 // Split the start Text node.
-                var newTag = splitTag(container.parentNode, offset);
+                var newFragment = splitFragment(container.parentNode, offset);
 
                 // Now split the end Text node.
                 if (container.isSameNode(selection.endContainer)) {
                     offset = selection.endOffset - offset;
-                    container = newTag.firstChild;
+                    container = newFragment.firstChild;
                 } else {
                     offset = selection.endOffset;
                     container = selection.endContainer;
                 }
-                splitTag(container.parentNode, offset);
+                splitFragment(container.parentNode, offset);
 
                 // Rebuild original selection range for further processing.
                 _range = setSelection({
-                    startContainer: newTag.firstChild,
+                    startContainer: newFragment.firstChild,
                     startOffset: 0,
                     endContainer: container,
                     endOffset: container.length
                 });
 
-                return {startTag: newTag, endTag: container};
+                return {first: newFragment, last: container};
             }
         };
 
@@ -2015,8 +2019,8 @@ var AutotagJS = (function() {
 
         document.addEventListener('selectionchange', debounce(function(e) {
             if (saveSelectionRange()) {
-                setContinuingTagStyle();
-                doAfterSelection(getTagsInRange(_range));
+                setContinuingStyle();
+                doAfterSelection(getFragmentsInRange(_range));
             }
         }, 200));
 
