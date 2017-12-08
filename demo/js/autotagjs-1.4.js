@@ -626,7 +626,7 @@ var AutotagJS = (function() {
             return palette.appendChild(row);
         };
 
-        var createNewLine = function(refLine, options) {
+        var createLine = function(refLine, options) {
             options = options || {};
             var line = document.createElement(_lineTag);
             if (refLine) {
@@ -718,7 +718,7 @@ var AutotagJS = (function() {
          */
         var fixEditor = function() {
             if (getChildren(editor, isLine).length == 0) {
-                createNewLine(editor, {addPilotNode: true, setCaret: true});
+                createLine(editor, {addPilotNode: true, setCaret: true});
             }
         };
 
@@ -1107,7 +1107,7 @@ var AutotagJS = (function() {
             } else {
                 var anchor = line.previousSibling;
                 if (!isList(anchor)) {
-                    anchor = createNewLine();
+                    anchor = createLine();
                     line.parentNode.insertBefore(anchor, line);
 
                     // If the newly created line is not a root list, make it
@@ -1321,7 +1321,7 @@ var AutotagJS = (function() {
                     // Now make line's children the anchor's children.
                     var children = getChildren(line, isLine);
                     if (children.length > 0) {
-                        var anchor = createNewLine();
+                        var anchor = createLine();
                         initList(anchor, _anchorListClassName);
 
                         line.insertBefore(anchor, children[0]);
@@ -1470,14 +1470,14 @@ var AutotagJS = (function() {
                 var fragment = getFragment(container);
 
                 if (isEndOfLine(fragment, offset)) {
-                    newLine = createNewLine(line, {
+                    newLine = createLine(line, {
                         asSibling: true,
                         addPilotNode: true,
                         setCaret: true
                     });
 
                 } else if (isBeginingOfLine(fragment, offset)) {
-                    newLine = createNewLine(line, {
+                    newLine = createLine(line, {
                         asPreviousSibling: true,
                         addPilotNode: true,
                         setCaret: true
@@ -1491,7 +1491,7 @@ var AutotagJS = (function() {
                     }
 
                     var newFragment = createFragment(removeNode(newNode));
-                    newLine = createNewLine(line, {asSibling: true});
+                    newLine = createLine(line, {asSibling: true});
                     newLine.appendChild(newFragment);
                     setCaret(newNode, 0);
 
@@ -2008,8 +2008,8 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('copy', function(e) {
-            _copiedRange = saveSelectionRange();
-            e.preventDefault();
+            // _copiedRange = saveSelectionRange();
+            // e.preventDefault();
         });
 
         editor.addEventListener('paste', function(e) {
