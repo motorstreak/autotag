@@ -121,7 +121,7 @@ var AutotagJS = (function() {
      * @param {Node} node - The node being appended.
      * @return {Node} - The appended node.
      */
-    function appendNode(toNode, node) {
+    function appendNode(node, toNode) {
         return toNode.parentNode.insertBefore(node, toNode.nextSibling);
     }
 
@@ -130,9 +130,9 @@ var AutotagJS = (function() {
      * @param {Node} toNode - The node to append to.
      * @param {NodeList} nodeList - The list of nodes to append.
      */
-    function appendNodes(toNode, nodeList) {
+    function appendNodes(nodeList, toNode) {
         for (var i=0; i<nodeList.length; i++) {
-            toNode = appendNode(toNode, nodeList[i]);
+            toNode = appendNode(nodeList[i], toNode);
         }
     }
 
@@ -1446,7 +1446,7 @@ var AutotagJS = (function() {
             } else {
                 var fragment =
                     splitFragment(container.parentNode, _range.endOffset);
-                appendNode(fragment, _copiedRange.cloneContents());
+                appendNode(_copiedRange.cloneContents(), fragment);
                 if (isBlankNode(fragment) && !isList(fragment.nextSibling)) {
                     removeNode(fragment);
                 }
@@ -1501,7 +1501,7 @@ var AutotagJS = (function() {
                     while ((fragment = fragment.nextSibling)) {
                         nodes.push(fragment);
                     }
-                    appendNodes(newFragment, nodes);
+                    appendNodes(nodes, newFragment);
 
                     // appendNodes(pilotTag, tags);
                     // setCaret(pilotTag, 0);
@@ -1794,7 +1794,7 @@ var AutotagJS = (function() {
                     fragments = getFragmentsInLine(line);
 
                     for(var i=0; i<fragments.length; i++) {
-                        fragment = appendNode(fragment, fragments[i]);
+                        fragment = appendNode(fragments[i], fragment);
                     }
 
                     if (isBlankLine(line)) {
@@ -1918,7 +1918,7 @@ var AutotagJS = (function() {
             // Firefox hack to remove break nodes.
             removeNode(fragment.querySelector('br'));
 
-            return appendNode(fragment, newFragment);
+            return appendNode(newFragment, fragment);
         };
 
         var createRangeBoundaryFragments = function(range) {
