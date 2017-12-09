@@ -52,6 +52,7 @@ var AutotagJS = (function() {
         _lineClassName = 'atg-line',
         _lineLeaderClassName = 'atg-line-leader',
         _lineBodyClassName = 'atg-line-body',
+        _tabClassName = 'atg-tab',
 
         // Reserved class names
         _anchorListClassName = 'atg-list-anchor',
@@ -1324,13 +1325,15 @@ var AutotagJS = (function() {
             if (isLine(node)) {
 
             } else {
-                var fragment = getFragment(node);
 
+                var fragment = getFragment(node);
                 var content = fragment.textContent,
                     parent = fragment.parentNode,
                     sibling = fragment.nextSibling;
 
-                var tab = createFragment('    ');
+                var tab = createFragment('\u0009');
+                tab.classList.add(_tabClassName);
+
                 if (index === 0) {
                     parent.insertBefore(tab, fragment);
                     setCaret(fragment.firstChild, 0);
@@ -1742,13 +1745,10 @@ var AutotagJS = (function() {
                 if (isLineBegin) {
                     if (isList(firstLine) && !isListHead(firstLine)) {
                         createOrIndentList(firstLine, null, true);
-                    } else {
-                        applyStyle(firstLine, instruction,
-                            ['margin-left:55px']);
+                        return;
                     }
-                } else {
-                    insertTab(node, offset);
                 }
+                insertTab(node, offset);
             } else {
                 if (isLineBegin && isList(firstLine)) {
                     outdentList(firstLine, false);

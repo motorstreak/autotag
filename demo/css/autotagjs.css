@@ -180,3 +180,8 @@
         margin: 4px;
     }
 }
+
+/* V3 */
+.atg-tab {
+    white-space: pre;
+}
