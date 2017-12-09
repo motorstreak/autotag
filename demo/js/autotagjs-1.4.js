@@ -48,6 +48,11 @@ var AutotagJS = (function() {
     var _fragmentTag = 'span',
         _lineTag = 'div',
 
+        // v3
+        _lineClassName = 'atg-line',
+        _lineLeaderClassName = 'atg-line-leader',
+        _lineBodyClassName = 'atg-line-body',
+
         // Reserved class names
         _anchorListClassName = 'atg-list-anchor',
         _blankListClassName = 'atg-list-blank',
@@ -123,6 +128,16 @@ var AutotagJS = (function() {
      */
     function appendNode(node, toNode) {
         return toNode.parentNode.insertBefore(node, toNode.nextSibling);
+    }
+
+    /**
+     * Prepends one node to another.
+     * @param {Node} toNode - The node to append to.
+     * @param {Node} node - The node being appended.
+     * @return {Node} - The appended node.
+     */
+    function prependNode(node, toNode) {
+        return toNode.parentNode.insertBefore(node, toNode);
     }
 
     /**
@@ -628,20 +643,53 @@ var AutotagJS = (function() {
 
         var createLine = function(refLine, options) {
             options = options || {};
+
+            // Create the root line
             var line = document.createElement(_lineTag);
+            line.className = _lineClassName;
+
+            // Now create the parts of the line (leader, body)
+            var leader = document.createElement(_lineTag),
+                body = document.createElement(_lineTag);
+
+            leader.className = _lineLeaderClassName;
+            body.className = _lineBodyClassName;
+
+            line.appendChild(leader);
+            line.appendChild(body);
+
             if (refLine) {
-                // By default, attach as child of node.
-                if (options.asSibling) {
-                    refLine.parentNode.insertBefore(line, refLine.nextSibling);
-                } else if (options.asPreviousSibling) {
-                    refLine.parentNode.insertBefore(line, refLine);
-                } else {
-                    refLine.appendChild(line);
+
+                // if (options.asChild) {
+                //     refLine.appendChild(line);
+                //
+                // } else if (options.asPreviousSibling) {
+                //     // refLine.parentNode.insertBefore(line, refLine);
+                //     prependNode(line, refLine);
+                //
+                // } else {
+                //     // By default, attach as sibling
+                //     appendNode(line, refLine);
+                // }
+
+                switch (options.attachAs) {
+                    case 'child':
+                        refLine.appendChild(line);
+                        break;
+                    case 'next_sibling':
+                        appendNode(line, refLine);
+                        break;
+                    case 'previous_sibling':
+                        prependNode(line, refLine);
+                        break;
+                    default:
+                        appendNode(line, refLine);
+                        break;
                 }
 
                 if (options.addPilotNode) {
                     var pilot = createFragment('\u200b');
-                    line.appendChild(pilot);
+                    body.appendChild(pilot);
 
                     if (options.setCaret) {
                         setCaret(pilot);
@@ -718,7 +766,11 @@ var AutotagJS = (function() {
          */
         var fixEditor = function() {
             if (getChildren(editor, isLine).length == 0) {
-                createLine(editor, {addPilotNode: true, setCaret: true});
+                createLine(editor, {
+                    attachAs: 'child',
+                    addPilotNode: true,
+                    setCaret: true
+                });
             }
         };
 
@@ -834,11 +886,13 @@ var AutotagJS = (function() {
          * @param {boolean=} walkTree - If set to true, the outermost line
          *      is returned.
          */
-        var getLine = function(node, walkTree) {
-            while (node && !isEditor(node) && (walkTree || !isLine(node))) {
+        var getLine = function(node) {
+            if (isEditor(node)) return getFirstLine();
+
+            while (node && !isLine(node)) {
                 node = node.parentNode;
             }
-            return isLine(node) ? node : getFirstLine();
+            return node;
         };
 
         /**
@@ -1201,9 +1255,8 @@ var AutotagJS = (function() {
          * @returns {boolean} - True if the ndoe is Line.
          */
         var isLine = function(node) {
-            return node &&
-                node.tagName == _lineTag.toUpperCase() &&
-                !isEditor(node);
+            return node && !isTextNode(node) &&
+                node.classList.contains(_lineClassName);
         };
 
         /**
@@ -1471,14 +1524,13 @@ var AutotagJS = (function() {
 
                 if (isEndOfLine(fragment, offset)) {
                     newLine = createLine(line, {
-                        asSibling: true,
                         addPilotNode: true,
                         setCaret: true
                     });
 
                 } else if (isBeginingOfLine(fragment, offset)) {
                     newLine = createLine(line, {
-                        asPreviousSibling: true,
+                        attachAs: 'previous_sibling',
                         addPilotNode: true,
                         setCaret: true
                     });
@@ -1491,7 +1543,7 @@ var AutotagJS = (function() {
                     }
 
                     var newFragment = createFragment(removeNode(newNode));
-                    newLine = createLine(line, {asSibling: true});
+                    newLine = createLine(line, {attachAs: 'next_sibling'});
                     newLine.appendChild(newFragment);
                     setCaret(newNode, 0);
 
