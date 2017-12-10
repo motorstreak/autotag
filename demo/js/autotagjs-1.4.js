@@ -52,7 +52,8 @@ var AutotagJS = (function() {
         _lineClassName = 'atg-line',
         _lineLeaderClassName = 'atg-line-leader',
         _lineBodyClassName = 'atg-line-body',
-        _tabClassName = 'atg-tab',
+        _tabFragmentClassName = 'atg-tab',
+        _textFragmentClassName = 'atg-text',
 
         // Reserved class names
         _anchorListClassName = 'atg-list-anchor',
@@ -236,6 +237,14 @@ var AutotagJS = (function() {
      */
     function isReturnKey(code) {
         return code == 13;
+    }
+
+    function isLeftArrowKey(code) {
+        return code == 37;
+    }
+
+    function isRightArrowKey(code) {
+        return code == 39;
     }
 
     /**
@@ -648,6 +657,7 @@ var AutotagJS = (function() {
             // Create the root line
             var line = document.createElement(_lineTag);
             line.className = _lineClassName;
+            // line.setAttribute('contenteditable', 'false');
 
             // Now create the parts of the line (leader, body)
             var leader = document.createElement(_lineTag),
@@ -689,7 +699,9 @@ var AutotagJS = (function() {
                 }
 
                 if (options.addPilotNode) {
-                    var pilot = createFragment('\u200b');
+                    // var pilot = createFragment('\u200b');
+                    // pilot.classList.add(_textFragmentClassName);
+                    var pilot = createPilotFragment();
                     body.appendChild(pilot);
 
                     if (options.setCaret) {
@@ -698,6 +710,23 @@ var AutotagJS = (function() {
                 }
             }
             return line;
+        };
+
+        var createPilotFragment = function() {
+            return createTextFragment('\u200b');
+        };
+
+        var createTabFragment = function() {
+            var tab = createFragment('\u0009');
+            tab.classList.add(_tabFragmentClassName);
+            tab.setAttribute('contenteditable', 'false');
+            return tab;
+        };
+
+        var createTextFragment = function(stringOrText, style) {
+            var text = createFragment(stringOrText, style);
+            text.classList.add(_textFragmentClassName);
+            return text;
         };
 
         /**
@@ -749,14 +778,24 @@ var AutotagJS = (function() {
             var range = getRange();
             var node = range.endContainer;
 
+            // node = isTextNode(node) ? node.parentNode : node;
+            // //
+            // if (isTabFragment(node)) {
+            //
+            //
+            // } else
+
             if (isFragment(node)) {
                 setCaret(node.lastChild, 0);
-            } else if (isLine(node)) {
-                var fragments = node.querySelectorAll(_fragmentTag);
+
+            } else if (isLine(node) || isLineBody(node)) {
+                // var fragments = node.querySelectorAll(_fragmentTag);
+                var fragments = getFragmentsInLine(node, true);
+                console.log(fragments);
                 if (fragments.length > 0) {
-                    var fragment = fragments[range.endOffset - 1] ||
-                        fragments[fragments.length - 1];
-                    setCaret(fragment.lastChild);
+                    // var fragment = fragments[range.endOffset - 1] ||
+                    //     fragments[fragments.length - 1];
+                    setCaret(fragments[fragments.length - 1]);
                 }
             }
         };
@@ -1260,6 +1299,11 @@ var AutotagJS = (function() {
                 node.classList.contains(_lineClassName);
         };
 
+        var isLineBody = function(node) {
+            return node && !isTextNode(node) &&
+                node.classList.contains(_lineBodyClassName);
+        };
+
         /**
          * Checks if the given Line is a list.
          * @param {Node} line - The Line to check for indentation.
@@ -1314,6 +1358,16 @@ var AutotagJS = (function() {
             return node && node.tagName == _fragmentTag.toUpperCase();
         };
 
+        var isTabFragment = function(node) {
+            return isFragment(node) &&
+                node.classList.contains(_tabFragmentClassName);
+        };
+
+        var isTextFragment = function(node) {
+            return isFragment(node) &&
+                node.classList.contains(_textFragmentClassName);
+        };
+
         /**
          * Inserts a tab in a Text or Fragment node at the provided offset.
          * @param {Node} node - The Text or Fragment node to insert the Tab.
@@ -1325,16 +1379,17 @@ var AutotagJS = (function() {
             if (isLine(node)) {
 
             } else {
-
                 var fragment = getFragment(node);
                 var content = fragment.textContent,
                     parent = fragment.parentNode,
                     sibling = fragment.nextSibling;
 
-                var tab = createFragment('\u0009');
-                tab.classList.add(_tabClassName);
+                // var tab = createFragment('\u0009');
+                // tab.classList.add(_tabFragmentClassName);
+                // tab.setAttribute('contenteditable', 'false');
+                var tab = createTabFragment();
 
-                if (index === 0) {
+                if (index === 0 || isBlankNode(getFragment(node))) {
                     parent.insertBefore(tab, fragment);
                     setCaret(fragment.firstChild, 0);
 
@@ -1350,10 +1405,22 @@ var AutotagJS = (function() {
                     fragment.textContent = content.substring(0, index);
                     parent.insertBefore(tab, sibling);
 
-                    var lastFragment = createFragment(content.substring(index));
+                    var lastFragment =
+                        createTextFragment(content.substring(index));
                     parent.insertBefore(lastFragment, tab.nextSibling);
                     setCaret(lastFragment.firstChild, 0);
                 }
+
+                if (!isTextFragment(tab.previousSibling)) {
+                    prependNode(createPilotFragment(), tab);
+                }
+
+                if (!isTextFragment(tab.nextSibling)) {
+                    var pilot = createPilotFragment();
+                    appendNode(pilot, tab);
+                    setCaret(pilot);
+                }
+
                 return true;
             }
             return false;
@@ -1408,15 +1475,23 @@ var AutotagJS = (function() {
 
         var processInputV2 = function() {
             var container = _range.endContainer;
+            var parent = container.parentNode;
 
             if (isTextNode(container)) {
                 var value = container.nodeValue;
+                // if (isTabFragment(parent)) {
+                //     console.log(parent);
+                //     var fragment = createFragment('\u200b');
+                //     prependNode(fragment, parent);
+                //     setCaret(fragment, 0);
+                // } else {
 
-                // Remove the lead character as it is no longer required.
-                if (value.match(/^\u200b/)) {
-                    container.nodeValue = value.replace(/\u200b/g, '');
-                    range = setCaret(container, _range.endOffset + 1);
-                }
+                    // Remove the lead character as it is no longer required.
+                    if (value.match(/\u200b/)) {
+                        container.nodeValue = value.replace(/\u200b/g, '');
+                        range = setCaret(container, _range.endOffset + 1);
+                    }
+                // }
             }
         };
 
@@ -1444,7 +1519,7 @@ var AutotagJS = (function() {
                 if (numparts > 1) {
                     var newFragment, length;
                     for (var i = 0; i < numparts; i++) {
-                        newFragment = createFragment(
+                        newFragment = createTextFragment(
                             parts[i], refFragment.getAttribute('style'));
                         newFragment.style.removeProperty('display');
                         clearNodeStyle(newFragment);
@@ -1510,6 +1585,81 @@ var AutotagJS = (function() {
 
         };
 
+        var processArrowKeys = function(range, keyCode) {
+            var container = range.startContainer,
+                offset = range.startOffset;
+            if (isTextNode(container)) {
+                var value = container.nodeValue;
+                if (isRightArrowKey(keyCode)) {
+                    if (value.charAt(offset) == '\u200b') {
+                        if (value.length > offset + 1) {
+                            setCaret(container, offset + 1);
+                        } else {
+                            var next = container.parentNode.nextSibling;
+                            if (isTabFragment(next)) {
+                                next = next.nextSibling;
+                            }
+
+                            if (next) {
+                                setCaret(next, 0);
+                            }
+                        }
+                        return true;
+                    }
+                } else if (isLeftArrowKey(keyCode) && offset > 0) {
+                    if (value.charAt(offset - 1) == '\u200b') {
+                        if (value.length > 2) {
+                            setCaret(container, offset - 2);
+                        } else {
+                            var previous = container.parentNode.previousSibling;
+                            if (isTabFragment(previous)) {
+                                previous = previous.previousSibling;
+                            }
+
+                            if (previous) {
+                                setCaret(previous);
+                            }
+                        }
+                        return true;
+                    }
+                }
+            }
+        };
+
+        var processLeftArrowKey = function(range) {
+            var container = range.startContainer;
+            if (isTextNode(container) && container.nodeValue == '\u200b' &&
+                range.startOffset == 1) {
+
+                var previous = container.parentNode.previousSibling;
+                if (isTabFragment(previous)) {
+                    previous = previous.previousSibling;
+                }
+
+                if (previous) {
+                    setCaret(previous);
+                    return true;
+                }
+            }
+        };
+
+        var processRightArrowKey = function(range) {
+            var container = range.startContainer;
+            if (isTextNode(container) && container.nodeValue == '\u200b' &&
+                range.startOffset == 0) {
+
+                var next = container.parentNode.nextSibling;
+                if (isTabFragment(next)) {
+                    next = next.nextSibling;
+                }
+
+                if (next) {
+                    setCaret(next, 0);
+                    return true;
+                }
+            }
+        };
+
         /**
          * Captures the Return key and performs the requisite action. Note
          * that we override the default browser action ude to inconsistencies
@@ -1543,9 +1693,10 @@ var AutotagJS = (function() {
 
                     if (newNode.nodeValue.length == 0) {
                         newNode.nodeValue = '\u200b';
+                        // newNode.setAttribute('contenteditable', true);
                     }
 
-                    var newFragment = createFragment(removeNode(newNode));
+                    var newFragment = createTextFragment(removeNode(newNode));
                     newLine = createLine(line, {attachAs: 'next_sibling'});
                     newLine.appendChild(newFragment);
                     setCaret(newNode, 0);
@@ -1785,24 +1936,32 @@ var AutotagJS = (function() {
          * @param {number} offset - The location of the character.
          */
         var deleteChar = function(fragment, offset) {
-            var str = fragment.textContent,
-                textNode = fragment.firstChild;
 
-            offset = initObject(offset, str.length);
-            textNode.nodeValue =
-                str.slice(0, offset - 1) + str.slice(offset);
+            // Delete if this is a tab
+            if (isTabFragment(fragment)) {
+                setCaret(fragment.nextSibling, 0);
+                removeNode(fragment);
 
-            if (textNode.nodeValue.length == 0 && offset == 1) {
-                if (!fragment.previousSibling) {
-                    textNode.nodeValue = '\u200b';
-                    setCaret(fragment);
-
-                } else {
-                    setCaret(fragment.previousSibling);
-                    removeNode(fragment);
-                }
             } else {
-                setCaret(textNode, offset - 1);
+                var str = fragment.textContent,
+                    textNode = fragment.firstChild;
+
+                offset = initObject(offset, str.length);
+                textNode.nodeValue =
+                    str.slice(0, offset - 1) + str.slice(offset);
+
+                if (textNode.nodeValue.length == 0 && offset == 1) {
+                    if (!fragment.previousSibling) {
+                        textNode.nodeValue = '\u200b';
+                        setCaret(fragment);
+
+                    } else {
+                        setCaret(fragment.previousSibling);
+                        removeNode(fragment);
+                    }
+                } else {
+                    setCaret(textNode, offset - 1);
+                }
             }
         };
 
@@ -1964,7 +2123,7 @@ var AutotagJS = (function() {
             }
 
             var newText = text.splitText(offset);
-            var newFragment = createFragment(removeNode(newText));
+            var newFragment = createTextFragment(removeNode(newText));
             newFragment.setAttribute('style', fragment.getAttribute('style'));
 
             // Firefox hack to remove break nodes.
@@ -2009,6 +2168,7 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('click', function(e) {
+            console.log(getRange());
             hideSubmenus();
             fixEditor();
             fixCaret();
@@ -2016,6 +2176,7 @@ var AutotagJS = (function() {
 
         editor.addEventListener('focus', function(e) {
             fixEditor();
+            console.log(e.target);
         });
 
         editor.addEventListener('input', function() {
@@ -2028,9 +2189,9 @@ var AutotagJS = (function() {
             var keyCode = getKeyCode(e),
                 shiftKey = e.shiftKey;
 
-            if (!isDeleteKey(keyCode)) {
-                fixCaret();
-            }
+            // if (!isDeleteKey(keyCode)) {
+            //     // fixCaret();
+            // }
 
             // Get the latest and greatest range since we cannot rely on
             // any buffered selection range (_range).
@@ -2053,6 +2214,11 @@ var AutotagJS = (function() {
             } else if (e.metaKey && isFormatKey(keyCode)) {
                 formatSelection({ atgToggle: _styleKeyMap[keyCode] });
                 e.preventDefault();
+
+            } else if (isLeftArrowKey(keyCode) || isRightArrowKey(keyCode)){
+                if (processArrowKeys(range, keyCode)) {
+                     e.preventDefault();
+                }
             }
         });
 
@@ -2060,8 +2226,9 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('copy', function(e) {
-            // _copiedRange = saveSelectionRange();
-            // e.preventDefault();
+            // TODO: Remember to remove all \u200b chars from the copied text
+            // from the clipboard to prevent the user from pasting unwanted
+            // characters.
         });
 
         editor.addEventListener('paste', function(e) {

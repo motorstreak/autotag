@@ -1,7 +1,7 @@
 
 [contenteditable] div > span {
     caret-color: #777;
-    /*display: inline-block;*/
+    width: 1px;
 }
 
 /* Prevent words from breaking.
