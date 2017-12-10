@@ -1,5 +1,6 @@
 
-[contenteditable] div > span {
+.atg-text,
+.atg-tab {
     caret-color: #777;
     width: 1px;
 }
@@ -7,7 +8,8 @@
 /* Prevent words from breaking.
  * Courtesy: https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/
  */
-[contenteditable] div > span {
+ .atg-text,
+ .atg-tab {
     /* These are technically the same, but use both */
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -26,8 +28,7 @@
 }
 
 /* Deal with IE paragraph style within the editor. */
-[contenteditable] > div,
-[contenteditable] div > span {
+[contenteditable] * {
     margin : 0;
 }
 
@@ -42,8 +43,7 @@
 }
 
 /* Prevent outlines on contenteditable items in IE. */
-[contenteditable]:focus,
-[contenteditable] div > span:focus {
+[contenteditable]:focus {
     outline : 0;
 }
 

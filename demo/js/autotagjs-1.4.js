@@ -45,6 +45,10 @@ var AutotagJS = (function() {
         85: 'text-decoration:underline'
     };
 
+    // v3
+    var _tab = '    ',
+        _zeroWidthSpace = '\u200b';
+
     var _fragmentTag = 'span',
         _lineTag = 'div',
 
@@ -699,7 +703,7 @@ var AutotagJS = (function() {
                 }
 
                 if (options.addPilotNode) {
-                    // var pilot = createFragment('\u200b');
+                    // var pilot = createFragment(_zeroWidthSpace);
                     // pilot.classList.add(_textFragmentClassName);
                     var pilot = createPilotFragment();
                     body.appendChild(pilot);
@@ -713,11 +717,11 @@ var AutotagJS = (function() {
         };
 
         var createPilotFragment = function() {
-            return createTextFragment('\u200b');
+            return createTextFragment(_zeroWidthSpace);
         };
 
         var createTabFragment = function() {
-            var tab = createFragment('\u0009');
+            var tab = createFragment(_tab);
             tab.classList.add(_tabFragmentClassName);
             tab.setAttribute('contenteditable', 'false');
             return tab;
@@ -778,6 +782,8 @@ var AutotagJS = (function() {
             var range = getRange();
             var node = range.endContainer;
 
+            // console.log(node);
+
             // node = isTextNode(node) ? node.parentNode : node;
             // //
             // if (isTabFragment(node)) {
@@ -789,9 +795,9 @@ var AutotagJS = (function() {
                 setCaret(node.lastChild, 0);
 
             } else if (isLine(node) || isLineBody(node)) {
-                // var fragments = node.querySelectorAll(_fragmentTag);
-                var fragments = getFragmentsInLine(node, true);
-                console.log(fragments);
+                var fragments = node.querySelectorAll('.' + _textFragmentClassName);
+                // var fragments = getFragmentsInLine(node, true);
+                // console.log(fragments);
                 if (fragments.length > 0) {
                     // var fragment = fragments[range.endOffset - 1] ||
                     //     fragments[fragments.length - 1];
@@ -1250,7 +1256,7 @@ var AutotagJS = (function() {
         var isBlankNode = function(node) {
             if (node) {
                 var str = node.textContent;
-                return (str.length == 0 || str == '\u200b');
+                return (str.length == 0 || str == _zeroWidthSpace);
             }
         };
 
@@ -1384,7 +1390,7 @@ var AutotagJS = (function() {
                     parent = fragment.parentNode,
                     sibling = fragment.nextSibling;
 
-                // var tab = createFragment('\u0009');
+                // var tab = createFragment(_tab);
                 // tab.classList.add(_tabFragmentClassName);
                 // tab.setAttribute('contenteditable', 'false');
                 var tab = createTabFragment();
@@ -1481,7 +1487,7 @@ var AutotagJS = (function() {
                 var value = container.nodeValue;
                 // if (isTabFragment(parent)) {
                 //     console.log(parent);
-                //     var fragment = createFragment('\u200b');
+                //     var fragment = createFragment(_zeroWidthSpace);
                 //     prependNode(fragment, parent);
                 //     setCaret(fragment, 0);
                 // } else {
@@ -1588,74 +1594,39 @@ var AutotagJS = (function() {
         var processArrowKeys = function(range, keyCode) {
             var container = range.startContainer,
                 offset = range.startOffset;
+
             if (isTextNode(container)) {
-                var value = container.nodeValue;
+                // Node.nodeValue does not work correctly in FF 57.0.1.
+                // Resorting to textContent.
+                var value = container.textContent,
+                    parent = container.parentNode;
+
                 if (isRightArrowKey(keyCode)) {
-                    if (value.charAt(offset) == '\u200b') {
+                    if (value.charAt(offset) == _zeroWidthSpace) {
                         if (value.length > offset + 1) {
                             setCaret(container, offset + 1);
                         } else {
-                            var next = container.parentNode.nextSibling;
+                            var next = parent.nextSibling;
                             if (isTabFragment(next)) {
                                 next = next.nextSibling;
                             }
-
-                            if (next) {
-                                setCaret(next, 0);
-                            }
+                            setCaret(next, 0);
                         }
                         return true;
                     }
                 } else if (isLeftArrowKey(keyCode) && offset > 0) {
-                    if (value.charAt(offset - 1) == '\u200b') {
+                    if (value.charAt(offset - 1) == _zeroWidthSpace) {
                         if (value.length > 2) {
                             setCaret(container, offset - 2);
                         } else {
-                            var previous = container.parentNode.previousSibling;
+                            var previous = parent.previousSibling;
                             if (isTabFragment(previous)) {
                                 previous = previous.previousSibling;
                             }
-
-                            if (previous) {
-                                setCaret(previous);
-                            }
+                            setCaret(previous);
                         }
                         return true;
                     }
-                }
-            }
-        };
-
-        var processLeftArrowKey = function(range) {
-            var container = range.startContainer;
-            if (isTextNode(container) && container.nodeValue == '\u200b' &&
-                range.startOffset == 1) {
-
-                var previous = container.parentNode.previousSibling;
-                if (isTabFragment(previous)) {
-                    previous = previous.previousSibling;
-                }
-
-                if (previous) {
-                    setCaret(previous);
-                    return true;
-                }
-            }
-        };
-
-        var processRightArrowKey = function(range) {
-            var container = range.startContainer;
-            if (isTextNode(container) && container.nodeValue == '\u200b' &&
-                range.startOffset == 0) {
-
-                var next = container.parentNode.nextSibling;
-                if (isTabFragment(next)) {
-                    next = next.nextSibling;
-                }
-
-                if (next) {
-                    setCaret(next, 0);
-                    return true;
                 }
             }
         };
@@ -1692,7 +1663,7 @@ var AutotagJS = (function() {
                     var newNode = container.splitText(range.startOffset);
 
                     if (newNode.nodeValue.length == 0) {
-                        newNode.nodeValue = '\u200b';
+                        newNode.nodeValue = _zeroWidthSpace;
                         // newNode.setAttribute('contenteditable', true);
                     }
 
@@ -1952,7 +1923,7 @@ var AutotagJS = (function() {
 
                 if (textNode.nodeValue.length == 0 && offset == 1) {
                     if (!fragment.previousSibling) {
-                        textNode.nodeValue = '\u200b';
+                        textNode.nodeValue = _zeroWidthSpace;
                         setCaret(fragment);
 
                     } else {
@@ -2168,7 +2139,7 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('click', function(e) {
-            console.log(getRange());
+            // console.log(getRange());
             hideSubmenus();
             fixEditor();
             fixCaret();
@@ -2176,7 +2147,7 @@ var AutotagJS = (function() {
 
         editor.addEventListener('focus', function(e) {
             fixEditor();
-            console.log(e.target);
+            // console.log(e.target);
         });
 
         editor.addEventListener('input', function() {
