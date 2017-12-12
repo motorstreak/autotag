@@ -1474,34 +1474,37 @@ var AutotagJS = (function() {
             return !node.nextSibling && offset == node.textContent.length;
         };
 
-        var deleteChar = function(fragment, offset) {
+        var deleteChar = function(text, offset) {
+
+
+
             // Delete if this is a tab
-            if (isTabFragment(fragment)) {
-                setCaret(fragment.nextSibling, 0);
-                removeNode(fragment);
-
-            } else {
-                var str = fragment.textContent,
-                    textNode = fragment.firstChild;
-
-                offset = initObject(offset, str.length);
-                textNode.nodeValue =
-                    str.slice(0, offset - 1) + str.slice(offset);
-
-                if (textNode.nodeValue.length == 0 && offset == 1) {
-                    var previous = fragment.previousSibling;
-                    if (!isTextFragment(previous)) {
-                        textNode.nodeValue = _zeroWidthSpace;
-                        setCaret(fragment, 1);
-
-                    } else {
-                        setCaret(previous);
-                        removeNode(fragment);
-                    }
-                } else {
-                    setCaret(textNode, offset - 1);
-                }
-            }
+            // if (isTabFragment(fragment)) {
+            //     // setCaret(fragment.nextSibling, 0);
+            //     // removeNode(fragment);
+            //
+            // } else {
+                // var str = fragment.textContent,
+                //     textNode = fragment.firstChild;
+                //
+                // offset = initObject(offset, str.length);
+                // textNode.nodeValue =
+                //     str.slice(0, offset - 1) + str.slice(offset);
+                //
+                // if (textNode.nodeValue.length == 0 && offset == 1) {
+                //     var previous = fragment.previousSibling;
+                //     if (!isTextFragment(previous)) {
+                //         textNode.nodeValue = _zeroWidthSpace;
+                //         setCaret(fragment, 1);
+                //
+                //     } else {
+                //         setCaret(previous);
+                //         removeNode(fragment);
+                //     }
+                // } else {
+                //     setCaret(textNode, offset - 1);
+                // }
+            // }
         };
 
         var deleteLine = function(line) {
@@ -1555,54 +1558,66 @@ var AutotagJS = (function() {
         };
 
         var deleteSelection = function(range) {
-            var fragment =
-                createRangeBoundaryFragments(range).first.previousSibling;
-
-            // Building Fragments resets the range. The latest range is stored in
-            // _range. Also, retrieve both Fragments and Lines before the range
-            // gets updated by any delete operation.
-            var fragments = getFragmentsInRange(_range),
-                lines = getLinesInRange(_range);
-
-            if (fragment) {
-                lines.shift();
-            } else {
-                var prevLine = lines[0].previousSibling;
-                if (prevLine) {
-                    fragment = getFragmentsInLine(prevLine).pop();
-                }
-            }
-            setCaret(fragment);
-            removeNodesInList(fragments.concat(lines));
-            fixEditor();
+            // var fragment =
+            //     createRangeBoundaryFragments(range).first.previousSibling;
+            //
+            // // Building Fragments resets the range. The latest range is stored in
+            // // _range. Also, retrieve both Fragments and Lines before the range
+            // // gets updated by any delete operation.
+            // var fragments = getFragmentsInRange(_range),
+            //     lines = getLinesInRange(_range);
+            //
+            // if (fragment) {
+            //     lines.shift();
+            // } else {
+            //     var prevLine = lines[0].previousSibling;
+            //     if (prevLine) {
+            //         fragment = getFragmentsInLine(prevLine).pop();
+            //     }
+            // }
+            // setCaret(fragment);
+            // removeNodesInList(fragments.concat(lines));
+            // fixEditor();
         };
 
         var processDelete = function(range) {
-            var offset = range.startOffset,
-                container = range.startContainer;
-
-            if (range.collapsed) {
-                var fragment = getFragment(container);
-                var target = fragment;
-
-                if (offset == 0 || isBlankNode(fragment)) {
-                    target = target.previousSibling;
-                }
-
-                // The previous sibling may be a fragment if this line
-                // follows a list.
-                if (target && isFragment(target)) {
-                    // If offset is zero, send null as argument so that
-                    // offset is calculated to be the full length of the
-                    // string value in fragment.
-                    deleteChar(target, offset || null);
-
-                } else {
-                    deleteLine(getLine(fragment));
-                }
-            } else {
-                deleteSelection(range);
-            }
+            // var offset = range.startOffset,
+            //     container = range.startContainer;
+            //
+            // if (range.collapsed) {
+            //     var fragment = getFragment(container);
+            //     if (isTextNode(container)) {
+            //         if (isPilotFragment(fragment)) {
+            //             deleteLine(getLine(fragment));
+            //         } else {
+            //             deleteChar(container, offset || null);
+            //         }
+            //
+            //     }
+            //
+            //
+            //
+            //     // var fragment = getFragment(container);
+            //     // var target = fragment;
+            //     //
+            //     // if (offset == 0 || isBlankNode(fragment)) {
+            //     //     target = target.previousSibling;
+            //     // }
+            //     //
+            //     // // The previous sibling may be a fragment if this line
+            //     // // follows a list.
+            //     // if (target && isFragment(target)) {
+            //     //     // If offset is zero, send null as argument so that
+            //     //     // offset is calculated to be the full length of the
+            //     //     // string value in fragment.
+            //     //     deleteChar(target, offset || null);
+            //     //
+            //     // } else {
+            //     //     deleteLine(getLine(fragment));
+            //     // }
+            // } else {
+            //     deleteSelection(range);
+            // }
         };
 
         var updateList = function(line, stylePrefix, indentIndex, overrideStyle) {
@@ -1679,7 +1694,7 @@ var AutotagJS = (function() {
                 }
                 return newFragment;
             }
-        }
+        };
 
         var createRangeBoundaryFragments = function(range) {
             if (!range.collapsed) {
@@ -1752,8 +1767,9 @@ var AutotagJS = (function() {
             var range = getRange();
 
             if (isDeleteKey(keyCode)) {
-                processDelete(range);
-                e.preventDefault();
+                if (processDelete(range)) {
+                    e.preventDefault();
+                }
 
             } else if (isTabKey(keyCode)) {
                 updateIndentation(range, !shiftKey);
