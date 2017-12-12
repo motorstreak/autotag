@@ -2,8 +2,12 @@
 .atg-text,
 .atg-tab {
     caret-color: #777;
-    width: 1px;
+    min-width: 1px;
 }
+
+/*.atg-cursor {
+    border-left: 1px solid #000;
+}*/
 
 /* Prevent words from breaking.
  * Courtesy: https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/
@@ -25,6 +29,24 @@
     -moz-hyphens: auto;
     -webkit-hyphens: auto;
     hyphens: auto;
+}
+
+.atg-line {
+    display: flex;
+    white-space: pre-wrap;
+    cursor: text;
+}
+
+.atg-line-leader {
+    vertical-align: top;
+}
+
+.atg-line-body {
+    /*display: table-cell;*/
+}
+
+.atg-list {
+    min-width: 30px;
 }
 
 /* Deal with IE paragraph style within the editor. */

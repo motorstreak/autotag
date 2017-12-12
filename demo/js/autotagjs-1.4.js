@@ -38,6 +38,24 @@ var AutotagJS = (function() {
     // trace:     Set this to true to see debug messages on the console.
 
 
+    if (!String.prototype.splice) {
+        /**
+         * {JSDoc}
+         *
+         * The splice() method changes the content of a string by removing a range of
+         * characters and/or adding new characters.
+         *
+         * @this {String}
+         * @param {number} start Index at which to start changing the string.
+         * @param {number} delCount An integer indicating the number of old chars to remove.
+         * @param {string} newSubStr The String that is spliced in.
+         * @return {string} A new string with the spliced substring.
+         */
+        String.prototype.splice = function(start, delCount, newSubStr) {
+            return this.slice(0, start) + newSubStr + this.slice(start + Math.abs(delCount));
+        };
+    }
+
     // Map keeyboard controls to format options since we override them.
     var _styleKeyMap = {
         66: 'font-weight:bold',
@@ -46,8 +64,8 @@ var AutotagJS = (function() {
     };
 
     // v3
-    var _tab = '    ',
-        _zeroWidthSpace = '\u200b';
+    var _tab = '\u0009',
+        _zeroWidthSpace = '\u00a0';
 
     var _fragmentTag = 'span',
         _lineTag = 'div',
@@ -58,6 +76,8 @@ var AutotagJS = (function() {
         _lineBodyClassName = 'atg-line-body',
         _tabFragmentClassName = 'atg-tab',
         _textFragmentClassName = 'atg-text',
+        _listFragmentClassName = 'atg-list',
+        _pilotClassName = 'atg-pilot',
 
         // Reserved class names
         _anchorListClassName = 'atg-list-anchor',
@@ -70,30 +90,10 @@ var AutotagJS = (function() {
         _paletteCellCrossClassName = 'atg-crossed-cell',
         _submenuClassName = 'atg-submenu';
 
-    /**
-     * Callback for node selection.
-     * @callback nodeFilterCallback
-     * @param {Node} node - The node to be examined.
-     * @returns {boolean} - Returns true or false based on the filter.
-     */
-
-    /**
-     * Initializes the given object to a given value if it is undefined or null.
-     * Returns the object as is otherwise.
-     * @param {Object} obj - The object to initialize.
-     * @param {Object} toObj - The value to initialize the object to.
-     * @returns {Object} - The initialized object.
-     */
     function initObject(obj, toObj) {
         return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
     }
 
-    /**
-     * A debounce function to damp event firing.
-     * @param {Object} func - The callback function.
-     * @param {number} wait - Milliseconds to wait between invocations.
-     * @param {boolean=} immediate - Set to true to force invocation.
-     */
     function debounce(func, wait, immediate) {
         var timeout;
         return function() {
@@ -116,129 +116,63 @@ var AutotagJS = (function() {
             }
         };
     }
-
-    /**
-     * Returns the code of the key event.
-     * @param {Object} e - The captured event.
-     * @return {number} - The numerical key value.
-     */
     function getKeyCode(e) {
         return (e.which || e.keyCode || 0);
     }
 
-    /**
-     * Appends one node to another.
-     * @param {Node} toNode - The node to append to.
-     * @param {Node} node - The node being appended.
-     * @return {Node} - The appended node.
-     */
     function appendNode(node, toNode) {
         return toNode.parentNode.insertBefore(node, toNode.nextSibling);
     }
 
-    /**
-     * Prepends one node to another.
-     * @param {Node} toNode - The node to append to.
-     * @param {Node} node - The node being appended.
-     * @return {Node} - The appended node.
-     */
     function prependNode(node, toNode) {
         return toNode.parentNode.insertBefore(node, toNode);
     }
 
-    /**
-     * Appends the nodes in the list to the given node.
-     * @param {Node} toNode - The node to append to.
-     * @param {NodeList} nodeList - The list of nodes to append.
-     */
     function appendNodes(nodeList, toNode) {
         for (var i=0; i<nodeList.length; i++) {
             toNode = appendNode(nodeList[i], toNode);
         }
     }
 
-    /**
-     * Hides (if visible) or shows (if hidden) the given node.
-     * @param {Node} node - The node to hide or show.
-     */
     function toggleNodeVisibility(node) {
         var style = window.getComputedStyle(node);
         node.style.display = (style.display === 'none') ? '' : 'none';
     }
 
-    /**
-     * Hides the provided node.
-     * @param {Node} node - The node to hide.
-     */
     function hideNode (node) {
         node.style.display = 'none';
     }
 
-    /**
-     * Shows the provided node.
-     * @param {Node} node - The node to make visible.
-     */
     function showNode (node) {
         if (window.getComputedStyle(node).display === 'none') {
             node.style.display = '';
         }
     }
 
-    /**
-     * Removes the given node from the DOM and return it.
-     * @param {Node} node - The node to be removed.
-     * @returns {Node} - The removed node.
-     */
     function removeNode(node) {
         return node && node.parentNode.removeChild(node);
     }
 
-    /**
-     * Removes the node in the NodeList from the DOM.
-     * @param {NodeList} nodeList - The list of nodes to be removed.
-     */
     function removeNodesInList(nodeList) {
         for (var i=0; nodeList && i<nodeList.length; i++) {
             removeNode(nodeList[i]);
         }
     }
 
-    /**
-     * Removes all immediate child nodes of the given node from the DOM.
-     * @param {Node} node - The node whose children are to be removed.
-     */
     function removeAllChildNodes (node) {
         while (node && node.hasChildNodes()) {
             node.removeChild(node.lastChild);
         }
     }
 
-    /**
-     * Validates if the given node is a TextNode.
-     * @param {Node} node - The node to be validated.
-     * @returns {boolean} - Returns true is the node is a Text Node, false
-     * otherwise
-     */
     function isTextNode(node) {
         return node && node.nodeType == Node.TEXT_NODE;
     }
 
-    /**
-     * Validates if the given key code is that of a Tab key.
-     * @param {numbet} code - The key code to be validated.
-     * @returns {boolean} - Returns true if it is a Tab key code, false
-     * otherwise.
-     */
     function isTabKey(code) {
         return code == 9;
     }
 
-    /**
-     * Validates if the given key code is that of a Return key.
-     * @param {numbet} code - The key code to be validated.
-     * @returns {boolean} - Returns true if it is a Return key code, false
-     * otherwise.
-     */
     function isReturnKey(code) {
         return code == 13;
     }
@@ -251,28 +185,13 @@ var AutotagJS = (function() {
         return code == 39;
     }
 
-    /**
-     * Validates if the given key code is that of a Delete key.
-     * @param {numbet} code - The key code to be validated.
-     * @returns {boolean} - Returns true if it is a Delete key code, false
-     * otherwise.
-     */
     function isDeleteKey(code) {
         return code == 8;
     }
 
-    /**
-     * Gets all the children of a node that satisfy the conditions in the
-     * provided filter. If none match, an empty list is returned.
-     * @param {Node} node - The node whose children are to be extracted.
-     * @param {nodeFilterCallback} filter - A node filter callback that
-     * determines if this node should be included in the list.
-     * @returns {Array} - An Array containing the selected children.
-     */
     function getChildren(node, filter) {
         var children = [];
         node = node.firstChild;
-
         while(node) {
             if (!filter || filter(node)) {
                 children.push(node);
@@ -282,21 +201,10 @@ var AutotagJS = (function() {
         return children;
     }
 
-    /**
-     * Returns all siblings of the given node.
-     * @param {Node} node - the node whose siblings are requested.
-     * @param {nodeFilterCallback} filter - A node filter callback that
-     * determines if this node should be included in the list.
-     * @returns {Array} - An Array containing sibling nodes.
-     */
     function getSiblings(node, filter) {
         return getChildren(node.parentNode, filter);
     }
 
-    /**
-     * Returns the current Range for the selection.
-     * @returns {Range} - The Range object for the current selection.
-     */
     function getRange() {
         var selection, range;
         if (typeof window.getSelection != 'undefined') {
@@ -311,10 +219,6 @@ var AutotagJS = (function() {
         return range;
     }
 
-    /**
-     * Clears all existing ranges and sets it to the provided one.
-     * @param {Range} - The new Range.
-     */
     function resetRange(range) {
         if (range) {
             if (window.getSelection) {
@@ -331,13 +235,6 @@ var AutotagJS = (function() {
         }
     }
 
-    /**
-     * Determines if the given node lies within the selection.
-     * @param {Range} range - The Range to search within.
-     * @param {Node} node - The node to search for.
-     * @returns {boolean} - True if the node falls within the range, false
-     * otherwise.
-     */
     function rangeIntersectsNode(range, node) {
         var nodeRange;
         if (range.intersectsNode) {
@@ -355,24 +252,10 @@ var AutotagJS = (function() {
         }
     }
 
-    /**
-     * Splits the provided string and tokenizes at word boundary.
-     * Example:
-     *    splitAtWord("This is a sentence.")
-     *    => ["This", " ", "is", " ", "a", " ", "sentence", "."]
-     * @param {string} str - The string to split.
-     * @returns {Array} - Returns an array containing the parts of the string.
-     */
     function splitAtWord(str) {
         return str.match(/([^,\s\.]+)|[,\s\.]+/ig);
     }
 
-    /**
-     * Checks if the keycode is a format key (B, I & U for Bold, Italic and
-     * Underline).
-     * @param {number} code - The key code.
-     * @returns {boolean} - True if code is a format key.
-     */
     function isFormatKey(code) {
         return (code == 66 || code == 73 || code == 85);
     }
@@ -667,10 +550,12 @@ var AutotagJS = (function() {
             var leader = document.createElement(_lineTag),
                 body = document.createElement(_lineTag);
 
-            leader.className = _lineLeaderClassName;
             body.className = _lineBodyClassName;
+            // leader.className = _lineLeaderClassName;
+            // leader.setAttribute('contenteditable', 'false');
+            // leader.appendChild(createListFragment('3.1.1.4'));
 
-            line.appendChild(leader);
+            // line.appendChild(leader);
             line.appendChild(body);
 
             if (refLine) {
@@ -705,8 +590,11 @@ var AutotagJS = (function() {
                 if (options.addPilotNode) {
                     // var pilot = createFragment(_zeroWidthSpace);
                     // pilot.classList.add(_textFragmentClassName);
-                    var pilot = createPilotFragment();
+                    // var pilot = createPilotFragment();
+
+                    let pilot = createTextNode(_zeroWidthSpace);
                     body.appendChild(pilot);
+                    body.classList.add(_pilotClassName);
 
                     if (options.setCaret) {
                         setCaret(pilot);
@@ -717,7 +605,9 @@ var AutotagJS = (function() {
         };
 
         var createPilotFragment = function() {
-            return createTextFragment(_zeroWidthSpace);
+            var pilot = createTextFragment(_zeroWidthSpace);
+            pilot.classList.add(_pilotClassName);
+            return pilot;
         };
 
         var createTabFragment = function() {
@@ -730,6 +620,12 @@ var AutotagJS = (function() {
         var createTextFragment = function(stringOrText, style) {
             var text = createFragment(stringOrText, style);
             text.classList.add(_textFragmentClassName);
+            return text;
+        };
+
+        var createListFragment = function(stringOrText) {
+            var text = createFragment(stringOrText);
+            text.classList.add(_listFragmentClassName);
             return text;
         };
 
@@ -780,39 +676,57 @@ var AutotagJS = (function() {
          */
         var fixCaret = function() {
             var range = getRange();
-            var node = range.endContainer;
+            var container = range.endContainer,
+                parent = container.parentNode;
+
+            if (isEditor(container)) {
+                // do something
+            } else {
+                return;
+            }
 
             // console.log(node);
-
-            // node = isTextNode(node) ? node.parentNode : node;
-            // //
-            // if (isTabFragment(node)) {
+            // if (isTextNode(node) || isEditor(node)) {
+            //     // // var target = node.querySelector('.' + _textFragmentClassName);
+            //     // // setCaret(target);
+            //     // let line = getFirstLine();
+            //     // let walker = getTreeWalker(line, NodeFilter.SHOW_TEXT)
+            //     // let nodes = getNodesFromTree(walker, isTextNode, 1);
+            //     // if (nodes.length) {
+            //     //     setCaret(nodes[0]);
+            //     // } else {
+            //     //     fixEditor();
+            //     // }
+            //     return;
+            // }
             //
+            // if (isPilotFragment(node)) {
+            //     setCaret(node);
             //
-            // } else
-
-            if (isFragment(node)) {
-                setCaret(node.lastChild, 0);
-
-            } else if (isLine(node) || isLineBody(node)) {
-                var fragments = node.querySelectorAll('.' + _textFragmentClassName);
-                // var fragments = getFragmentsInLine(node, true);
-                // console.log(fragments);
-                if (fragments.length > 0) {
-                    // var fragment = fragments[range.endOffset - 1] ||
-                    //     fragments[fragments.length - 1];
-                    setCaret(fragments[fragments.length - 1]);
-                }
-            }
+            // } else if (isTabFragment(node)) {
+            //     var next = node.nextSibling;
+            //     if (isPilotFragment(next)) {
+            //         setCaret(next, 1);
+            //     } else {
+            //         setCaret(next);
+            //     }
+            //
+            // } else if (isLine(node) || isLineBody(node)) {
+            //     var fragments =
+            //         node.querySelectorAll('.' + _textFragmentClassName);
+            //     // var fragments = getFragmentsInLine(node, true);
+            //     // console.log(fragments);
+            //     if (fragments.length > 0) {
+            //         // var fragment = fragments[range.endOffset - 1] ||
+            //         //     fragments[fragments.length - 1];
+            //         setCaret(fragments[fragments.length - 1]);
+            //     }
+            // }
         };
 
-        /**
-         * If the Editor Node has no Lines, create a new one. If there are one
-         * or more lines, remove the empty ones.
-         */
         var fixEditor = function() {
             if (getChildren(editor, isLine).length == 0) {
-                createLine(editor, {
+                return createLine(editor, {
                     attachAs: 'child',
                     addPilotNode: true,
                     setCaret: true
@@ -820,12 +734,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Formats selection based on the instructions provided.
-         * @param {Dataset} dataset - Dataset containing autotagjs instructions.
-         * @param {string} scope - The scope of the instrcution (line,
-         * selection or other).
-         */
         var formatSelection = function(dataset, scope) {
             if (_range && dataset) {
                 var nodes = getNodesInSelection(scope);
@@ -843,14 +751,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Returns the nodes (Fragments and/or Lines) included in the current
-         * selection, based on scope. Currently scope has a single value
-         * 'line' indicating that only Line nodes be returned. The defaulted
-         * scope is both Fragments and Lines.
-         * @param {string} scope - The scope of nodes to be returned.
-         * @returns {Array} - Returns an array of nodes.
-         */
         var getNodesInSelection = function(scope) {
             var nodes,
                 lines = getLinesInRange(_range);
@@ -890,32 +790,14 @@ var AutotagJS = (function() {
             return nodes;
         };
 
-        /**
-         * The line on which the current selection starts (and ends if
-         * collapsed).
-         * @returns {Node} - The Line node.
-         */
-
         var getActiveLine = function() {
             return _range && getLine(_range.startContainer, false);
         };
 
-        /**
-         * Returns the first line in the Editor.
-         * @returns {Node} - The Line node.
-         */
         var getFirstLine = function() {
             return editor.querySelector(_lineTag + ':first-child');
         };
 
-        /**
-         * Returns the index value of the indentation of the given line.. The
-         * index value is a number between 0 & 2.
-         * @param {Node} line - The Line node.
-         * @param {number=} maxIndex - The maximum index allowed
-         * before the list repeats.
-         * @returns {number} - The indentation index.
-         */
         var getIndentationIndex = function(line, maxIndex) {
             maxIndex = initObject(maxIndex, 3);
 
@@ -926,12 +808,6 @@ var AutotagJS = (function() {
             return (level == 0 ? 0 : (level % maxIndex || maxIndex));
         };
 
-        /**
-         * Returns the line this node is on.
-         * @param {Node} node - The node for which the line should be returned.
-         * @param {boolean=} walkTree - If set to true, the outermost line
-         *      is returned.
-         */
         var getLine = function(node) {
             if (isEditor(node)) return getFirstLine();
 
@@ -941,11 +817,6 @@ var AutotagJS = (function() {
             return node;
         };
 
-        /**
-         * Returns the lines in the given range.
-         * @param {Range} range - A range object.
-         * @returns {Array} - The Lines in the given range.
-         */
         var getLinesInRange = function(range) {
             var lines =  getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isLine);
             // Exclude parent lines in selection if multiple lines
@@ -957,12 +828,6 @@ var AutotagJS = (function() {
             return lines;
         };
 
-        /**
-         * Gets the list style prefix for the given indented line. If no prefix
-         * is found, check ancestors. The default Editor prefix is 'atg';
-         * @param {Node} line - The Line node to get List prefix.
-         * @returns {string} - The indentation style prefix.
-         */
         var getListPrefix = function(line) {
             if (isEditor(line)) {
                 return 'atg';
@@ -973,16 +838,6 @@ var AutotagJS = (function() {
             return (prefix ? prefix : getListPrefix(line.parentNode));
         };
 
-        /**
-         * Gets the nodes collected by the TreeWalker after applying the
-         * filter. If a limit value is provided, only that many nodes are
-         * returned.
-         * @param {TreeWalker} walker - The TreeWalker object.
-         * @param {nodeFilterCallback=} filter - An optional callback filter.
-         * @param {number=} limit - A number indicating the maximum number of
-         * nodes to be returned.
-         * @returns {Array} - The list of nodes from the TreeWalker.
-         */
         var getNodesFromTree = function(walker, filter, limit) {
             var nodes = [];
             do {
@@ -994,24 +849,11 @@ var AutotagJS = (function() {
             return nodes;
         };
 
-        /**
-         * Returns nodes in a given range.
-         * @param {Range} range - A Range object.
-         * @param {NodeFilter} nodeFilter - NodeFilter determining what to show.
-         * @param {nodeFilterCallback} filter - A filter to apply.
-         * @return {Array} - Array of nodes.
-         */
         var getNodesInRange = function(range, nodeFilter, filter) {
             var walker = getRangeWalker(range, nodeFilter, filter);
             return getNodesFromTree(walker, filter);
         };
 
-        /**
-         * Returns the parent menu this node belongs to. The parent may also
-         * be a submenu.
-         * @param {Node} node - A node in the menu.
-         * @returns {Node} - The parent menu of the given node.
-         */
         var getParentMenu = function(node) {
             while(!node.classList.contains(_submenuClassName) &&
                 !node.classList.contains(_menuClassName)) {
@@ -1023,21 +865,10 @@ var AutotagJS = (function() {
             return node;
         };
 
-        /**
-         * Returns the amount value from a string with amount and unit.
-         * Example: extractAmount('32px') => 32
-         * @param {string} value - The value from which to extract amount.
-         * @returns {string} - The extracted amount.
-         */
         var extractAmount = function(value) {
             return parseInt(value && value.match(/^[-+]?\d*\.?\d+/)[0] || 0);
         };
 
-        /**
-         * Returns the containers and offsets of the given range as an object.
-         * @param {Range} range - A Range.
-         * @returns {Object} - The start and end containers with their offsets.
-         */
         var getRangeContainersAndOffsets = function(range) {
             return {
                 startContainer : range.startContainer,
@@ -1047,15 +878,6 @@ var AutotagJS = (function() {
             };
         };
 
-        /**
-         * Returns a TreeWalker object that traverses the nodes in a Range.
-         * @param {Range} range - The Range object to walk.
-         * @param {NodeFilter} whatToShow - NodeFilter determining what to show.
-         * @param {nodeFilterCallback} ancestorFilter - A filter used to
-         * identify the right common ancestor node. For example, use the
-         * Line node if collecting Fragment nodes.
-         * @returns {TreeWalker} - The TreeWalker object for this traversal.
-         */
         var getRangeWalker = function(range, whatToShow, ancestorFilter) {
             ancestorFilter =  ancestorFilter || isFragment;
             var ancestor = range.commonAncestorContainer ;
@@ -1070,37 +892,17 @@ var AutotagJS = (function() {
             });
         };
 
-        /**
-         * Returns the Line node that is a direct child of Editor and is an
-         * ancestor of the given node.
-         * @param {Node} node - The node to get the root Line for.
-         * @returns {Node} - A Line which is the root.
-         */
         var getRootLine = function(node) {
             node = initObject(node, _range && _range.endContainer);
             return getLine(node, true);
         };
 
-        /**
-         * Gets the property values of the CSS style declaration of the node.
-         * @param {Node} node - The node to get the style property.
-         * @param {string} property - The name of the css property whose value
-         * needs to be extracted.
-         * @returns {DOMString} - The value of the property.
-         */
         var getStylePropertyValue = function(node, property) {
             return node &&
                 property &&
                 window.getComputedStyle(node, null).getPropertyValue(property);
         };
 
-        /**
-         * Returns the asscociated fragment for the given node. If the node is a
-         * Text Node, return its parent node, which in all probabality is
-         * a Fragments. If the node is a Line, return the first Fragments in the line.
-         * @param {Node} node - A Node.
-         * @returns {Node} - The Fragments node.
-         */
         var getFragment = function(node) {
             if (isTextNode(node)) {
                 return node.parentNode;
@@ -1111,14 +913,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Get all the Fragments in the given line and optionally all descendant
-         * lines.
-         * @param {Node} line - A Line node.
-         * @param {boolean=} deep - If set to true, get Fragments from descendant
-         * lines, else (default) only Fragments on the given line.
-         * @returns {Array} - An array of Fragment nodes.
-         */
         var getFragmentsInLine = function(line, deep) {
             if (deep) {
                 var walker = getTreeWalker(line, NodeFilter.SHOW_ELEMENT);
@@ -1128,24 +922,10 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Returns all the Fragment nodes in the given range.
-         * @param {Range} range - A Range object.
-         * @returns {Array} - An array of Fragment Nodes from the given Range.
-         */
         var getFragmentsInRange = function(range) {
             return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isFragment);
         };
 
-        /**
-         * Returns a TreeWalker object.
-         * @param {Node} container - The root node for the traversal.
-         * @param {unsigned long} whatToShow - Bitmask formed from combining
-         * NodeFilter properties.
-         * @param {nodeFilterCallback} filter - A filter to apply on node
-         * selection.
-         * @returns {TreeWalker} - The TreeWalker object.
-         */
         var getTreeWalker = function(container, whatToShow, filter) {
             return document.createTreeWalker(
                 container,
@@ -1159,9 +939,6 @@ var AutotagJS = (function() {
             );
         };
 
-        /**
-         * Hides all submenus.
-         */
         var hideSubmenus = function() {
             var submenus = menubar.querySelectorAll('.' + _submenuClassName);
             for(var i=0; i<submenus.length; i++) {
@@ -1169,11 +946,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Toggles the list on a line.
-         * @param {Node} line - The line to indent.
-         * @param {string} prefix - The list class prefix to apply.
-         */
         var toggleList = function(line, prefix) {
             if (isList(line) && !isAnonymousList(line)) {
                 outdentList(line, false);
@@ -1182,13 +954,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Indents the provided line by one point.
-         * @param {Node} line - The line to indent.
-         * @param {string=} prefix - The list class prefix to apply.
-         * @param {boolean=} refresh - If set to false, the list style will
-         *   not be updated. Defaults to true.
-         */
         var createOrIndentList = function(line, prefix, refresh) {
             refresh = initObject(refresh, true);
             prefix = initObject(prefix, getListPrefix(line));
@@ -1229,11 +994,6 @@ var AutotagJS = (function() {
             setSelection(selection);
         };
 
-        /**
-         * Prepares the given Line node for use.
-         * @param {Node} line - The root line node.
-         * @returns {boolean} - True if the list clas name was applied.
-         */
         var initList = function(line, klass) {
             if (isRootLine(line)) {
                 updateListStyle(line, _rootListClassName);
@@ -1246,13 +1006,6 @@ var AutotagJS = (function() {
             return false;
         };
 
-        /**
-         * Checks if the given node is a Blank Node. A Blank Node is one that
-         * has no text content or has only zero length characters.
-         * @param {Node} node - The node to check.
-         * @returns {boolean} - True if node has no text content, or if it
-         * contains zero length characters.
-         */
         var isBlankNode = function(node) {
             if (node) {
                 var str = node.textContent;
@@ -1260,46 +1013,22 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Checks if the given Line is a blank line. A blank line is a node
-         * that is a Blank Node.
-         * @param {Node} line - The Line node to check.
-         * @returns {boolean} - True if the node is a line and is a Blank Node.
-         */
         var isBlankLine = function(line) {
             return isLine(line) && isBlankNode(line);
         };
 
-        /**
-         * Checks if the line is a Blank List. A Blank List is one that does
-         * not have a list indicator (e.g bullet, numbering etc) but is still
-         * part of the List.
-         * @param {Node} line - The Line node to check.
-         * @returns {boolean} - True if the line is a List and a Blank List.
-         */
         var isAnonymousList = function(line) {
             return line.classList.contains(_blankListClassName);
         };
-
 
         var isAnchorList = function(line) {
             return line.classList.contains(_anchorListClassName);
         };
 
-        /**
-         * Checks if the node is the Editor.
-         * @param {Node} node - The node to check.
-         * @returns {boolean} - True if the node is the Editor node.
-         */
         var isEditor = function(node) {
             return node && node.isSameNode(editor);
         };
 
-        /**
-         * Checks if the provided node is a Line.
-         * @param {Node} node - The node to check.
-         * @returns {boolean} - True if the ndoe is Line.
-         */
         var isLine = function(node) {
             return node && !isTextNode(node) &&
                 node.classList.contains(_lineClassName);
@@ -1310,23 +1039,12 @@ var AutotagJS = (function() {
                 node.classList.contains(_lineBodyClassName);
         };
 
-        /**
-         * Checks if the given Line is a list.
-         * @param {Node} line - The Line to check for indentation.
-         * @returns {boolean} - True if the Line is indented and is a list.
-         */
         var isList = function(line) {
             var className = line && line.className;
             return className &&
                 className.match(/(\w+(-\w+)*)-list-(.+)*/g);
         };
 
-        /**
-         * Checks if the given line is the first line in the new indentation.
-         * @param {Node} line - The Line to check for indentation.
-         * @returns {boolean} - True if the Line is the first indented line in
-         * the list.
-         */
         var isListHead = function(line) {
             var previousLine = line.previousSibling;
             return isList(line) && (
@@ -1336,30 +1054,14 @@ var AutotagJS = (function() {
             );
         };
 
-        /**
-         * Checks if the provided Line is a direct child of Editor.
-         * @param {Node} line - The Line to check.
-         * @returns {boolean} - True if the Line is a Roor Line.
-         */
         var isRootLine = function(line) {
             return isLine(line) && isEditor(line.parentNode);
         };
 
-        /**
-         * Checks if the given Line has is a list root. A line is a Root list
-         * if it has the default List class name.
-         * @param {Node} line - The Line to check.
-         * @returns {boolean} - True if the Line is a Root Line.
-         */
         var isListRoot = function(line) {
             return line && line.classList.contains(_rootListClassName);
         };
 
-        /**
-         * Checks if the given node is a Fragment node.
-         * @param {Node} node - The node to check.
-         * @returns {boolean} - True if the node is a Fragment node.
-         */
         var isFragment = function(node) {
             return node && node.tagName == _fragmentTag.toUpperCase();
         };
@@ -1374,70 +1076,19 @@ var AutotagJS = (function() {
                 node.classList.contains(_textFragmentClassName);
         };
 
-        /**
-         * Inserts a tab in a Text or Fragment node at the provided offset.
-         * @param {Node} node - The Text or Fragment node to insert the Tab.
-         * @param {number} index - The position to insert the Tab.
-         * @returns {boolean} - Returns true on success (tab is inserted),
-         * false otherwise.
-         */
-        var insertTab = function(node, index) {
-            if (isLine(node)) {
-
-            } else {
-                var fragment = getFragment(node);
-                var content = fragment.textContent,
-                    parent = fragment.parentNode,
-                    sibling = fragment.nextSibling;
-
-                // var tab = createFragment(_tab);
-                // tab.classList.add(_tabFragmentClassName);
-                // tab.setAttribute('contenteditable', 'false');
-                var tab = createTabFragment();
-
-                if (index === 0 || isBlankNode(getFragment(node))) {
-                    parent.insertBefore(tab, fragment);
-                    setCaret(fragment.firstChild, 0);
-
-                } else if (index === fragment.firstChild.length) {
-                    parent.insertBefore(tab, sibling);
-                    if (sibling) {
-                        setCaret(sibling.firstChild, 0);
-                    } else {
-                        setCaret(tab.firstChild, 1);
-                    }
-
-                } else {
-                    fragment.textContent = content.substring(0, index);
-                    parent.insertBefore(tab, sibling);
-
-                    var lastFragment =
-                        createTextFragment(content.substring(index));
-                    parent.insertBefore(lastFragment, tab.nextSibling);
-                    setCaret(lastFragment.firstChild, 0);
-                }
-
-                if (!isTextFragment(tab.previousSibling)) {
-                    prependNode(createPilotFragment(), tab);
-                }
-
-                if (!isTextFragment(tab.nextSibling)) {
-                    var pilot = createPilotFragment();
-                    appendNode(pilot, tab);
-                    setCaret(pilot);
-                }
-
-                return true;
-            }
-            return false;
+        var isPilotFragment = function(node) {
+            return isTextFragment(node) &&
+                node.classList.contains(_pilotClassName);
         };
 
-        /**
-         * Outdents the given line and updates its list.
-         * @param {Node} line - The Line node to outdent.
-         * @param {boolean=} refresh - If set to true, the lists's style
-         * is overwritten.
-         */
+        var insertTab = function(node, index) {
+            if (isTextNode(node)){
+                node.nodeValue = node.textContent.splice(index, 0, '\u0009');
+                setCaret(node, index + 1);
+            }
+            processInputV2();
+        };
+
         var outdentList = function(line, refresh) {
             refresh = initObject(refresh, true);
 
@@ -1485,19 +1136,15 @@ var AutotagJS = (function() {
 
             if (isTextNode(container)) {
                 var value = container.nodeValue;
-                // if (isTabFragment(parent)) {
-                //     console.log(parent);
-                //     var fragment = createFragment(_zeroWidthSpace);
-                //     prependNode(fragment, parent);
-                //     setCaret(fragment, 0);
-                // } else {
 
-                    // Remove the lead character as it is no longer required.
-                    if (value.match(/\u200b/)) {
-                        container.nodeValue = value.replace(/\u200b/g, '');
-                        range = setCaret(container, _range.endOffset + 1);
-                    }
-                // }
+                // Remove the lead character as it is no longer required.
+                if (value.charCodeAt(0) == 160 &&
+                    parent.classList.contains(_pilotClassName)) {
+                    // container.nodeValue = value.replace(/\u200b/g, '');
+                    container.nodeValue = value.substr(1);
+                    parent.classList.remove(_pilotClassName);
+                    range = setCaret(container, _range.endOffset + 1);
+                }
             }
         };
 
@@ -1554,10 +1201,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Inserts the pasted text into the Editor and formats it for editing.
-         * @param {Event} e - The paste event.
-         */
         var pasteClipboardContent = function(e) {
             var content;
             var container = _range.endContainer;
@@ -1588,55 +1231,45 @@ var AutotagJS = (function() {
                     removeNode(fragment);
                 }
             }
-
         };
 
         var processArrowKeys = function(range, keyCode) {
-            var container = range.startContainer,
-                offset = range.startOffset;
-
-            if (isTextNode(container)) {
-                // Node.nodeValue does not work correctly in FF 57.0.1.
-                // Resorting to textContent.
-                var value = container.textContent,
-                    parent = container.parentNode;
-
-                if (isRightArrowKey(keyCode)) {
-                    if (value.charAt(offset) == _zeroWidthSpace) {
-                        if (value.length > offset + 1) {
-                            setCaret(container, offset + 1);
-                        } else {
-                            var next = parent.nextSibling;
-                            if (isTabFragment(next)) {
-                                next = next.nextSibling;
-                            }
-                            setCaret(next, 0);
-                        }
-                        return true;
-                    }
-                } else if (isLeftArrowKey(keyCode) && offset > 0) {
-                    if (value.charAt(offset - 1) == _zeroWidthSpace) {
-                        if (value.length > 2) {
-                            setCaret(container, offset - 2);
-                        } else {
-                            var previous = parent.previousSibling;
-                            if (isTabFragment(previous)) {
-                                previous = previous.previousSibling;
-                            }
-                            setCaret(previous);
-                        }
-                        return true;
-                    }
-                }
-            }
+            // var container = range.startContainer,
+            //     offset = range.startOffset;
+            //
+            // var parent = container.parentNode;
+            // if (isTextNode(container) && isPilotFragment(parent)) {
+            //     // Node.nodeValue does not work correctly in FF 57.0.1.
+            //     // Resorting to textContent.
+            //     var target,
+            //         value = container.textContent;
+            //
+            //     if (isRightArrowKey(keyCode)) {
+            //         target = parent.nextSibling;
+            //         if (isTabFragment(target)) {
+            //             target = target.nextSibling;
+            //         }
+            //
+            //         if (isPilotFragment(target)) {
+            //             // When landing on a pilot node, ensure that the caret
+            //             // is at the end.
+            //             setCaret(target);
+            //         } else {
+            //             // ..else, set to the begining.
+            //             setCaret(target, 0);
+            //         }
+            //
+            //     } else if (isLeftArrowKey(keyCode)) {
+            //         target = parent.previousSibling;
+            //         if (isTabFragment(target)) {
+            //             target = target.previousSibling;
+            //         }
+            //         setCaret(target);
+            //     }
+            //     return true;
+            // }
         };
 
-        /**
-         * Captures the Return key and performs the requisite action. Note
-         * that we override the default browser action ude to inconsistencies
-         * the the way browsers process the return action.
-         * @param {Range} range - The range to act on.
-         */
         var processReturnKey = function(range) {
             if (range.collapsed) {
                 var newLine,
@@ -1695,9 +1328,6 @@ var AutotagJS = (function() {
             updateListStyle(line, '');
         };
 
-        /**
-         * Saves the current selection range.
-         */
         var saveSelectionRange = function() {
             var range = getRange();
             if (range && range.startContainer.nodeType != 9) {
@@ -1706,22 +1336,10 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Updates the Line's list to be a blank list (one without the list
-         * indicator).
-         * @param {Node} line - The Line to update to blank list.
-         */
         var anonymizeList = function(line) {
             updateListStyle(line, _blankListClassName);
         };
 
-        /**
-         * Takes in the current node and sets the cursor location
-         * on the first child, if the child is a Text node.
-         *
-         * @param {Node} node - The node on which to set the caret.
-         * @param {number=} offset - The offest at which to set the caret.
-         */
         var setCaret = function(node, offset) {
             if (node) {
                 if (isFragment(node)) {
@@ -1747,15 +1365,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Generate the the list style CSS class name and updates the
-         * Line with it. If 'overrideStyle' is true, overrides the line's
-         * existing List style.
-         * @param {Node} line - The Line to update list style.
-         * @param {string} stylePrefix - The list's style prefix string.
-         * @param {number} indentIndex - The indentation index of the line.
-         * @param {boolean} overrideStyle - Overrides the list style of the
-         */
         var setListStyle = function(line, stylePrefix, indentIndex,
                 overrideStyle) {
 
@@ -1770,12 +1379,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Generate the list counter style and updates the line with it.
-         * @param {Node} line - The Line to update list style.
-         * @param {string} stylePrefix - The list's style prefix string.
-         * @param {number} indentIndex - The indentation index of the line.
-         */
         var setListCounter = function(line, stylePrefix, indentIndex) {
             if (indentIndex > 0) {
                 line.parentNode.style.setProperty(
@@ -1786,18 +1389,6 @@ var AutotagJS = (function() {
                 'counter-reset', stylePrefix + "-counter-" + (indentIndex + 1));
         };
 
-        /**
-         * Sets the selection range to the containers and offsets provided in
-         * the selection object.
-         * @param {Object} obj - The object with the containers and offsets.
-         * @param {Node} obj.startContainer - The selection start container.
-         * @param {Node} obj.endContainer - The selection end container.
-         * @param {number=} obj.startOffset - The start container's offset. If
-         * not provided, it is defaulted to 0 (i.e begining of container).
-         * @param {number=} obj.endOffset - The end container's offset. If not
-         * provided, it is defaulted to the length of the container.
-         * @returns {Range} - The newly created Range.
-         */
         var setSelection = function(selection) {
             var range,
                 startNode = selection.startContainer,
@@ -1820,11 +1411,6 @@ var AutotagJS = (function() {
             return range;
         };
 
-        /**
-         * Extracts the ancestors of the lines from within the lines.
-         * @param {Array} lines - The lines from which to extract ancestors.
-         * @returns {Array} - The list of ancestor Lines.
-         */
         var getAncestorLines = function(lines) {
             var ancestorNodes = [];
             for(var i=0; i<lines.length; i++) {
@@ -1878,36 +1464,17 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Checks if the given node is the first one on the line.
-         * @param {Node} node - The node to check.
-         * @param {number} offset - The offset to check in addition.
-         * @returns {boolean} - True if this is the first node in the line.
-         */
         var isBeginingOfLine = function(node, offset) {
             return (isBlankNode(node) || offset == 0) &&
                 !node.previousSibling;
         };
 
-        /**
-         * Checks if the given Fragment is the last in the given line and the
-         * offset points to the end of the line.
-         * @param {Node} node - The node to check.
-         * @param {number} offset - The offset within the Fragments.
-         * @returns {boolean} - True if end of line, false otherwise.
-         */
         var isEndOfLine = function(node, offset) {
             // return !isFragment(tag.nextSibling) && offset == tag.textContent.length;
             return !node.nextSibling && offset == node.textContent.length;
         };
 
-        /**
-         * Deletes the character proceeeding the caret.
-         * @param {Node} fragment - The fragment from which to delete the character.
-         * @param {number} offset - The location of the character.
-         */
         var deleteChar = function(fragment, offset) {
-
             // Delete if this is a tab
             if (isTabFragment(fragment)) {
                 setCaret(fragment.nextSibling, 0);
@@ -1922,12 +1489,13 @@ var AutotagJS = (function() {
                     str.slice(0, offset - 1) + str.slice(offset);
 
                 if (textNode.nodeValue.length == 0 && offset == 1) {
-                    if (!fragment.previousSibling) {
+                    var previous = fragment.previousSibling;
+                    if (!isTextFragment(previous)) {
                         textNode.nodeValue = _zeroWidthSpace;
-                        setCaret(fragment);
+                        setCaret(fragment, 1);
 
                     } else {
-                        setCaret(fragment.previousSibling);
+                        setCaret(previous);
                         removeNode(fragment);
                     }
                 } else {
@@ -1936,10 +1504,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Deletes the given Line.
-         * @param {Node} line - The line to delete.
-         */
         var deleteLine = function(line) {
             if (isList(line) && !isListRoot(line)) {
                 if (isAnonymousList(line)) {
@@ -1990,10 +1554,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Deletes the Fragments and Lines in the current selection.
-         * @param {Range} range - The selection range.
-         */
         var deleteSelection = function(range) {
             var fragment =
                 createRangeBoundaryFragments(range).first.previousSibling;
@@ -2017,10 +1577,6 @@ var AutotagJS = (function() {
             fixEditor();
         };
 
-        /**
-         * Proceeds with performing a delete operation.
-         * @param {Range} range - The Range on which to perform the delete.
-         */
         var processDelete = function(range) {
             var offset = range.startOffset,
                 container = range.startContainer;
@@ -2049,15 +1605,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Updates the list style and counter for the given line. If
-         * 'overrideStyle' is true, overrides the line's existing List style.
-         * @param {Node} line - The Line whose list is to be updated.
-         * @param {string} stylePrefix - The list's style prefix string.
-         * @param {number} indentIndex - The indentation index of the line.
-         * @param {boolean=} overrideStyle - Overrides the list style of the
-         * given line if true (default).
-         */
         var updateList = function(line, stylePrefix, indentIndex, overrideStyle) {
             overrideStyle = initObject(overrideStyle, true);
             if (!initList(line)) {
@@ -2066,12 +1613,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Updates the list by replacing the existing list class with the
-         * one provided.
-         * @param {Node} line - The Line node whose list style to update.
-         * @param {string} klass - The list style CSS classname to update with.
-         */
         var updateListStyle = function(line, klass) {
             line.className =
                 line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
@@ -2086,22 +1627,59 @@ var AutotagJS = (function() {
         };
 
         var splitFragment = function(fragment, offset) {
-            var text = fragment.firstChild;
-
-            // Splitting at boundaries will result in blank nodes.
-            if (offset == 0 || offset == text.nodeValue.length) {
-                return fragment;
-            }
-
-            var newText = text.splitText(offset);
-            var newFragment = createTextFragment(removeNode(newText));
-            newFragment.setAttribute('style', fragment.getAttribute('style'));
-
-            // Firefox hack to remove break nodes.
-            removeNode(fragment.querySelector('br'));
-
-            return appendNode(newFragment, fragment);
+            // var text = fragment.firstChild;
+            //
+            // // Splitting at boundaries will result in blank nodes.
+            // if (offset == 0 || offset == text.nodeValue.length) {
+            //     return fragment;
+            // }
+            //
+            // var newText = text.splitText(offset);
+            // var newFragment = createTextFragment(removeNode(newText));
+            // newFragment.setAttribute('style', fragment.getAttribute('style'));
+            //
+            // // Firefox hack to remove break nodes.
+            // removeNode(fragment.querySelector('br'));
+            //
+            // return appendNode(newFragment, fragment);
         };
+
+        var fragmentText = function(text, offset) {
+            if (isTextNode(text)) {
+                let fragment = getFragment(text),
+                    newFragment;
+
+                // Splitting at boundaries will result in blank nodes.
+                if (offset == 0 || offset == text.textContent.length) {
+                    let parent = text.parentNode;
+                    if (isTextFragment(parent)) {
+                        newFragment = fragment;
+                    } else {
+                        let nextSibling = text.nextSibling;
+                        newFragment = createTextFragment(removeNode(text));
+                        parent.insertBefore(newFragment , nextSibling);
+                    }
+
+                } else {
+                    let newText = text.splitText(offset);
+                    newFragment = createTextFragment(removeNode(newText));
+
+                    // Firefox hack to remove break nodes.
+                    removeNode(fragment.querySelector('br'));
+
+                    let prevNode;
+                    if (isTextFragment(fragment)) {
+                        prevNode = fragment;
+                        newFragment.setAttribute('style',
+                            fragment.getAttribute('style'));
+                    } else {
+                        prevNode = text;
+                    }
+                    appendNode(newFragment, prevNode);
+                }
+                return newFragment;
+            }
+        }
 
         var createRangeBoundaryFragments = function(range) {
             if (!range.collapsed) {
@@ -2109,8 +1687,10 @@ var AutotagJS = (function() {
                 var container = selection.startContainer;
                 var offset = selection.startOffset;
 
-                // Split the start Text node.
-                var newFragment = splitFragment(container.parentNode, offset);
+                // Split the start Text node. Note that if the offset is a
+                // 0 or the length of the container, the container wrapped
+                // as a fragment is returned.
+                var newFragment = fragmentText(container, offset);
 
                 // Now split the end Text node.
                 if (container.isSameNode(selection.endContainer)) {
@@ -2120,7 +1700,9 @@ var AutotagJS = (function() {
                     offset = selection.endOffset;
                     container = selection.endContainer;
                 }
-                splitFragment(container.parentNode, offset);
+
+                // Container here is the end node.
+                fragmentText(container, offset);
 
                 // Rebuild original selection range for further processing.
                 _range = setSelection({
@@ -2139,14 +1721,15 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('click', function(e) {
-            // console.log(getRange());
             hideSubmenus();
-            fixEditor();
-            fixCaret();
+            if (!fixEditor()) {
+               fixCaret();
+            }
+            // e.preventDefault();
         });
 
         editor.addEventListener('focus', function(e) {
-            fixEditor();
+            // fixEditor();
             // console.log(e.target);
         });
 
@@ -2160,9 +1743,9 @@ var AutotagJS = (function() {
             var keyCode = getKeyCode(e),
                 shiftKey = e.shiftKey;
 
-            // if (!isDeleteKey(keyCode)) {
-            //     // fixCaret();
-            // }
+            if (!isDeleteKey(keyCode)) {
+                fixCaret();
+            }
 
             // Get the latest and greatest range since we cannot rely on
             // any buffered selection range (_range).
@@ -2208,6 +1791,7 @@ var AutotagJS = (function() {
         });
 
         document.addEventListener('selectionchange', debounce(function(e) {
+            console.log("Selection Change");
             if (saveSelectionRange()) {
                 setContinuingStyle();
                 doAfterSelection(getFragmentsInRange(_range));
