@@ -1017,7 +1017,7 @@ var AutotagJS = (function() {
                 node.nodeValue = node.textContent.splice(index, 0, '\u0009');
                 setCaret(node, index + 1);
             }
-            processInputV2();
+            processInput();
         };
 
         var outdentList = function(line, refresh) {
@@ -1061,7 +1061,7 @@ var AutotagJS = (function() {
             }
         };
 
-        var processInputV2 = function() {
+        var processInput = function() {
             let container = _range.endContainer;
             let parent = container.parentNode;
 
@@ -1078,60 +1078,6 @@ var AutotagJS = (function() {
                 }
             }
         };
-
-        // var processInput = function() {
-        //     var container = _range.endContainer;
-        //
-        //     if (isTextNode(container)) {
-        //         var value = container.nodeValue;
-        //         if (value.match(/^\u200b/)) {
-        //             container.nodeValue = value.replace(/\u200b/g, '');
-        //             range = setCaret(container, _range.endOffset + 1);
-        //         }
-        //
-        //         // Note that the offset within the range object will update
-        //         // on its own if the container's node value is changed.
-        //         var offset = _range.endOffset;
-        //
-        //         var refFragment = container.parentNode,
-        //             parts = splitter(container.nodeValue || '');
-        //
-        //         // Trim empty values from the array.
-        //         parts = parts && parts.filter(Boolean) || '';
-        //         var numparts = parts.length;
-        //
-        //         if (numparts > 1) {
-        //             var newFragment, length;
-        //             for (var i = 0; i < numparts; i++) {
-        //                 newFragment = createTextFragment(
-        //                     parts[i], refFragment.getAttribute('style'));
-        //                 newFragment.style.removeProperty('display');
-        //                 clearNodeStyle(newFragment);
-        //
-        //                 decorator(newFragment, newFragment.firstChild.nodeValue);
-        //                 refFragment.parentNode.insertBefore(newFragment,
-        //                     refFragment.nextSibling);
-        //
-        //                 length = parts[i].length;
-        //                 if (offset > 0 && offset <= length) {
-        //                     setCaret(newFragment.firstChild, offset);
-        //                 }
-        //
-        //                 offset = offset - length;
-        //                 refFragment = newFragment;
-        //             }
-        //             removeNode(container.parentNode);
-        //         }
-        //         else {
-        //             refFragment.style.removeProperty('display');
-        //             clearNodeStyle(refFragment);
-        //             decorator(refFragment, refFragment.firstChild.nodeValue);
-        //         }
-        //     }
-        //     else if (isFragment(container) && isTextNode(container.firstChild)) {
-        //         decorator(container, container.firstChild.nodeValue);
-        //     }
-        // };
 
         var pasteClipboardContent = function(e) {
             let content;
@@ -1154,7 +1100,7 @@ var AutotagJS = (function() {
                     container.insertBefore(textNode, container.firstChild);
                     setCaret(textNode);
                 }
-                processInputV2();
+                processInput();
             }
             else {
                 let fragment =
@@ -1497,13 +1443,10 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('focus', function(e) {
-            // fixEditor();
-            // console.log(e.target);
         });
 
         editor.addEventListener('input', function() {
-            // processInput();
-            processInputV2();
+            processInput();
         });
 
         // Start handling events.
@@ -1606,7 +1549,6 @@ var AutotagJS = (function() {
                                     menu.dataset.atgPalette);
                             }
 
-                            /** @type {{atgScope}} **/
                             let scope = menu.dataset.atgScope;
                             formatSelection(target.dataset, scope);
                             hideSubmenus();
