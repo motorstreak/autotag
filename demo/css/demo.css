@@ -172,8 +172,9 @@ body {
 }
 
 .demo-input {
-    font-family : 'Caveat', cursive;
-    font-size : 30px;
+    /*font-family : 'Caveat', cursive;*/
+    font-family: 'Lato', sans-serif;
+    font-size : 20px;
 }
 
 .demo-menubar {
