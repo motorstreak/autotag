@@ -953,7 +953,6 @@ var AutotagJS = (function() {
             ancestorFilter =  ancestorFilter || isFragment;
             var ancestor = range.commonAncestorContainer ;
 
-            console.log(ancestor);
             while (!ancestorFilter(ancestor)) {
                 if (!isEditor(ancestor) && !isLine(ancestor) &&
                         !isFragment(ancestor) && !isTextNode(ancestor)) {
@@ -1169,9 +1168,8 @@ var AutotagJS = (function() {
                 node.classList.contains(_textFragmentClassName);
         };
 
-        var isPilotFragment = function(node) {
-            return isTextFragment(node) &&
-                node.classList.contains(_pilotClassName);
+        var isPilotNode = function(node) {
+            return node.classList.contains(_pilotClassName);
         };
 
         var insertTab = function(node, index) {
@@ -1564,7 +1562,8 @@ var AutotagJS = (function() {
 
         var isEndOfLine = function(node, offset) {
             // return !isFragment(tag.nextSibling) && offset == tag.textContent.length;
-            return !node.nextSibling && offset == node.textContent.length;
+            return !node.nextSibling &&
+                (offset == node.textContent.length || isPilotNode(node));
         };
 
         var deleteChar = function(text, offset) {
@@ -1915,7 +1914,6 @@ var AutotagJS = (function() {
         });
 
         document.addEventListener('selectionchange', debounce(function(e) {
-            console.log("Selection Change");
             if (saveSelectionRange()) {
                 setContinuingStyle();
                 doAfterSelection(getFragmentsInRange(_range));
