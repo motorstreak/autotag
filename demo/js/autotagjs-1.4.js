@@ -95,19 +95,19 @@ var AutotagJS = (function() {
     }
 
     function debounce(func, wait, immediate) {
-        var timeout;
+        let timeout;
         return function() {
-            var context = this,
+            let context = this,
                 args = arguments;
 
-            var later = function() {
+            let later = function() {
                 timeout = null;
                 if (!immediate) {
                     func.apply(context, args);
                 }
             };
 
-            var callNow = immediate && !timeout;
+            let callNow = immediate && !timeout;
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
 
@@ -129,7 +129,7 @@ var AutotagJS = (function() {
     }
 
     function appendNodes(nodeList, toNode) {
-        for (var i=0; i<nodeList.length; i++) {
+        for (let i=0; i<nodeList.length; i++) {
             toNode = appendNode(nodeList[i], toNode);
         }
     }
@@ -143,7 +143,7 @@ var AutotagJS = (function() {
     }
 
     function toggleNodeVisibility(node) {
-        var style = window.getComputedStyle(node);
+        let style = window.getComputedStyle(node);
         node.style.display = (style.display === 'none') ? '' : 'none';
     }
 
@@ -162,7 +162,7 @@ var AutotagJS = (function() {
     }
 
     function removeNodesInList(nodeList) {
-        for (var i=0; nodeList && i<nodeList.length; i++) {
+        for (let i=0; nodeList && i<nodeList.length; i++) {
             removeNode(nodeList[i]);
         }
     }
@@ -206,7 +206,7 @@ var AutotagJS = (function() {
     }
 
     function getChildren(node, filter) {
-        var children = [];
+        let children = [];
         node = node.firstChild;
         while(node) {
             if (!filter || filter(node)) {
@@ -278,7 +278,7 @@ var AutotagJS = (function() {
 
     return function(editor, config) {
         // The latest selection made in the editor.
-        var _range,
+        let _range,
 
             // All selection is copied to the clipboard buffer.
             _copiedRange,
@@ -291,22 +291,22 @@ var AutotagJS = (function() {
         // Initialize configuration.
         config = config || {};
 
-        var ignoreReturnKey = config.ignoreReturnKey || false;
-        var trace = config.trace || false;
+        let ignoreReturnKey = config.ignoreReturnKey || false;
+        let trace = config.trace || false;
 
         // Callbacks
-        var decorator = config.decorator || function(node, text) {};
+        let decorator = config.decorator || function(node, text) {};
 
         // The default splitter splits on words.
-        var splitter = config.splitter || splitAtWord;
+        let splitter = config.splitter || splitAtWord;
 
         // Event callbacks
-        var doAfterKeypress = config.afterKeypress || function() {};
+        let doAfterKeypress = config.afterKeypress || function() {};
 
         // Returns the fragments under the selection.
-        var doAfterSelection = config.afterSelection || function(fragments) {};
+        let doAfterSelection = config.afterSelection || function(fragments) {};
 
-        var doOnMenuClick = config.onMenuClick || function() {};
+        let doOnMenuClick = config.onMenuClick || function() {};
 
         /**
          * Processes one or more atg-command instructions on the targets
@@ -316,17 +316,17 @@ var AutotagJS = (function() {
          */
         var applyCommand = function(target, commands) {
             if (Array.isArray(target)) {
-                for (var i = 0; i < target.length; i++) {
+                for (let i = 0; i < target.length; i++) {
                     applyCommand(target[i], commands);
                 }
             } else {
-                for (var j = 0; j < commands.length; j++) {
-                    var cmd = commands[j];
+                for (let j = 0; j < commands.length; j++) {
+                    let cmd = commands[j];
                     if (cmd == 'clear') {
                         target.removeAttribute('style');
 
                     } else if (cmd.match(/^list(\s+\w+(-\w+)*){1}/)) {
-                        var listPrefix = cmd.split(/\s+/)[1];
+                        let listPrefix = cmd.split(/\s+/)[1];
 
                         switch(listPrefix) {
                             case 'clear':
@@ -373,16 +373,16 @@ var AutotagJS = (function() {
          */
         var applyStyle = function(target, instruction, declarations) {
             if (Array.isArray(target)) {
-                for (var i = 0; i < target.length; i++) {
+                for (let i = 0; i < target.length; i++) {
                     applyStyle(target[i], instruction, declarations);
                 }
             } else {
-                for (var j = 0; j < declarations.length; j++) {
-                    var declaration = declarations[j].split(/\s*:\s*/),
+                for (let j = 0; j < declarations.length; j++) {
+                    let declaration = declarations[j].split(/\s*:\s*/),
                         property = declaration[0],
                         value = declaration[1];
 
-                    var curValue = target.style.getPropertyValue(property);
+                    let curValue = target.style.getPropertyValue(property);
 
                     if (instruction == 'atgUnset' ||
                         instruction == 'atgToggle' && curValue.length > 0) {
@@ -396,7 +396,7 @@ var AutotagJS = (function() {
 
                     } else if (instruction.match(/^atg(Increment|Decrement)/)) {
                         curValue = curValue || getComputedStyle(target).getPropertyValue(property);
-                        var amount = extractAmount(value),
+                        let amount = extractAmount(value),
                             curAmount = extractAmount(curValue);
 
                         if (instruction == 'atgIncrement') {
@@ -421,28 +421,28 @@ var AutotagJS = (function() {
          * @param {string} type - The kind of palette to show.
          */
         var createPalette = function(menu) {
-            var palette = menu.getElementsByClassName(_submenuClassName)[0];
+            let palette = menu.getElementsByClassName(_submenuClassName)[0];
             if (palette) {
                 palette.style.display = '';
             } else {
                 palette = createElement('div',
                     _submenuClassName + ' ' + _paletteClassName);
 
-                var type = menu.dataset.atgSubmenu.split('Palette')[0];
+                let type = menu.dataset.atgSubmenu.split('Palette')[0];
                 palette.dataset.atgPalette = type;
                 palette.dataset.atgScope = menu.dataset.atgScope;
                 menu.appendChild(palette);
 
                 // Color palette
-                var row, cell, maxCols = 10, maxRows = 5;
+                let row, cell, maxCols = 10, maxRows = 5;
 
-                var hueStep = Math.round(360 / maxCols),
+                let hueStep = Math.round(360 / maxCols),
                     saturationStep = Math.round(40 / maxRows),
                     luminosityStep = Math.round(80 / maxRows);
 
-                for (var i = 0, s = 100, l = 94; i < maxRows; i++, s -= saturationStep, l -= luminosityStep) {
+                for (let i = 0, s = 100, l = 94; i < maxRows; i++, s -= saturationStep, l -= luminosityStep) {
                     row = createPaletteRow(palette);
-                    for (var j = 0, h = 0; j < maxCols; j++, h += hueStep) {
+                    for (let j = 0, h = 0; j < maxCols; j++, h += hueStep) {
                         createPaletteCell(row, h, s, l, type);
                     }
                 }
@@ -465,9 +465,9 @@ var AutotagJS = (function() {
          * @param {string} type - The palette type.
          */
         var createPaletteCellAction = function(cell, type) {
-            var dataset = cell.dataset;
+            let dataset = cell.dataset;
             if (!dataset.atgSet) {
-                var style, color = dataset.atgPaletteColor;
+                let style, color = dataset.atgPaletteColor;
 
                 if (type === 'color') {
                     style = 'color: ' + color;
@@ -475,7 +475,7 @@ var AutotagJS = (function() {
                 } else if (type === 'highlight') {
                     style = 'background-color: ' + color;
 
-                    var contrast = dataset.atgPaletteContrastColor;
+                    let contrast = dataset.atgPaletteContrastColor;
                     if (contrast) {
                         style = style + '; color: ' + contrast;
                     }
@@ -485,7 +485,7 @@ var AutotagJS = (function() {
         };
 
         var emptyLineObserver = function(mutationList) {
-            for(var mutation of mutationList) {
+            for(let mutation of mutationList) {
                 let target = mutation.target;
                 if (mutation.type == 'childList' &&
                         mutation.removedNodes.length > 0 &&
@@ -499,41 +499,17 @@ var AutotagJS = (function() {
                     // Now connect it back.
                     this.observe(target, { childList: true, subtree: true });
                 }
-                //
-                // if () {
-                //     console.log('A child node has been added or removed.');
-                // }
-                // else if (mutation.type == 'attributes') {
-                //     console.log('The ' + mutation.attributeName + ' attribute was modified.');
-                // }
             }
         };
 
-        /**
-         * Create the palette cell used to clear color/highlight formatting.
-         * @param {Node} row - The node corresponing to the row in which to
-         * create the 'clear' cell.
-         * @param {string} type - The palette type.
-         */
         var createCrossedPaletteCell = function(row, type) {
-            var cell = createPaletteCell(row, 0, 0, 100);
+            let cell = createPaletteCell(row, 0, 0, 100);
             cell.classList.add(_paletteCellCrossClassName);
             if (type === 'color') {
                 cell.dataset.atgPaletteColor = '#000';
             }
             return cell;
         };
-
-        /**
-         * Create the palette cell on the given row with the provided hsla
-         * color values.
-         * @param {Node} row - The node corresponing to the row in which to
-         * create the cell.
-         * @param {number} h - The hue value of the cell color.
-         * @param {number} s - The saturaltion value of the cell color.
-         * @param {number} l - The luminance value of the cell color.
-         * @param {string} type - The palette type.
-         */
 
         var createPaletteCell = function(row, h, s, l, type) {
             let hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
@@ -552,46 +528,29 @@ var AutotagJS = (function() {
             return row.appendChild(cell);
         };
 
-        /**
-         * Generates and returns the contrast color value for a given RGB value.
-         * The contrast color is used for the text color in the 'highlight'
-         * palette.
-         * @param {string} rgbStr - The RGB CSS color value.
-         * @returns {string} - Color value of the contrast color.
-         */
         var generateContrastColor = function(rgbStr) {
-            var rgb = rgbStr.match(/[.?\d]+/g);
-            for (var i=0; i < 3; i++) {
+            let rgb = rgbStr.match(/[.?\d]+/g);
+            for (let i=0; i < 3; i++) {
                 rgb[i] = rgb[i]/255.0;
                 rgb[i] =
                     (rgb[i] <= 0.03928) ? rgb[i]/12.92
                                         : Math.pow((rgb[i] + 0.055)/1.055, 2.4);
             }
-            var lumin = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+            let lumin = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
             return (lumin > 0.179) ? '#000' : '#FFF';
         };
 
-        /**
-         * Creates the node corresponding to the palette row.
-         * @param {Node} palette - The palette node to add the new row to.
-         * @returns {Node} - The newly created palette row.
-         */
         var createPaletteRow = function(palette) {
-            // var row = document.createElement('div');
-            // row.className = _paletteRowClassName;
             return palette.appendChild(
                 createElement('div', _paletteRowClassName));
         };
 
         var createLeaderLine = function(line) {
-            // let leader = document.createElement(_lineTag);
-            // leader.className = _lineLeaderClassName;
-
             let leader = createElement(_lineTag, _lineLeaderClassName);
             leader.setAttribute('contenteditable', 'false');
 
             // DEBUG -- REMOVE
-            leader.appendChild(createListFragment('3.1.1.4'));
+            // leader.appendChild(createListFragment('3.1.1.4'));
 
             line.insertBefore(leader, line.firstChild);
             return leader;
@@ -600,39 +559,17 @@ var AutotagJS = (function() {
         var createLine = function(refLine, options) {
             options = options || {};
 
-            // Create the root line
-            // let line = document.createElement(_lineTag);
-            // line.className = _lineClassName;
-
             let line = createElement(_lineTag, _lineClassName),
                 body = createElement(_lineTag, _lineBodyClassName);
 
-            // // Now create the parts of the line (leader, body)
-            // let body = document.createElement(_lineTag);
-            // body.className = _lineBodyClassName;
-
-
             line.appendChild(body);
 
-            var observer = new MutationObserver(emptyLineObserver);
-
-            // Start observing the target node for configured mutations
+            // Start observing the body for empty lines so that we can
+            // replenish it with the pilot node.
+            let observer = new MutationObserver(emptyLineObserver);
             observer.observe(body, { childList: true, subtree: true });
 
             if (refLine) {
-
-                // if (options.asChild) {
-                //     refLine.appendChild(line);
-                //
-                // } else if (options.asPreviousSibling) {
-                //     // refLine.parentNode.insertBefore(line, refLine);
-                //     prependNode(line, refLine);
-                //
-                // } else {
-                //     // By default, attach as sibling
-                //     appendNode(line, refLine);
-                // }
-
                 switch (options.attachAs) {
                     case 'child':
                         refLine.appendChild(line);
@@ -673,41 +610,18 @@ var AutotagJS = (function() {
             return pilot;
         };
 
-        // var createPilotFragment = function() {
-        //     var pilot = createTextFragment(_zeroWidthSpace);
-        //     pilot.classList.add(_pilotClassName);
-        //     return pilot;
-        // };
-
-        // var createTabFragment = function() {
-        //     var tab = createFragment(_tab);
-        //     tab.classList.add(_tabFragmentClassName);
-        //     tab.setAttribute('contenteditable', 'false');
-        //     return tab;
-        // };
-
         var createTextFragment = function(stringOrText, style) {
-            var text = createFragment(stringOrText, null, style);
+            let text = createFragment(stringOrText, null, style);
             text.classList.add(_textFragmentClassName);
             return text;
         };
 
         var createListFragment = function(stringOrText) {
-            var text = createFragment(stringOrText);
+            let text = createFragment(stringOrText);
             // text.classList.add(_listFragmentClassName);
             return text;
         };
 
-        /**
-         * Creates a node (Fragment Node) containing the provided string or Text
-         * node and applies the provided style to it. If a style is not
-         * provided, set style to the last applied one. Every text node in
-         * the editor is wrapped in a Fragment node.
-         * @param {Object} stringOrText - A string or Text node object to be
-         * wrapped as a Fragment.
-         * @param {string} style - A string containing CSS style declarations.
-         * @returns {Node} - The newly create Fragment node.
-         */
         var createFragment = function(stringOrText, cName, style) {
             // let fragment = document.createElement(_fragmentTag);
             let text,
@@ -728,11 +642,6 @@ var AutotagJS = (function() {
             return fragment;
         };
 
-        /**
-         * Create a new Text Node with the provided string.
-         * @param {string} str - The string to be converted to Text Node.
-         * @returns {Node} - The newly created Text node.
-         */
         var createTextNode = function(str) {
             // Firefox hack - without this, firefox will ignore the leading
             // space in the element causing all sorts of headache.
@@ -740,62 +649,7 @@ var AutotagJS = (function() {
             return document.createTextNode(str);
         };
 
-        /**
-         * Corrects the range object to point to a text node if it is on
-         * a Fragment or Line node. If on a Fragment, set caret at the begining of the
-         * text node. If on a Line, set caret on the last Fragment on the line, at
-         * the end of the contained Text node.
-         */
-        var fixCaret = function() {
-            var range = getRange();
-            var container = range.endContainer,
-                parent = container.parentNode;
-
-            if (isEditor(container)) {
-                // do something
-            }
-            else {
-                return;
-            }
-
-            // console.log(node);
-            // if (isTextNode(node) || isEditor(node)) {
-            //     // // var target = node.querySelector('.' + _textFragmentClassName);
-            //     // // setCaret(target);
-            //     // let line = getFirstLine();
-            //     // let walker = getTreeWalker(line, NodeFilter.SHOW_TEXT)
-            //     // let nodes = getNodesFromTree(walker, isTextNode, 1);
-            //     // if (nodes.length) {
-            //     //     setCaret(nodes[0]);
-            //     // } else {
-            //     //     fixEditor();
-            //     // }
-            //     return;
-            // }
-            //
-            // if (isPilotFragment(node)) {
-            //     setCaret(node);
-            //
-            // } else if (isTabFragment(node)) {
-            //     var next = node.nextSibling;
-            //     if (isPilotFragment(next)) {
-            //         setCaret(next, 1);
-            //     } else {
-            //         setCaret(next);
-            //     }
-            //
-            // } else if (isLine(node) || isLineBody(node)) {
-            //     var fragments =
-            //         node.querySelectorAll('.' + _textFragmentClassName);
-            //     // var fragments = getFragmentsInLine(node, true);
-            //     // console.log(fragments);
-            //     if (fragments.length > 0) {
-            //         // var fragment = fragments[range.endOffset - 1] ||
-            //         //     fragments[fragments.length - 1];
-            //         setCaret(fragments[fragments.length - 1]);
-            //     }
-            // }
-        };
+        var fixCaret = function() {};
 
         var fixEditor = function() {
             if (getChildren(editor, isLine).length == 0) {
@@ -809,9 +663,9 @@ var AutotagJS = (function() {
 
         var formatSelection = function(dataset, scope) {
             if (_range && dataset) {
-                var nodes = getNodesInSelection(scope);
+                let nodes = getNodesInSelection(scope);
 
-                for (var key in dataset) {
+                for (let key in dataset) {
                     if (dataset.hasOwnProperty(key)) {
                         processInstruction(nodes, key,
                             dataset[key].split(/\s*;\s*/));
@@ -825,7 +679,7 @@ var AutotagJS = (function() {
         };
 
         var getNodesInSelection = function(scope) {
-            var nodes,
+            let nodes,
                 lines = getLinesInRange(_range);
 
             switch (scope) {
@@ -875,7 +729,7 @@ var AutotagJS = (function() {
         var getIndentationIndex = function(line, maxIndex) {
             maxIndex = initObject(maxIndex, 3);
 
-            var level = 0;
+            let level = 0;
             while ((line = line.parentNode) && !isEditor(line)) {
                 level++;
             }
@@ -904,15 +758,15 @@ var AutotagJS = (function() {
                 return 'atg';
             }
 
-            var names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
-            var prefix = names && names[1];
+            let names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
+            let prefix = names && names[1];
             return (prefix ? prefix : getListPrefix(line.parentNode));
         };
 
         var getNodesFromTree = function(walker, filter, limit) {
-            var nodes = [];
+            let nodes = [];
             do {
-                var node = walker.currentNode;
+                let node = walker.currentNode;
                 if (!filter || filter(node)) {
                     nodes.push(node);
                 }
@@ -921,7 +775,7 @@ var AutotagJS = (function() {
         };
 
         var getNodesInRange = function(range, nodeFilter, filter) {
-            var walker = getRangeWalker(range, nodeFilter, filter);
+            let walker = getRangeWalker(range, nodeFilter, filter);
             return getNodesFromTree(walker, filter);
         };
 
@@ -951,8 +805,8 @@ var AutotagJS = (function() {
 
         var getRangeWalker = function(range, whatToShow, ancestorFilter) {
             ancestorFilter =  ancestorFilter || isFragment;
-            var ancestor = range.commonAncestorContainer ;
 
+            let ancestor = range.commonAncestorContainer ;
             while (!ancestorFilter(ancestor)) {
                 if (!isEditor(ancestor) && !isLine(ancestor) &&
                         !isFragment(ancestor) && !isTextNode(ancestor)) {
@@ -960,20 +814,6 @@ var AutotagJS = (function() {
                 }
                 ancestor = ancestor.parentNode;
             }
-
-
-            // while(!isEditor(ancestor) && !isLine(ancestor)  &&
-            //     !ancestorFilter(ancestor)) {
-            //
-            //
-            //
-            //     ancestor = ancestor.parentNode;
-            //
-            //     if (ancestor == null) {
-            //         console.log(ancestor);
-            //
-            //     }
-            // }
 
             return getTreeWalker(ancestor, whatToShow, function(node) {
                 return rangeIntersectsNode(range, node);
@@ -1005,7 +845,7 @@ var AutotagJS = (function() {
 
         var getFragmentsInLine = function(line, deep) {
             if (deep) {
-                var walker = getTreeWalker(line, NodeFilter.SHOW_ELEMENT);
+                let walker = getTreeWalker(line, NodeFilter.SHOW_ELEMENT);
                 return getNodesFromTree(walker, isFragment);
             }
             else {
@@ -1031,8 +871,8 @@ var AutotagJS = (function() {
         };
 
         var hideSubmenus = function() {
-            var submenus = menubar.querySelectorAll('.' + _submenuClassName);
-            for(var i=0; i<submenus.length; i++) {
+            let submenus = menubar.querySelectorAll('.' + _submenuClassName);
+            for(let i=0; i<submenus.length; i++) {
                 hideNode(submenus[i]);
             }
         };
@@ -1052,7 +892,7 @@ var AutotagJS = (function() {
 
             // Store the current selection nodes and offsets so that we can
             // reinstate the selection after indentation.
-            var selection = getRangeContainersAndOffsets(_range);
+            let selection = getRangeContainersAndOffsets(_range);
 
             // The second check is required to acomodate Firefox which
             // appends the current lines classname to the previous line on
@@ -1062,7 +902,7 @@ var AutotagJS = (function() {
                 updateList(line, prefix, getIndentationIndex(line), refresh);
             }
             else {
-                var anchor = line.previousSibling;
+                let anchor = line.previousSibling;
                 if (!isList(anchor)) {
                     anchor = createLine();
                     line.parentNode.insertBefore(anchor, line);
@@ -1076,8 +916,8 @@ var AutotagJS = (function() {
                 updateList(line, prefix, getIndentationIndex(line), refresh);
 
                 // Now make line's children it's peer.
-                var children = getChildren(line, isLine);
-                for (var i=0; i < children.length; i++) {
+                let children = getChildren(line, isLine);
+                for (let i=0; i < children.length; i++) {
                   line.parentNode.insertBefore(children[i], line.nextSibling);
                 }
             }
@@ -1100,7 +940,7 @@ var AutotagJS = (function() {
 
         var isBlankNode = function(node) {
             if (node) {
-                var str = node.textContent;
+                let str = node.textContent;
                 return (str.length == 0 || str == _zeroWidthSpace);
             }
         };
@@ -1132,13 +972,13 @@ var AutotagJS = (function() {
         };
 
         var isList = function(line) {
-            var className = line && line.className;
+            let className = line && line.className;
             return className &&
                 className.match(/(\w+(-\w+)*)-list-(.+)*/g);
         };
 
         var isListHead = function(line) {
-            var previousLine = line.previousSibling;
+            let previousLine = line.previousSibling;
             return isList(line) && (
                 !previousLine ||
                 getIndentationIndex(line) == 1 &&
@@ -1184,19 +1024,19 @@ var AutotagJS = (function() {
             refresh = initObject(refresh, true);
 
             if(isList(line)) {
-                var parentLine = line.parentNode;
+                let parentLine = line.parentNode;
                 if (!isEditor(parentLine)) {
-                    var selection = getRangeContainersAndOffsets(_range);
+                    let selection = getRangeContainersAndOffsets(_range);
                     prefix = getListPrefix(line);
 
                     // Now make line's children the anchor's children.
-                    var children = getChildren(line, isLine);
+                    let children = getChildren(line, isLine);
                     if (children.length > 0) {
-                        var anchor = createLine();
+                        let anchor = createLine();
                         initList(anchor, _anchorListClassName);
 
                         line.insertBefore(anchor, children[0]);
-                        for (var i=0; i < children.length; i++) {
+                        for (let i=0; i < children.length; i++) {
                           anchor.appendChild(children[i]);
                         }
                     }
@@ -1208,7 +1048,7 @@ var AutotagJS = (function() {
                     parentLine.parentNode.insertBefore(line,
                         parentLine.nextSibling);
 
-                    var indentIndex = getIndentationIndex(parentLine);
+                    let indentIndex = getIndentationIndex(parentLine);
                     updateList(line, prefix, indentIndex, refresh);
 
                     if ((getChildren(parentLine, isLine) +
@@ -1222,11 +1062,11 @@ var AutotagJS = (function() {
         };
 
         var processInputV2 = function() {
-            var container = _range.endContainer;
-            var parent = container.parentNode;
+            let container = _range.endContainer;
+            let parent = container.parentNode;
 
             if (isTextNode(container)) {
-                var value = container.nodeValue;
+                let value = container.nodeValue;
 
                 // Remove the lead character as it is no longer required.
                 if (value.match(/\u00a0/) &&
@@ -1294,8 +1134,8 @@ var AutotagJS = (function() {
         // };
 
         var pasteClipboardContent = function(e) {
-            var content;
-            var container = _range.endContainer;
+            let content;
+            let container = _range.endContainer;
             if (!_copiedRange || _copiedRange.collapsed) {
                 if (e.clipboardData) {
                     content = (e.originalEvent || e)
@@ -1310,14 +1150,14 @@ var AutotagJS = (function() {
                     setCaret(container);
                 }
                 else {
-                    var textNode = document.createTextNode(content);
+                    let textNode = document.createTextNode(content);
                     container.insertBefore(textNode, container.firstChild);
                     setCaret(textNode);
                 }
                 processInputV2();
             }
             else {
-                var fragment =
+                let fragment =
                     splitFragment(container.parentNode, _range.endOffset);
                 appendNode(_copiedRange.cloneContents(), fragment);
                 if (isBlankNode(fragment) && !isList(fragment.nextSibling)) {
@@ -1326,51 +1166,16 @@ var AutotagJS = (function() {
             }
         };
 
-        var processArrowKeys = function(range, keyCode) {
-            // var container = range.startContainer,
-            //     offset = range.startOffset;
-            //
-            // var parent = container.parentNode;
-            // if (isTextNode(container) && isPilotFragment(parent)) {
-            //     // Node.nodeValue does not work correctly in FF 57.0.1.
-            //     // Resorting to textContent.
-            //     var target,
-            //         value = container.textContent;
-            //
-            //     if (isRightArrowKey(keyCode)) {
-            //         target = parent.nextSibling;
-            //         if (isTabFragment(target)) {
-            //             target = target.nextSibling;
-            //         }
-            //
-            //         if (isPilotFragment(target)) {
-            //             // When landing on a pilot node, ensure that the caret
-            //             // is at the end.
-            //             setCaret(target);
-            //         } else {
-            //             // ..else, set to the begining.
-            //             setCaret(target, 0);
-            //         }
-            //
-            //     } else if (isLeftArrowKey(keyCode)) {
-            //         target = parent.previousSibling;
-            //         if (isTabFragment(target)) {
-            //             target = target.previousSibling;
-            //         }
-            //         setCaret(target);
-            //     }
-            //     return true;
-            // }
-        };
+        var processArrowKeys = function(range, keyCode) {};
 
         var processReturnKey = function(range) {
             if (range.collapsed) {
-                var newLine,
+                let newLine,
                     container = range.startContainer,
                     offset = range.startOffset,
                     line = getLine(container);
 
-                var fragment = getFragment(container);
+                let fragment = getFragment(container);
 
                 if (isEndOfLine(fragment, offset)) {
                     newLine = createLine(line, {
@@ -1386,21 +1191,21 @@ var AutotagJS = (function() {
                     });
                 }
                 else {
-                    var newNode = container.splitText(range.startOffset);
+                    let newNode = container.splitText(range.startOffset);
 
                     if (newNode.nodeValue.length == 0) {
                         newNode.nodeValue = _zeroWidthSpace;
                         // newNode.setAttribute('contenteditable', true);
                     }
 
-                    var newFragment = createTextFragment(removeNode(newNode));
+                    let newFragment = createTextFragment(removeNode(newNode));
                     newLine = createLine(line, {attachAs: 'next_sibling'});
                     newLine.appendChild(newFragment);
                     setCaret(newNode, 0);
 
                     // Collect remaining nodes (Fragments and Lines) and append
                     // them to the new line.
-                    var nodes = [];
+                    let nodes = [];
                     while ((fragment = fragment.nextSibling)) {
                         nodes.push(fragment);
                     }
@@ -1422,7 +1227,7 @@ var AutotagJS = (function() {
         };
 
         var saveSelectionRange = function() {
-            var range = getRange();
+            let range = getRange();
             if (range && range.startContainer.nodeType != 9) {
                 _range = getRange() || _range;
                 return _range;
@@ -1451,7 +1256,7 @@ var AutotagJS = (function() {
 
         var setContinuingStyle = function() {
             if (_range) {
-                var fragment = getFragmentsInRange(_range).pop();
+                let fragment = getFragmentsInRange(_range).pop();
                 if (fragment) {
                     _continuingStyle = fragment.getAttribute('style');
                 }
@@ -1505,7 +1310,7 @@ var AutotagJS = (function() {
 
         var getAncestorLines = function(lines) {
             let ancestorNodes = [];
-            for(var i=0; i<lines.length; i++) {
+            for(let i=0; i<lines.length; i++) {
                 let curNode = lines[i];
                 while (lines.indexOf(curNode.parentNode) != -1) {
                     curNode = curNode.parentNode;
@@ -1518,12 +1323,12 @@ var AutotagJS = (function() {
         };
 
         var updateIndentation = function(range, increase) {
-            var lines = getLinesInRange(range);
-            var instruction = increase ? 'atgIncrement' : 'atgDecrement';
+            let lines = getLinesInRange(range);
+            let instruction = increase ? 'atgIncrement' : 'atgDecrement';
 
             // If multiple lines are selected, increase the indentation. Note
             // that the list indentation is unaffected.
-            var ancestorLines;
+            let ancestorLines;
             if (lines.length > 1) {
                 ancestorLines = getAncestorLines(lines);
                 for(i=0; i<ancestorLines.length; i++) {
@@ -1535,11 +1340,11 @@ var AutotagJS = (function() {
 
             // If only one line or one or more tasgs in a single line
             // is selected..
-            var node = range.startContainer,
+            let node = range.startContainer,
                 offset = range.startOffset,
                 firstLine = lines[0];
 
-            var isLineBegin = isBeginingOfLine(getFragment(node), offset);
+            let isLineBegin = isBeginingOfLine(getFragment(node), offset);
 
             if (increase) {
                 if (isLineBegin) {
@@ -1566,152 +1371,13 @@ var AutotagJS = (function() {
                 (offset == node.textContent.length || isPilotNode(node));
         };
 
-        var deleteChar = function(text, offset) {
+        var deleteChar = function(text, offset) {};
 
+        var deleteLine = function(line) { };
 
+        var deleteSelection = function(range) { };
 
-            // Delete if this is a tab
-            // if (isTabFragment(fragment)) {
-            //     // setCaret(fragment.nextSibling, 0);
-            //     // removeNode(fragment);
-            //
-            // } else {
-                // var str = fragment.textContent,
-                //     textNode = fragment.firstChild;
-                //
-                // offset = initObject(offset, str.length);
-                // textNode.nodeValue =
-                //     str.slice(0, offset - 1) + str.slice(offset);
-                //
-                // if (textNode.nodeValue.length == 0 && offset == 1) {
-                //     var previous = fragment.previousSibling;
-                //     if (!isTextFragment(previous)) {
-                //         textNode.nodeValue = _zeroWidthSpace;
-                //         setCaret(fragment, 1);
-                //
-                //     } else {
-                //         setCaret(previous);
-                //         removeNode(fragment);
-                //     }
-                // } else {
-                //     setCaret(textNode, offset - 1);
-                // }
-            // }
-        };
-
-        var deleteLine = function(line) {
-            if (isList(line) && !isListRoot(line)) {
-                if (isAnonymousList(line)) {
-                    outdentList(line, false);
-                }
-                else {
-                    anonymizeList(line);
-                }
-                return;
-            }
-
-            // If indented, remove the indentation and return.
-            if (getStylePropertyValue(line, 'margin-left') !== '0px') {
-                line.style.removeProperty('margin-left');
-                return;
-            }
-
-            // None of the above, proceede with deleting the line.
-            var prevLine = line.previousSibling;
-            if (prevLine && isLine(prevLine)) {
-
-                var fragments = getFragmentsInLine(prevLine, true);
-                var lastFragment = fragments[fragments.length - 1];
-
-                if (isBlankLine(prevLine)) {
-                    removeNode(prevLine);
-                }
-                else if (isBlankLine(line)) {
-                    setCaret(lastFragment);
-                    removeNode(line);
-                }
-                else {
-                    setCaret(lastFragment);
-                    let fragment = lastFragment;
-                    fragments = getFragmentsInLine(line);
-
-                    for(var i=0; i<fragments.length; i++) {
-                        fragment = appendNode(fragments[i], fragment);
-                    }
-
-                    if (isBlankLine(line)) {
-                        removeNode(line);
-                    }
-
-                    if (isBlankNode(lastFragment)) {
-                        removeNode(lastFragment);
-                    }
-                }
-            }
-        };
-
-        var deleteSelection = function(range) {
-            // var fragment =
-            //     createFragmentsInRange(range).first.previousSibling;
-            //
-            // // Building Fragments resets the range. The latest range is stored in
-            // // _range. Also, retrieve both Fragments and Lines before the range
-            // // gets updated by any delete operation.
-            // var fragments = getFragmentsInRange(_range),
-            //     lines = getLinesInRange(_range);
-            //
-            // if (fragment) {
-            //     lines.shift();
-            // } else {
-            //     var prevLine = lines[0].previousSibling;
-            //     if (prevLine) {
-            //         fragment = getFragmentsInLine(prevLine).pop();
-            //     }
-            // }
-            // setCaret(fragment);
-            // removeNodesInList(fragments.concat(lines));
-            // fixEditor();
-        };
-
-        var processDelete = function(range) {
-            // var offset = range.startOffset,
-            //     container = range.startContainer;
-            //
-            // if (range.collapsed) {
-            //     var fragment = getFragment(container);
-            //     if (isTextNode(container)) {
-            //         if (isPilotFragment(fragment)) {
-            //             deleteLine(getLine(fragment));
-            //         } else {
-            //             deleteChar(container, offset || null);
-            //         }
-            //
-            //     }
-            //
-            //
-            //
-            //     // var fragment = getFragment(container);
-            //     // var target = fragment;
-            //     //
-            //     // if (offset == 0 || isBlankNode(fragment)) {
-            //     //     target = target.previousSibling;
-            //     // }
-            //     //
-            //     // // The previous sibling may be a fragment if this line
-            //     // // follows a list.
-            //     // if (target && isFragment(target)) {
-            //     //     // If offset is zero, send null as argument so that
-            //     //     // offset is calculated to be the full length of the
-            //     //     // string value in fragment.
-            //     //     deleteChar(target, offset || null);
-            //     //
-            //     // } else {
-            //     //     deleteLine(getLine(fragment));
-            //     // }
-            // } else {
-            //     deleteSelection(range);
-            // }
-        };
+        var processDelete = function(range) { };
 
         var updateList = function(line, stylePrefix, indentIndex, overrideStyle) {
             overrideStyle = initObject(overrideStyle, true);
@@ -1734,23 +1400,7 @@ var AutotagJS = (function() {
             }
         };
 
-        var splitFragment = function(fragment, offset) {
-            // var text = fragment.firstChild;
-            //
-            // // Splitting at boundaries will result in blank nodes.
-            // if (offset == 0 || offset == text.nodeValue.length) {
-            //     return fragment;
-            // }
-            //
-            // var newText = text.splitText(offset);
-            // var newFragment = createTextFragment(removeNode(newText));
-            // newFragment.setAttribute('style', fragment.getAttribute('style'));
-            //
-            // // Firefox hack to remove break nodes.
-            // removeNode(fragment.querySelector('br'));
-            //
-            // return appendNode(newFragment, fragment);
-        };
+        var splitFragment = function(fragment, offset) { };
 
         var fragmentText = function(text, offset) {
             offset = initObject(offset, 0);
@@ -1769,7 +1419,6 @@ var AutotagJS = (function() {
                         newFragment = createTextFragment(removeNode(text));
                         parent.insertBefore(newFragment , nextSibling);
                     }
-
                 }
                 else {
                     let newText = text.splitText(offset);
@@ -1844,10 +1493,7 @@ var AutotagJS = (function() {
 
         editor.addEventListener('click', function(e) {
             hideSubmenus();
-            if (!fixEditor()) {
-               fixCaret();
-            }
-            // e.preventDefault();
+            fixEditor();
         });
 
         editor.addEventListener('focus', function(e) {
@@ -1862,7 +1508,7 @@ var AutotagJS = (function() {
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
-            var keyCode = getKeyCode(e),
+            let keyCode = getKeyCode(e),
                 shiftKey = e.shiftKey;
 
             if (!isDeleteKey(keyCode)) {
@@ -1949,7 +1595,6 @@ var AutotagJS = (function() {
                             if (menu.dataset.atgSubmenu.match(/Palette$/)) {
                                 createPalette(menu);
                             }
-
                         }
                         else {
 
@@ -1962,7 +1607,7 @@ var AutotagJS = (function() {
                             }
 
                             /** @type {{atgScope}} **/
-                            var scope = menu.dataset.atgScope;
+                            let scope = menu.dataset.atgScope;
                             formatSelection(target.dataset, scope);
                             hideSubmenus();
                         }
