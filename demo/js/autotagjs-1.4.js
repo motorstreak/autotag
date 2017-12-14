@@ -809,7 +809,8 @@ var AutotagJS = (function() {
             let ancestor = range.commonAncestorContainer ;
             while (!ancestorFilter(ancestor)) {
                 if (!isEditor(ancestor) && !isLine(ancestor) &&
-                        !isFragment(ancestor) && !isTextNode(ancestor)) {
+                        !isLineBody(ancestor) && !isFragment(ancestor) &&
+                        !isTextNode(ancestor)) {
                     break;
                 }
                 ancestor = ancestor.parentNode;
@@ -1118,30 +1119,29 @@ var AutotagJS = (function() {
             if (range.collapsed) {
                 let newLine,
                     container = range.startContainer,
-                    offset = range.startOffset,
-                    line = getLine(container);
+                    offset = range.startOffset;
 
-                let fragment = getFragment(container);
+                let line = getLine(container);
 
-                if (isEndOfLine(fragment, offset)) {
+                if (isEndOfLine(container, offset)) {
                     newLine = createLine(line, {
                         addPilotNode: true,
                         setCaret: true
                     });
                 }
-                else if (isBeginingOfLine(fragment, offset)) {
+                else if (isBeginingOfLine(container, offset)) {
                     newLine = createLine(line, {
                         attachAs: 'previous_sibling',
                         addPilotNode: true,
-                        setCaret: true
+                        setCaret: false
                     });
                 }
                 else {
+                    let fragment = getFragment(container);
                     let newNode = container.splitText(range.startOffset);
 
                     if (newNode.nodeValue.length == 0) {
                         newNode.nodeValue = _zeroWidthSpace;
-                        // newNode.setAttribute('contenteditable', true);
                     }
 
                     let newFragment = createTextFragment(removeNode(newNode));
@@ -1156,15 +1156,16 @@ var AutotagJS = (function() {
                         nodes.push(fragment);
                     }
                     appendNodes(nodes, newFragment);
-
-                    // appendNodes(pilotTag, tags);
-                    // setCaret(pilotTag, 0);
                 }
-                newLine.setAttribute('style', line.getAttribute('style'));
+
                 newLine.className = line.className;
-            } else {
-                // If a selection, proceed to delete the selection.
-                processDelete(range);
+
+                // A common line style is indentation set using CSS margins.
+                // Carry this onto the new line.
+                let style = line.getAttribute('style');
+                if (style) {
+                    newLine.setAttribute('style', style);
+                }
             }
         };
 
@@ -1269,52 +1270,41 @@ var AutotagJS = (function() {
         };
 
         var updateIndentation = function(range, increase) {
-            let lines = getLinesInRange(range);
-            let instruction = increase ? 'atgIncrement' : 'atgDecrement';
-
-            // If multiple lines are selected, increase the indentation. Note
-            // that the list indentation is unaffected.
-            let ancestorLines;
-            if (lines.length > 1) {
-                ancestorLines = getAncestorLines(lines);
-                for(i=0; i<ancestorLines.length; i++) {
-                    applyStyle(ancestorLines[i], instruction,
-                        ['margin-left:55px']);
-                }
-                return;
-            }
-
-            // If only one line or one or more tasgs in a single line
-            // is selected..
             let node = range.startContainer,
                 offset = range.startOffset,
-                firstLine = lines[0];
+                collapsed = range.collapsed;
 
-            let isLineBegin = isBeginingOfLine(getFragment(node), offset);
-
-            if (increase) {
-                if (isLineBegin) {
-                    if (isList(firstLine) && !isListHead(firstLine)) {
-                        createOrIndentList(firstLine, null, true);
-                        return;
-                    }
-                }
+            if (collapsed && increase) {
                 insertTab(node, offset);
             }
-            else if (isLineBegin && isList(firstLine)) {
-                outdentList(firstLine, false);
+            else if (collapsed && !increase && isBeginingOfLine(node, offset) ||
+                !collapsed) {
+                let instruction = increase ? 'atgIncrement' : 'atgDecrement';
+                let lines = getLinesInRange(range);
+                for (let i=0; i<lines.length; i++) {
+                    applyStyle(lines[i], instruction, ['margin-left:55px']);
+                }
             }
+            else {
+                return false;
+            }
+            return true;
         };
 
         var isBeginingOfLine = function(node, offset) {
-            return (isBlankNode(node) || offset == 0) &&
-                !node.previousSibling;
+            let parent = node.parentNode;
+            return isTextNode(node) &&
+                ((offset == 0 &&
+                    (isLineBody(parent) || !parent.previousSibling)) ||
+                    isPilotNode(parent));
         };
 
         var isEndOfLine = function(node, offset) {
-            // return !isFragment(tag.nextSibling) && offset == tag.textContent.length;
-            return !node.nextSibling &&
-                (offset == node.textContent.length || isPilotNode(node));
+            let parent = node.parentNode;
+            return isTextNode(node) &&
+                ((offset == node.textContent.length &&
+                    (isLineBody(parent) || !parent.nextSibling)) ||
+                    isPilotNode(parent));
         };
 
         var deleteChar = function(text, offset) {};
@@ -1323,7 +1313,9 @@ var AutotagJS = (function() {
 
         var deleteSelection = function(range) { };
 
-        var processDelete = function(range) { };
+        var processDelete = function(range) {
+            return updateIndentation(range, false);
+        };
 
         var updateList = function(line, stylePrefix, indentIndex, overrideStyle) {
             overrideStyle = initObject(overrideStyle, true);
