@@ -437,8 +437,8 @@ var AutotagJS = (function() {
                 let row, cell, maxCols = 10, maxRows = 5;
 
                 let hueStep = Math.round(360 / maxCols),
-                    saturationStep = Math.round(40 / maxRows),
-                    luminosityStep = Math.round(80 / maxRows);
+                    saturationStep = Math.round(10 / maxRows),
+                    luminosityStep = Math.round(90 / maxRows);
 
                 for (let i = 0, s = 100, l = 94; i < maxRows; i++, s -= saturationStep, l -= luminosityStep) {
                     row = createPaletteRow(palette);
@@ -1277,8 +1277,10 @@ var AutotagJS = (function() {
             if (collapsed && increase) {
                 insertTab(node, offset);
             }
-            else if (collapsed && !increase && isBeginingOfLine(node, offset) ||
-                !collapsed) {
+            else if (collapsed && !increase &&
+                    isBeginingOfLine(node, offset) && isIndented(node) ||
+                    !collapsed) {
+
                 let instruction = increase ? 'atgIncrement' : 'atgDecrement';
                 let lines = getLinesInRange(range);
                 for (let i=0; i<lines.length; i++) {
@@ -1289,6 +1291,11 @@ var AutotagJS = (function() {
                 return false;
             }
             return true;
+        };
+
+        var isIndented = function(node) {
+            return window.getComputedStyle(getLine(node), null)
+                .getPropertyValue("margin-left") !== '0px';
         };
 
         var isBeginingOfLine = function(node, offset) {
