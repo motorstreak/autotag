@@ -134,6 +134,10 @@ var AutotagJS = (function() {
         }
     }
 
+    function containsClass(node, cName) {
+        return node && node.classList && node.classList.contains(cName);
+    }
+
     function createElement(tag, cName) {
         let element = document.createElement(tag);
         if (cName) {
@@ -606,7 +610,6 @@ var AutotagJS = (function() {
             if (focus) {
                 setCaret(pilot, 0);
             }
-
             return pilot;
         };
 
@@ -690,27 +693,11 @@ var AutotagJS = (function() {
                     break;
 
                 case 'tags':
-                    createFragmentsInRange(_range);
-                    nodes = getFragmentsInRange(_range);
+                    nodes = createFragmentsInRange(_range);
                     break;
-                // Return both Fragments and Lines if scope is not defined.
-                default:
-                    if (_range.collapsed) {
-                        nodes = [];
-                    } else {
-                        createFragmentsInRange(_range);
-                        let fragments = getFragmentsInRange(_range),
-                            activeFragments = getFragmentsInLine(getActiveLine());
-                        if (lines.length > 1 ||
-                            fragments.length == activeFragments.length) {
-                            nodes = fragments.concat(lines);
-                        }
-                        else {
-                            nodes = fragments;
-                        }
-                    }
 
-                    // Not required technically but helps in refactoring.
+                default:
+                    nodes = [];
                     break;
             }
 
@@ -780,8 +767,8 @@ var AutotagJS = (function() {
         };
 
         var getParentMenu = function(node) {
-            while(!node.classList.contains(_submenuClassName) &&
-                !node.classList.contains(_menuClassName)) {
+            while(!containsClass(node, _submenuClassName) &&
+                !containsClass(node, _menuClassName)) {
                 node = node.parentNode;
 
                 // Should not happen! Ever.
@@ -807,10 +794,9 @@ var AutotagJS = (function() {
             ancestorFilter =  ancestorFilter || isFragment;
 
             let ancestor = range.commonAncestorContainer ;
-            while (!ancestorFilter(ancestor)) {
-                if (!isEditor(ancestor) && !isLine(ancestor) &&
-                        !isLineBody(ancestor) && !isFragment(ancestor) &&
-                        !isTextNode(ancestor)) {
+            while (!ancestorFilter(ancestor) && !isEditor(ancestor)) {
+                if (!isLine(ancestor) && !isLineBody(ancestor) &&
+                    !isFragment(ancestor) && !isTextNode(ancestor)) {
                     break;
                 }
                 ancestor = ancestor.parentNode;
@@ -834,9 +820,10 @@ var AutotagJS = (function() {
 
         var getFragment = function(node) {
             if (isTextNode(node)) {
-                return node.parentNode;
+                node =  node.parentNode;
             }
-            else if (isFragment(node)) {
+
+            if (isFragment(node)) {
                 return node;
             }
             else if (isLine(node)) {
@@ -856,6 +843,11 @@ var AutotagJS = (function() {
 
         var getFragmentsInRange = function(range) {
             return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isFragment);
+        };
+
+        var getTextFragmentsInRange = function(range) {
+            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT,
+                isTextFragment);
         };
 
         var getTreeWalker = function(container, whatToShow, filter) {
@@ -951,11 +943,11 @@ var AutotagJS = (function() {
         };
 
         var isAnonymousList = function(line) {
-            return line.classList.contains(_blankListClassName);
+            return containsClass(line, _blankListClassName);
         };
 
         var isAnchorList = function(line) {
-            return line.classList.contains(_anchorListClassName);
+            return containsClass(line, _anchorListClassName);
         };
 
         var isEditor = function(node) {
@@ -964,12 +956,12 @@ var AutotagJS = (function() {
 
         var isLine = function(node) {
             return isElementNode(node) &&
-                node.classList.contains(_lineClassName);
+                containsClass(node, _lineClassName);
         };
 
         var isLineBody = function(node) {
             return isElementNode(node) &&
-                node.classList.contains(_lineBodyClassName);
+                containsClass(node, _lineBodyClassName);
         };
 
         var isList = function(line) {
@@ -992,25 +984,27 @@ var AutotagJS = (function() {
         };
 
         var isListRoot = function(line) {
-            return line && line.classList.contains(_rootListClassName);
+            return containsClass(line, _rootListClassName);
         };
 
         var isFragment = function(node) {
-            return node && node.tagName == _fragmentTag.toUpperCase();
+            // return containsClass(node, _textFragmentClassName);
+            return node && (containsClass(node.parentNode, _lineBodyClassName) ||
+                containsClass(node.parentNode, _textFragmentClassName));
         };
 
         var isTabFragment = function(node) {
             return isFragment(node) &&
-                node.classList.contains(_tabFragmentClassName);
+                containsClass(node, _tabFragmentClassName);
         };
 
         var isTextFragment = function(node) {
             return isFragment(node) &&
-                node.classList.contains(_textFragmentClassName);
+                containsClass(node, _textFragmentClassName);
         };
 
         var isPilotNode = function(node) {
-            return node.classList.contains(_pilotClassName);
+            return containsClass(node, _pilotClassName);
         };
 
         var insertTab = function(node, index) {
@@ -1071,7 +1065,8 @@ var AutotagJS = (function() {
 
                 // Remove the lead character as it is no longer required.
                 if (value.match(/\u00a0/) &&
-                    parent.classList.contains(_pilotClassName)) {
+                    containsClass(parent, _pilotClassName)) {
+
                     container.nodeValue = value.replace(/\u00a0/g, '');
                     // container.nodeValue = value.substr(1);
                     parent.classList.remove(_pilotClassName);
@@ -1187,7 +1182,7 @@ var AutotagJS = (function() {
 
         var setCaret = function(node, offset) {
             if (node) {
-                if (isFragment(node)) {
+                if (isTextFragment(node)) {
                     node = node.firstChild;
                 }
 
@@ -1203,7 +1198,7 @@ var AutotagJS = (function() {
 
         var setContinuingStyle = function() {
             if (_range) {
-                let fragment = getFragmentsInRange(_range).pop();
+                let fragment = getTextFragmentsInRange(_range).pop();
                 if (fragment) {
                     _continuingStyle = fragment.getAttribute('style');
                 }
@@ -1279,7 +1274,7 @@ var AutotagJS = (function() {
             }
             else if (collapsed && !increase &&
                     isBeginingOfLine(node, offset) && isIndented(node) ||
-                    !collapsed) {
+                    !collapsed && increase) {
 
                 let instruction = increase ? 'atgIncrement' : 'atgDecrement';
                 let lines = getLinesInRange(range);
@@ -1345,90 +1340,67 @@ var AutotagJS = (function() {
             }
         };
 
-        var splitFragment = function(fragment, offset) { };
+        var splitFragment = function(fragment, offset) {
+        };
 
         var fragmentText = function(text, offset) {
             offset = initObject(offset, 0);
             if (isTextNode(text)) {
-                let fragment = getFragment(text),
-                    newFragment;
-
-                // Splitting at boundaries will result in blank nodes.
-                if (offset == 0 || offset == text.textContent.length) {
-                    let parent = text.parentNode;
-                    if (isTextFragment(parent)) {
+                let newFragment;
+                let fragment = text.parentNode;
+                if (isTextFragment(fragment)) {
+                    if (offset == 0) {
                         newFragment = fragment;
                     }
                     else {
-                        let nextSibling = text.nextSibling;
-                        newFragment = createTextFragment(removeNode(text));
-                        parent.insertBefore(newFragment , nextSibling);
+                        let newText = text.splitText(offset);
+                        let style = fragment.getAttribute('style');
+                        newFragment =
+                            createTextFragment(removeNode(newText), style);
+                        appendNode(newFragment, fragment);
                     }
+                    return [fragment, newFragment];
                 }
                 else {
-                    let newText = text.splitText(offset);
-                    newFragment = createTextFragment(removeNode(newText));
-
-                    // Firefox hack to remove break nodes.
-                    removeNode(fragment.querySelector('br'));
-
-                    let prevNode;
-                    if (isTextFragment(fragment)) {
-                        prevNode = fragment;
-                        newFragment.setAttribute('style',
-                            fragment.getAttribute('style'));
-                    }
-                    else {
-                        prevNode = text;
-                    }
-                    appendNode(newFragment, prevNode);
+                    let next = text.nextSibling;
+                    newFragment = createTextFragment(removeNode(text));
+                    fragment.insertBefore(newFragment, next);
+                    return fragmentText(text, offset);
                 }
-                return newFragment;
             }
         };
 
         var createFragmentsInRange = function(range) {
             if (!range.collapsed) {
                 let selection = getRangeContainersAndOffsets(range);
-                let container = selection.startContainer,
-                    offset = selection.startOffset;
+                let startContainer = selection.startContainer,
+                    startOffset = selection.startOffset,
+                    endContainer = selection.endContainer,
+                    endOffset = selection.endOffset;
 
                 // Split the start Text node. Note that if the offset is a
                 // 0 or the length of the container, the container wrapped
                 // as a fragment is returned.
-                let newFragment = fragmentText(container, offset);
+                let startFragment = fragmentText(startContainer, startOffset)[1];
+
+                if (startContainer.isSameNode(endContainer)) {
+                    endOffset = endOffset - startOffset;
+                    endContainer = startFragment.firstChild;
+                }
 
                 // Now split the end Text node.
-                if (container.isSameNode(selection.endContainer)) {
-                    offset = selection.endOffset - offset;
-                    container = newFragment.firstChild;
-                }
-                else {
-                    offset = selection.endOffset;
-                    container = selection.endContainer;
-                }
-
-                // Container here is the end node.
-                fragmentText(container, offset);
-
-                // Now collect all text nodes in the range and wrap them
-                // in fragment.
-                let nodes = getTextNodesInRange(range);
-                for(let i=0; i<nodes.length; i++) {
-                    if (isLineBody(nodes[i].parentNode)) {
-                        fragmentText(nodes[i]);
-                    }
-                }
+                let endFragment =  fragmentText(endContainer, endOffset)[0];
 
                 // Rebuild original selection range for further processing.
                 _range = setSelection({
-                    startContainer: newFragment.firstChild,
+                    startContainer: startFragment.firstChild,
                     startOffset: 0,
-                    endContainer: container,
-                    endOffset: container.length
+                    endContainer: endFragment.firstChild,
+                    endOffset: endOffset
                 });
 
-                return {first: newFragment, last: container};
+                // Now return all tghe fragments.
+                return getTextFragmentsInRange(_range);
             }
         };
 
@@ -1503,8 +1475,8 @@ var AutotagJS = (function() {
 
         document.addEventListener('selectionchange', debounce(function(e) {
             if (saveSelectionRange()) {
-                setContinuingStyle();
-                doAfterSelection(getFragmentsInRange(_range));
+                // setContinuingStyle();
+                doAfterSelection(getTextFragmentsInRange(_range));
             }
         }, 200));
 
