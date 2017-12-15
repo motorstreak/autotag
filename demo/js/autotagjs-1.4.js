@@ -56,6 +56,20 @@ var AutotagJS = (function() {
         };
     }
 
+    var _lists = {
+        numbered: {
+            segments: [
+                {
+                    type: 'number',
+                    suffix: '',
+                    startAt: 1,
+                    endAt: 100,
+                    seperator: '.'
+                }
+            ]
+        }
+    };
+
     // Map keeyboard controls to format options since we override them.
     var _styleKeyMap = {
         66: 'font-weight:bold',
@@ -576,6 +590,9 @@ var AutotagJS = (function() {
 
             line.appendChild(body);
 
+            // Set the identation position
+            line.dataset.atgIndentPos = 0;
+
             // Start observing the body for empty lines so that we can
             // replenish it with the pilot node.
             let observer = new MutationObserver(emptyLineObserver);
@@ -599,6 +616,14 @@ var AutotagJS = (function() {
 
                 if (options.addPilotNode) {
                     renewLineBody(body, options.setCaret);
+                }
+
+                line.dataset.atgIndentPos = refLine.dataset.atgIndentPos;
+                let indentIds = generateIndentationIdentifier(line, []);
+
+                if (indentIds.length > 0) {
+                    var text = createTextNode(indentIds.slice(0, parseInt(refLine.dataset.atgIndentPos)).join('.'));
+                    line.appendChild(text);
                 }
             }
             return line;
@@ -1005,6 +1030,28 @@ var AutotagJS = (function() {
             return containsClass(node, _pilotClassName);
         };
 
+        var generateIndentationIdentifier = function(line, identifier) {
+            identifier = initObject(identifier, []);
+            var indentPos = parseInt(line.dataset.atgIndentPos);
+            if (indentPos) {
+                let previousLine = line.previousSibling;
+                if (indentPos > 0 && previousLine) {
+                    identifier = generateIndentationIdentifier(
+                        previousLine, identifier);
+                }
+
+                let counter = identifier[indentPos-1];
+                if (counter) {
+                    identifier[indentPos-1] = counter + 1;
+                } else {
+                    identifier[indentPos-1] = 1;
+                }
+
+
+            }
+            return identifier;
+        };
+
         var insertTab = function(node, index) {
             if (isTextNode(node)){
                 node.nodeValue = node.textContent.splice(index, 0, '\u0009');
@@ -1283,6 +1330,21 @@ var AutotagJS = (function() {
                 let lines = getLinesInRange(range);
                 for (let i=0; i<lines.length; i++) {
                     applyStyle(lines[i], instruction, ['margin-left:55px']);
+
+                    var indentPos = parseInt(lines[i].dataset.atgIndentPos);
+                    if (increase) {
+                        if (indentPos) {
+                            lines[i].dataset.atgIndentPos = indentPos + 1;
+                        } else {
+                            lines[i].dataset.atgIndentPos = 1;
+                        }
+                    } else {
+                        if (indentPos) {
+                            lines[i].dataset.atgIndentPos = indentPos -1;
+                        }
+                    }
+
+                    console.log(generateIndentationIdentifier(lines[i]));
                 }
             }
             else {
