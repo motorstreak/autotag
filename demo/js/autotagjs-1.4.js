@@ -67,7 +67,7 @@ var AutotagJS = (function() {
     var _tab = '\u0009',
         _zeroWidthSpace = '\u00a0';
 
-    var _fragmentTag = 'span',
+    var _markedFragmentTag = 'span',
         _lineTag = 'div',
 
         // v3
@@ -75,7 +75,7 @@ var AutotagJS = (function() {
         _lineLeaderClassName = 'atg-line-leader',
         _lineBodyClassName = 'atg-line-body',
         _tabFragmentClassName = 'atg-tab',
-        _textFragmentClassName = 'atg-text',
+        _markedFragmentClassName = 'atg-text',
         _listFragmentClassName = 'atg-list',
         _pilotClassName = 'atg-pilot',
 
@@ -181,9 +181,9 @@ var AutotagJS = (function() {
         return node && node.nodeType == Node.TEXT_NODE;
     }
 
-    // function isDocumentNode(node) {
-    //     return node && node.nodeType == Node.DOCUMENT_NODE;
-    // }
+    function isDocumentNode(node) {
+        return node && node.nodeType == Node.DOCUMENT_NODE;
+    }
 
     function isElementNode(node) {
         return node && node.nodeType == Node.ELEMENT_NODE;
@@ -381,6 +381,7 @@ var AutotagJS = (function() {
                     applyStyle(target[i], instruction, declarations);
                 }
             } else {
+                target = isTextNode(target) ? target.parentNode : target;
                 for (let j = 0; j < declarations.length; j++) {
                     let declaration = declarations[j].split(/\s*:\s*/),
                         property = declaration[0],
@@ -613,36 +614,25 @@ var AutotagJS = (function() {
             return pilot;
         };
 
-        var createTextFragment = function(stringOrText, style) {
-            let text = createFragment(stringOrText, null, style);
-            text.classList.add(_textFragmentClassName);
-            return text;
-        };
-
         var createListFragment = function(stringOrText) {
             let text = createFragment(stringOrText);
             // text.classList.add(_listFragmentClassName);
             return text;
         };
 
-        var createFragment = function(stringOrText, cName, style) {
-            // let fragment = document.createElement(_fragmentTag);
-            let text,
-                fragment = createElement(_fragmentTag, cName);
-
-            if (typeof stringOrText === 'string') {
-                text = createTextNode(stringOrText);
-            }
-            else if (isTextNode(stringOrText)) {
-                text = stringOrText;
+        // Returns a marked fragment (<span>...</span>)
+        var createMarkedFragment = function(text, cName, style) {
+            if (typeof text === 'string') {
+                text = createTextNode(text);
             }
 
-            if (text) {
+            if (isTextNode(text)) {
+                let fragment = createElement(_markedFragmentTag, cName);
                 fragment.appendChild(text);
+                fragment.setAttribute('style', style || _continuingStyle);
+                fragment.classList.add(_markedFragmentClassName);
+                return fragment;
             }
-
-            fragment.setAttribute('style', style || _continuingStyle);
-            return fragment;
         };
 
         var createTextNode = function(str) {
@@ -652,10 +642,15 @@ var AutotagJS = (function() {
             return document.createTextNode(str);
         };
 
-        var fixCaret = function() {};
+        var fixCaret = function(range) {
+            range = initObject(range, getRange());
+            if (range.collapsed) {
+                setCaret(range.endContainer, range.endOffset);
+            }
+        };
 
         var fixEditor = function() {
-            if (getChildren(editor, isLine).length == 0) {
+            if (editor.textContent.length == 0) {
                 return createLine(editor, {
                     attachAs: 'child',
                     addPilotNode: true,
@@ -682,27 +677,16 @@ var AutotagJS = (function() {
         };
 
         var getNodesInSelection = function(scope) {
-            let nodes,
-                lines = getLinesInRange(_range);
-
+            let nodes;
             switch (scope) {
-                // Apply the formatting only to the lines in the selection or to
-                // the current line where the caret rests.
                 case 'line':
-                    nodes = lines;
+                    nodes = getLinesInRange(_range);
                     break;
-
-                case 'tags':
+                default:
                     nodes = createFragmentsInRange(_range);
                     break;
-
-                default:
-                    nodes = [];
-                    break;
             }
-
-            nodes = nodes.filter(Boolean);
-            return nodes;
+            return nodes.filter(Boolean);
         };
 
         var getActiveLine = function() {
@@ -711,6 +695,12 @@ var AutotagJS = (function() {
 
         var getFirstLine = function() {
             return editor.querySelector(_lineTag + ':first-child');
+        };
+
+        var getLineBody = function(node) {
+            if (isLineBody(node)) return node;
+            if (!isLine(node)) node = getLine(node);
+            return node.querySelector('.' +_lineBodyClassName);
         };
 
         var getIndentationIndex = function(line, maxIndex) {
@@ -767,7 +757,7 @@ var AutotagJS = (function() {
         };
 
         var getParentMenu = function(node) {
-            while(!containsClass(node, _submenuClassName) &&
+            while(node && !containsClass(node, _submenuClassName) &&
                 !containsClass(node, _menuClassName)) {
                 node = node.parentNode;
 
@@ -794,11 +784,8 @@ var AutotagJS = (function() {
             ancestorFilter =  ancestorFilter || isFragment;
 
             let ancestor = range.commonAncestorContainer ;
-            while (!ancestorFilter(ancestor) && !isEditor(ancestor)) {
-                if (!isLine(ancestor) && !isLineBody(ancestor) &&
-                    !isFragment(ancestor) && !isTextNode(ancestor)) {
-                    break;
-                }
+            while (ancestor && !ancestorFilter(ancestor) &&
+                !isEditor(ancestor) && !isDocumentNode(ancestor)) {
                 ancestor = ancestor.parentNode;
             }
 
@@ -842,12 +829,13 @@ var AutotagJS = (function() {
         };
 
         var getFragmentsInRange = function(range) {
-            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isFragment);
+            return getNodesInRange(range, NodeFilter.SHOW_TEXT, isFragment);
         };
 
-        var getTextFragmentsInRange = function(range) {
-            return getNodesInRange(range, NodeFilter.SHOW_ELEMENT,
-                isTextFragment);
+        // Return all text nodes that are wrapped.
+        var getMarkedFragmentsInRange = function(range) {
+            return getNodesInRange(range, NodeFilter.SHOW_TEXT,
+                isMarkedFragment);
         };
 
         var getTreeWalker = function(container, whatToShow, filter) {
@@ -988,9 +976,10 @@ var AutotagJS = (function() {
         };
 
         var isFragment = function(node) {
-            // return containsClass(node, _textFragmentClassName);
-            return node && (containsClass(node.parentNode, _lineBodyClassName) ||
-                containsClass(node.parentNode, _textFragmentClassName));
+            // return containsClass(node, _markedFragmentClassName);
+            return node && isTextNode(node) &&
+                (containsClass(node.parentNode, _lineBodyClassName) ||
+                    containsClass(node.parentNode, _markedFragmentClassName));
         };
 
         var isTabFragment = function(node) {
@@ -998,9 +987,14 @@ var AutotagJS = (function() {
                 containsClass(node, _tabFragmentClassName);
         };
 
-        var isTextFragment = function(node) {
+        var isMarkedFragment = function(node) {
             return isFragment(node) &&
-                containsClass(node, _textFragmentClassName);
+                containsClass(node.parentNode, _markedFragmentClassName);
+        };
+
+        var isUnmarkedFragment = function(node) {
+            return isFragment(node) &&
+                containsClass(node.parentNode, _lineBodyClassName);
         };
 
         var isPilotNode = function(node) {
@@ -1058,10 +1052,11 @@ var AutotagJS = (function() {
 
         var processInput = function() {
             let container = _range.endContainer;
-            let parent = container.parentNode;
+            let offset = _range.endOffset;
 
             if (isTextNode(container)) {
                 let value = container.nodeValue;
+                let parent = container.parentNode;
 
                 // Remove the lead character as it is no longer required.
                 if (value.match(/\u00a0/) &&
@@ -1071,6 +1066,10 @@ var AutotagJS = (function() {
                     // container.nodeValue = value.substr(1);
                     parent.classList.remove(_pilotClassName);
                     range = setCaret(container);
+                }
+                else if (isUnmarkedFragment(container)) {
+                    fragmentText(container, 0);
+                    setCaret(container);
                 }
             }
         };
@@ -1111,11 +1110,14 @@ var AutotagJS = (function() {
         var processArrowKeys = function(range, keyCode) {};
 
         var processReturnKey = function(range) {
-            if (range.collapsed) {
-                let newLine,
-                    container = range.startContainer,
-                    offset = range.startOffset;
+            let container = range.startContainer;
+            let offset = range.startOffset;
 
+            // Sometimes,
+            fixCaret(range);
+
+            if (range.collapsed && isTextNode(container)) {
+                let newLine;
                 let line = getLine(container);
 
                 if (isEndOfLine(container, offset)) {
@@ -1132,25 +1134,19 @@ var AutotagJS = (function() {
                     });
                 }
                 else {
-                    let fragment = getFragment(container);
-                    let newNode = container.splitText(range.startOffset);
-
-                    if (newNode.nodeValue.length == 0) {
-                        newNode.nodeValue = _zeroWidthSpace;
-                    }
-
-                    let newFragment = createTextFragment(removeNode(newNode));
+                    var fragment = fragmentText(container, offset)[1];
                     newLine = createLine(line, {attachAs: 'next_sibling'});
-                    newLine.appendChild(newFragment);
-                    setCaret(newNode, 0);
 
-                    // Collect remaining nodes (Fragments and Lines) and append
-                    // them to the new line.
-                    let nodes = [];
-                    while ((fragment = fragment.nextSibling)) {
-                        nodes.push(fragment);
+                    // // Collect remaining nodes (Fragments and Lines) and append
+                    // // them to the new line.
+                    let node = fragment, nodes = [];
+                    while ((node = node.nextSibling)) {
+                        nodes.push(node);
                     }
-                    appendNodes(nodes, newFragment);
+
+                    getLineBody(newLine).appendChild(fragment);
+                    appendNodes(nodes, fragment);
+                    setCaret(fragment.firstChild, 0);
                 }
 
                 newLine.className = line.className;
@@ -1181,11 +1177,12 @@ var AutotagJS = (function() {
         };
 
         var setCaret = function(node, offset) {
-            if (node) {
-                if (isTextFragment(node)) {
-                    node = node.firstChild;
-                }
+            if (!isTextNode(node)) {
+                node = getTextNodesInRange(range).pop();
+                offset = 0;
+            }
 
+            if (node) {
                 offset = initObject(offset, node.length);
                 return setSelection({
                     startContainer: node,
@@ -1198,9 +1195,9 @@ var AutotagJS = (function() {
 
         var setContinuingStyle = function() {
             if (_range) {
-                let fragment = getTextFragmentsInRange(_range).pop();
+                let fragment = getMarkedFragmentsInRange(_range).pop();
                 if (fragment) {
-                    _continuingStyle = fragment.getAttribute('style');
+                    _continuingStyle = fragment.parentNode.getAttribute('style');
                 }
             }
         };
@@ -1348,22 +1345,22 @@ var AutotagJS = (function() {
             if (isTextNode(text)) {
                 let newFragment;
                 let fragment = text.parentNode;
-                if (isTextFragment(fragment)) {
+                if (isMarkedFragment(text)) {
                     if (offset == 0) {
                         newFragment = fragment;
                     }
                     else {
                         let newText = text.splitText(offset);
                         let style = fragment.getAttribute('style');
-                        newFragment =
-                            createTextFragment(removeNode(newText), style);
+                        newFragment = createMarkedFragment(
+                            removeNode(newText), null, style);
                         appendNode(newFragment, fragment);
                     }
                     return [fragment, newFragment];
                 }
                 else {
                     let next = text.nextSibling;
-                    newFragment = createTextFragment(removeNode(text));
+                    newFragment = createMarkedFragment(removeNode(text));
                     fragment.insertBefore(newFragment, next);
                     return fragmentText(text, offset);
                 }
@@ -1383,13 +1380,21 @@ var AutotagJS = (function() {
                 // as a fragment is returned.
                 let startFragment = fragmentText(startContainer, startOffset)[1];
 
+                let endFragment;
                 if (startContainer.isSameNode(endContainer)) {
                     endOffset = endOffset - startOffset;
                     endContainer = startFragment.firstChild;
+
+                    if (startContainer.length == endOffset) {
+                        endFragment = startFragment;
+                    }
                 }
 
-                // Now split the end Text node.
-                let endFragment =  fragmentText(endContainer, endOffset)[0];
+                // Now split the end Text node if the first fragment does not
+                // already include the content.
+                if (!endFragment) {
+                    endFragment = fragmentText(endContainer, endOffset)[0];
+                }
 
                 // Rebuild original selection range for further processing.
                 _range = setSelection({
@@ -1400,7 +1405,22 @@ var AutotagJS = (function() {
                 });
 
                 // Now return all tghe fragments.
-                return getTextFragmentsInRange(_range);
+                var fragments =  getFragmentsInRange(_range);
+
+                // Ensure all fragment are marked. If not, mark them. Note that
+                // unmarked fragments may show up when the selection covers
+                // multiple lines in which an intermediate line contains
+                // unmarked nodes.
+                for (let i=0; i<fragments.length; i++) {
+                    if (isUnmarkedFragment(fragments[i])) {
+                        let next = fragments[i].nextSibling;
+                        let parent = fragments[i].parentNode;
+                        let fragment = createMarkedFragment(fragments[i]);
+                        parent.insertBefore(fragment, next);
+                    }
+                }
+
+                return fragments;
             }
         };
 
@@ -1476,7 +1496,7 @@ var AutotagJS = (function() {
         document.addEventListener('selectionchange', debounce(function(e) {
             if (saveSelectionRange()) {
                 // setContinuingStyle();
-                doAfterSelection(getTextFragmentsInRange(_range));
+                doAfterSelection(getMarkedFragmentsInRange(_range));
             }
         }, 200));
 

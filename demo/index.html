@@ -272,16 +272,16 @@
                 }
             };
 
-            var isBold = function(tag) {
-                return tag.style.getPropertyValue('font-weight') == 'bold';
+            var isBold = function(fragment) {
+                return fragment.style.getPropertyValue('font-weight') == 'bold';
             };
 
-            var isItalic = function(tag) {
-                return tag.style.getPropertyValue('font-style') == 'italic';
+            var isItalic = function(fragment) {
+                return fragment.style.getPropertyValue('font-style') == 'italic';
             };
 
-            var isUnderlined = function(tag) {
-                return tag.style.getPropertyValue('text-decoration') == 'underline';
+            var isUnderlined = function(fragment) {
+                return fragment.style.getPropertyValue('text-decoration') == 'underline';
             };
 
             // Some configuration options for the editor.
@@ -306,12 +306,13 @@
                 // Every caret move or selction change, a call is made to the function.
                 // In this demo, we use the callback to highlight the Bold, Italic & Underline menus
                 // if the style is applied to the text under the caret or selection.
-                afterSelection: function(tags) {
-                    var tag;
-                    if (tags.length == 1 && (tag = tags[0])) {
-                        setMenuIconState(boldMenuClassList, isBold(tag));
-                        setMenuIconState(italicMenuClassList, isItalic(tag));
-                        setMenuIconState(underlinedMenuClassList, isUnderlined(tag));
+                afterSelection: function(fragments) {
+                    let fragment;
+                    if (fragments.length == 1 && (fragment = fragments[0])) {
+                        fragment = fragment.parentNode;
+                        setMenuIconState(boldMenuClassList, isBold(fragment));
+                        setMenuIconState(italicMenuClassList, isItalic(fragment));
+                        setMenuIconState(underlinedMenuClassList, isUnderlined(fragment));
                     }
                 },
 
