@@ -329,7 +329,8 @@ var AutotagJS = (function() {
                     if (cmd == 'clear') {
                         target.removeAttribute('style');
 
-                    } else if (cmd.match(/^list(\s+\w+(-\w+)*){1}/)) {
+                    }
+                    else if (cmd.match(/^list(\s+\w+(-\w+)*){1}/)) {
                         let listPrefix = cmd.split(/\s+/)[1];
 
                         switch(listPrefix) {
@@ -361,9 +362,11 @@ var AutotagJS = (function() {
         var processInstruction = function(nodes, instruction, declarations) {
             if (instruction == 'atgCommand') {
                 applyCommand(nodes, declarations);
-            } else if (instruction == 'atgCallback') {
+            }
+            else if (instruction == 'atgCallback') {
                 doOnMenuClick(declarations, nodes);
-            } else {
+            }
+            else {
                 applyStyle(nodes, instruction, declarations);
             }
         };
@@ -387,33 +390,40 @@ var AutotagJS = (function() {
                         property = declaration[0],
                         value = declaration[1];
 
-                    let curValue = target.style.getPropertyValue(property);
+                    let targetStyle = target.style;
+                    let curValue = targetStyle.getPropertyValue(property);
 
-                    if (instruction == 'atgUnset' ||
-                        instruction == 'atgToggle' && curValue.length > 0) {
-                        target.style.removeProperty(property);
+                    if (curValue.length > 0 &&
+                        instruction.match(/^atg(Unset|Toggle)/)) {
+                        targetStyle.removeProperty(property);
 
-                    } else if (instruction == 'atgSet' ||
-                        (instruction == 'atgInitialize' ||
-                        instruction == 'atgToggle') &&
-                        curValue.length === 0) {
-                        target.style.setProperty(property, value);
+                    }
+                    else if (curValue.length === 0 &&
+                        instruction.match(/^atg(Set|Initialize|Toggle)/)) {
+                        targetStyle.setProperty(property, value);
 
-                    } else if (instruction.match(/^atg(Increment|Decrement)/)) {
-                        curValue = curValue || getComputedStyle(target).getPropertyValue(property);
+                    }
+                    else if (instruction.match(/^atg(Increment|Decrement)/)) {
+                        curValue = curValue ||
+                            getComputedStyle(target).getPropertyValue(property);
+
                         let amount = extractAmount(value),
                             curAmount = extractAmount(curValue);
 
-                        if (instruction == 'atgIncrement') {
-                            curAmount += amount;
-                        } else if (instruction == 'atgDecrement') {
-                            curAmount -= amount;
+                        switch(instruction) {
+                            case 'atgIncrement':
+                                curAmount += amount;
+                                break;
+                            case 'atgDecrement':
+                                curAmount -= amount;
+                                break;
                         }
 
                         if (curAmount <= 0) {
-                            target.style.removeProperty(property);
-                        } else {
-                            target.style.setProperty(property, curAmount + 'px');
+                            targetStyle.removeProperty(property);
+                        }
+                        else {
+                            targetStyle.setProperty(property, curAmount + 'px');
                         }
                     }
                 }
@@ -429,7 +439,8 @@ var AutotagJS = (function() {
             let palette = menu.getElementsByClassName(_submenuClassName)[0];
             if (palette) {
                 palette.style.display = '';
-            } else {
+            }
+            else {
                 palette = createElement('div',
                     _submenuClassName + ' ' + _paletteClassName);
 
@@ -473,13 +484,11 @@ var AutotagJS = (function() {
             let dataset = cell.dataset;
             if (!dataset.atgSet) {
                 let style, color = dataset.atgPaletteColor;
-
                 if (type === 'color') {
                     style = 'color: ' + color;
-
-                } else if (type === 'highlight') {
+                }
+                else if (type === 'highlight') {
                     style = 'background-color: ' + color;
-
                     let contrast = dataset.atgPaletteContrastColor;
                     if (contrast) {
                         style = style + '; color: ' + contrast;
@@ -510,6 +519,7 @@ var AutotagJS = (function() {
         var createCrossedPaletteCell = function(row, type) {
             let cell = createPaletteCell(row, 0, 0, 100);
             cell.classList.add(_paletteCellCrossClassName);
+
             if (type === 'color') {
                 cell.dataset.atgPaletteColor = '#000';
             }
@@ -518,11 +528,8 @@ var AutotagJS = (function() {
 
         var createPaletteCell = function(row, h, s, l, type) {
             let hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
-
-            // let cell = document.createElement('div');
-            // cell.className = _paletteCellClassName;
-
             let cell = createElement('div', _paletteCellClassName);
+
             cell.style.background = hsla;
             cell.dataset.atgPaletteColor = hsla;
 
@@ -615,9 +622,7 @@ var AutotagJS = (function() {
         };
 
         var createListFragment = function(stringOrText) {
-            let text = createFragment(stringOrText);
-            // text.classList.add(_listFragmentClassName);
-            return text;
+            return createFragment(stringOrText);
         };
 
         // Returns a marked fragment (<span>...</span>)
@@ -662,7 +667,6 @@ var AutotagJS = (function() {
         var formatSelection = function(dataset, scope) {
             if (_range && dataset) {
                 let nodes = getNodesInSelection(scope);
-
                 for (let key in dataset) {
                     if (dataset.hasOwnProperty(key)) {
                         processInstruction(nodes, key,
@@ -1052,7 +1056,6 @@ var AutotagJS = (function() {
 
         var processInput = function() {
             let container = _range.endContainer;
-            let offset = _range.endOffset;
 
             if (isTextNode(container)) {
                 let value = container.nodeValue;
@@ -1067,6 +1070,9 @@ var AutotagJS = (function() {
                     parent.classList.remove(_pilotClassName);
                     range = setCaret(container);
                 }
+
+                // Mark unmarked text nodes. This is not strictly required
+                // but it helps by pre-empting the burden of doing so later.
                 else if (isUnmarkedFragment(container)) {
                     fragmentText(container, 0);
                     setCaret(container);
