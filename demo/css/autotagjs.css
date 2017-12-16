@@ -40,6 +40,9 @@
 
 .atg-line-leader {
     vertical-align: top;
+    min-width: 50px;
+    text-align: right;
+    padding-right: 10px;
 }
 
 .atg-line-body {

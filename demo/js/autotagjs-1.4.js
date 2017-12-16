@@ -86,7 +86,7 @@ var AutotagJS = (function() {
 
         // v3
         _lineClassName = 'atg-line',
-        _lineLeaderClassName = 'atg-line-leader',
+        _lineHeaderClassName = 'atg-line-leader',
         _lineBodyClassName = 'atg-line-body',
         _tabFragmentClassName = 'atg-tab',
         _markedFragmentClassName = 'atg-text',
@@ -571,15 +571,25 @@ var AutotagJS = (function() {
                 createElement('div', _paletteRowClassName));
         };
 
-        var createLeaderLine = function(line) {
-            let leader = createElement(_lineTag, _lineLeaderClassName);
-            leader.setAttribute('contenteditable', 'false');
+        var createLineHeader = function(line, text) {
+            let header = getLineHeader(line);
+
+            if (!header) {
+                header = createElement(_lineTag, _lineHeaderClassName);
+                header.setAttribute('contenteditable', 'false');
+                line.insertBefore(header, line.firstChild);
+            }
+
+            if (text) {
+                removeAllChildNodes(header);
+                header.appendChild(createTextNode(text));
+            }
 
             // DEBUG -- REMOVE
             // leader.appendChild(createListFragment('3.1.1.4'));
 
-            line.insertBefore(leader, line.firstChild);
-            return leader;
+            // line.insertBefore(header, line.firstChild);
+            return header;
         };
 
         var createLine = function(refLine, options) {
@@ -619,12 +629,12 @@ var AutotagJS = (function() {
                 }
 
                 line.dataset.atgIndentPos = refLine.dataset.atgIndentPos;
-                let indentIds = generateIndentationIdentifier(line, []);
-
-                if (indentIds.length > 0) {
-                    var text = createTextNode(indentIds.slice(0, parseInt(refLine.dataset.atgIndentPos)).join('.'));
-                    line.appendChild(text);
-                }
+                // let indentIds = generateIndentationIdentifier(line, []);
+                //
+                // if (indentIds.length > 0) {
+                //     var text = createTextNode(indentIds.slice(0, parseInt(refLine.dataset.atgIndentPos)).join('.'));
+                //     line.appendChild(text);
+                // }
             }
             return line;
         };
@@ -727,9 +737,17 @@ var AutotagJS = (function() {
         };
 
         var getLineBody = function(node) {
-            if (isLineBody(node)) return node;
-            if (!isLine(node)) node = getLine(node);
-            return node.querySelector('.' +_lineBodyClassName);
+            if (!isLine(node)) {
+                node = getLine(node);
+            }
+            return node.querySelector('.' + _lineBodyClassName);
+        };
+
+        var getLineHeader = function(node) {
+            if (!isLine(node)) {
+                node = getLine(node);
+            }
+            return node.querySelector('.' + _lineHeaderClassName);
         };
 
         var getIndentationIndex = function(line, maxIndex) {
@@ -760,9 +778,7 @@ var AutotagJS = (function() {
         };
 
         var getListPrefix = function(line) {
-            if (isEditor(line)) {
-                return 'atg';
-            }
+            if (isEditor(line)) return 'atg';
 
             let names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
             let prefix = names && names[1];
@@ -773,9 +789,7 @@ var AutotagJS = (function() {
             let nodes = [];
             do {
                 let node = walker.currentNode;
-                if (!filter || filter(node)) {
-                    nodes.push(node);
-                }
+                if (!filter || filter(node)) { nodes.push(node); }
             } while (walker.nextNode() && (!limit || nodes.length <= limit));
             return nodes;
         };
@@ -836,7 +850,7 @@ var AutotagJS = (function() {
 
         var getFragment = function(node) {
             if (isTextNode(node)) {
-                node =  node.parentNode;
+                node = node.parentNode;
             }
 
             if (isFragment(node)) {
@@ -891,9 +905,7 @@ var AutotagJS = (function() {
             if (isList(line) && !isAnonymousList(line)) {
                 outdentList(line, false);
             }
-            else {
-                createOrIndentList(line, prefix);
-            }
+            else { createOrIndentList(line, prefix); }
         };
 
         var createOrIndentList = function(line, prefix, refresh) {
@@ -942,9 +954,7 @@ var AutotagJS = (function() {
                 return true;
             }
 
-            if (klass) {
-                updateListStyle(line, klass);
-            }
+            if (klass) { updateListStyle(line, klass); }
             return false;
         };
 
@@ -981,11 +991,16 @@ var AutotagJS = (function() {
                 containsClass(node, _lineBodyClassName);
         };
 
-        var isList = function(line) {
-            let className = line && line.className;
-            return className &&
-                className.match(/(\w+(-\w+)*)-list-(.+)*/g);
+        var isLineHeader = function(node) {
+            return isElementNode(node) &&
+                containsClass(node, _lineHeaderClassName);
         };
+
+        // var isList = function(line) {
+        //     let className = line && line.className;
+        //     return className &&
+        //         className.match(/(\w+(-\w+)*)-list-(.+)*/g);
+        // };
 
         var isListHead = function(line) {
             let previousLine = line.previousSibling;
@@ -1030,26 +1045,44 @@ var AutotagJS = (function() {
             return containsClass(node, _pilotClassName);
         };
 
-        var generateIndentationIdentifier = function(line, identifier) {
-            identifier = initObject(identifier, []);
-            var indentPos = parseInt(line.dataset.atgIndentPos);
-            if (indentPos) {
-                let previousLine = line.previousSibling;
-                if (indentPos > 0 && previousLine) {
-                    identifier = generateIndentationIdentifier(
-                        previousLine, identifier);
-                }
+        var isList = function(node) {
+            return node && node.dataset && node.atgIndentPos !== '0';
+        };
 
-                let counter = identifier[indentPos-1];
-                if (counter) {
-                    identifier[indentPos-1] = counter + 1;
-                } else {
-                    identifier[indentPos-1] = 1;
-                }
-
-
+        var getLastLineInList = function(line) {
+            while (isList(line.nextSibling)) {
+                line = line.nextSibling;
             }
-            return identifier;
+            return line;
+        };
+
+        var getFirstLineInList = function(line) {
+            while (isList(line.previousSibling)) {
+                line = line.previousSibling;
+            }
+            return line;
+        };
+
+        var generateIndentationIdentifier = function(line) {
+            line = getFirstLineInList(line);
+            let indentIds = [];
+            let indentPos = 0, curPos;
+            do {
+                curPos = parseInt(line.dataset.atgIndentPos);
+                if (curPos > indentPos) {
+                    indentIds[curPos - 1] = 0;
+                }
+                indentIds[curPos - 1] += 1;
+                indentPos = curPos;
+
+                // Fill in for skipped positions
+                for(let i=0; i<indentIds.length; i++) {
+                    if (!indentIds[i]) indentIds[i] = 1;
+                }
+
+                let idStr = indentIds.slice(0, parseInt(indentPos)).join('.');
+                createLineHeader(line, idStr);
+            } while (isList(line.nextSibling) && (line = line.nextSibling));
         };
 
         var insertTab = function(node, index) {
@@ -1210,6 +1243,17 @@ var AutotagJS = (function() {
                 if (style) {
                     newLine.setAttribute('style', style);
                 }
+
+                // // Get to the last line in this list and update indexes upwards.
+                // let lastLine = newLine;
+                // // let nextLine = lastLine.nextSibling;
+                // while (lastLine.nextSibling &&
+                //     lastLine.nextSibling.dataset &&
+                //     lastLine.nextSibling.dataset.atgIndentPos !== '0') {
+                //     lastLine = lastLine.nextSibling;
+                // }
+
+                generateIndentationIdentifier(newLine);
             }
         };
 
@@ -1343,8 +1387,7 @@ var AutotagJS = (function() {
                             lines[i].dataset.atgIndentPos = indentPos -1;
                         }
                     }
-
-                    console.log(generateIndentationIdentifier(lines[i]));
+                    generateIndentationIdentifier(lines[i]);
                 }
             }
             else {
