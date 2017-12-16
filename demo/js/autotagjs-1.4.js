@@ -58,15 +58,13 @@ var AutotagJS = (function() {
 
     var _lists = {
         numbered: {
-            segments: [
-                {
-                    type: 'number',
-                    suffix: '',
-                    startAt: 1,
-                    endAt: 100,
-                    seperator: '.'
-                }
-            ]
+            segments: [{
+                type: 'number',
+                suffix: '',
+                startAt: 1,
+                endAt: 100,
+                seperator: '.'
+            }]
         }
     };
 
@@ -342,25 +340,31 @@ var AutotagJS = (function() {
                     let cmd = commands[j];
                     if (cmd == 'clear') {
                         target.removeAttribute('style');
-
+                    }
+                    else if (cmd == 'indent') {
+                        updateLineIndentation(target, true);
+                    }
+                    else if (cmd == 'outdent') {
+                        updateLineIndentation(target, false);
                     }
                     else if (cmd.match(/^list(\s+\w+(-\w+)*){1}/)) {
-                        let listPrefix = cmd.split(/\s+/)[1];
+                        let listType = cmd.split(/\s+/)[1];
+                        updateLineIndentation(target, true, listType);
 
-                        switch(listPrefix) {
-                            case 'clear':
-                                // clearList(target);
-                                break;
-                            case 'indent':
-                                createOrIndentList(target, false);
-                                break;
-                            case 'outdent':
-                                outdentList(target);
-                                break;
-                            default:
-                                toggleList(target, listPrefix);
-                                break;
-                        }
+                        // switch(listType) {
+                        //     case 'numbered':
+                        //         // clearList(target);
+                        //         break;
+                        //     case 'indent':
+                        //         updateLineIndentation(target, true);
+                        //         break;
+                        //     case 'outdent':
+                        //         updateLineIndentation(target, false);
+                        //         break;
+                        //     default:
+                        //         // toggleList(target, listPrefix);
+                        //         break;
+                        // }
                     }
                 }
             }
@@ -571,7 +575,7 @@ var AutotagJS = (function() {
                 createElement('div', _paletteRowClassName));
         };
 
-        var createLineHeader = function(line, text) {
+        var generateLineHeader = function(line) {
             let header = getLineHeader(line);
 
             if (!header) {
@@ -580,15 +584,12 @@ var AutotagJS = (function() {
                 line.insertBefore(header, line.firstChild);
             }
 
+            // Now generate the content.
+            let text = line.dataset.atgListId;
             if (text) {
                 removeAllChildNodes(header);
                 header.appendChild(createTextNode(text));
             }
-
-            // DEBUG -- REMOVE
-            // leader.appendChild(createListFragment('3.1.1.4'));
-
-            // line.insertBefore(header, line.firstChild);
             return header;
         };
 
@@ -624,7 +625,7 @@ var AutotagJS = (function() {
                         break;
                 }
 
-                if (options.attachAs !== 'child') {
+                if (options.attachAs !== 'child' && isList(refLine)) {
                     line.dataset.atgIndentPos = refLine.dataset.atgIndentPos;
                 }
 
@@ -1042,7 +1043,8 @@ var AutotagJS = (function() {
         };
 
         var isList = function(node) {
-            return node && node.dataset && node.atgIndentPos !== '0';
+            return node && node.dataset && node.dataset.atgIndentPos &&
+                node.dataset.atgIndentPos !== '0';
         };
 
         var getLastLineInList = function(line) {
@@ -1061,24 +1063,28 @@ var AutotagJS = (function() {
 
         var generateIndentationIdentifier = function(line) {
             line = getFirstLineInList(line);
-            let indentIds = [];
-            let indentPos = 0, curPos;
-            do {
-                curPos = parseInt(line.dataset.atgIndentPos);
-                if (curPos > indentPos) {
-                    indentIds[curPos - 1] = 0;
-                }
-                indentIds[curPos - 1] += 1;
-                indentPos = curPos;
+            if (isList(line)) {
+                let indentIds = [];
+                let indentPos = 0, curPos;
+                do {
+                    curPos = parseInt(line.dataset.atgIndentPos);
+                    if (curPos > indentPos) {
+                        indentIds[curPos - 1] = 0;
+                    }
+                    indentIds[curPos - 1] += 1;
+                    indentPos = curPos;
 
-                // Fill in for skipped positions
-                for(let i=0; i<indentIds.length; i++) {
-                    if (!indentIds[i]) indentIds[i] = 1;
-                }
+                    // Fill in for skipped positions
+                    for(let i=0; i<indentIds.length; i++) {
+                        if (!indentIds[i]) indentIds[i] = 1;
+                    }
 
-                let idStr = indentIds.slice(0, parseInt(indentPos)).join('.');
-                createLineHeader(line, idStr);
-            } while (isList(line.nextSibling) && (line = line.nextSibling));
+                    line.dataset.atgListId =
+                        indentIds.slice(0, parseInt(indentPos)).join('.');
+                    generateLineHeader(line);
+
+                } while (isList(line.nextSibling) && (line = line.nextSibling));
+            }
         };
 
         var insertTab = function(node, index) {
@@ -1195,7 +1201,6 @@ var AutotagJS = (function() {
             let container = range.startContainer;
             let offset = range.startOffset;
 
-            // Sometimes,
             fixCaret(range);
 
             if (range.collapsed && isTextNode(container)) {
@@ -1239,15 +1244,6 @@ var AutotagJS = (function() {
                 if (style) {
                     newLine.setAttribute('style', style);
                 }
-
-                // // Get to the last line in this list and update indexes upwards.
-                // let lastLine = newLine;
-                // // let nextLine = lastLine.nextSibling;
-                // while (lastLine.nextSibling &&
-                //     lastLine.nextSibling.dataset &&
-                //     lastLine.nextSibling.dataset.atgIndentPos !== '0') {
-                //     lastLine = lastLine.nextSibling;
-                // }
 
                 generateIndentationIdentifier(newLine);
             }
@@ -1354,36 +1350,53 @@ var AutotagJS = (function() {
             return ancestorNodes;
         };
 
-        var updateIndentation = function(range, increase) {
+        var setLineIndentPosition = function(line, pos) {
+            line.dataset.atgIndentPos = pos;
+        };
+
+        var updateLineIndentation = function(line, increase, list) {
+            let instruction = increase ? 'atgIncrement' : 'atgDecrement';
+            if (list || isList(line)) {
+                applyStyle(line, instruction, ['margin-left:55px']);
+                var indentPos = parseInt(line.dataset.atgIndentPos);
+                if (increase) {
+                    if (indentPos) {
+                        setLineIndentPosition(line, indentPos + 1);
+                    }
+                    else {
+                        setLineIndentPosition(line, 1);
+                    }
+                }
+                else if (indentPos) {
+                    setLineIndentPosition(line, indentPos - 1);
+                }
+                generateIndentationIdentifier(line);
+            }
+            else {
+                applyStyle(line, instruction, ['margin-left:55px']);
+            }
+        };
+
+        var updateIndentationInRange = function(range, increase, list) {
             let node = range.startContainer,
                 offset = range.startOffset,
                 collapsed = range.collapsed;
 
+
             if (collapsed && increase) {
-                insertTab(node, offset);
+                let line = getLine(node);
+                if (isList(line)) {
+                    updateLineIndentation(line, increase, list);
+                } else {
+                    insertTab(node, offset);
+                }
             }
             else if (collapsed && !increase &&
                     isBeginingOfLine(node, offset) && isIndented(node) ||
                     !collapsed && increase) {
-
-                let instruction = increase ? 'atgIncrement' : 'atgDecrement';
                 let lines = getLinesInRange(range);
                 for (let i=0; i<lines.length; i++) {
-                    applyStyle(lines[i], instruction, ['margin-left:55px']);
-
-                    var indentPos = parseInt(lines[i].dataset.atgIndentPos);
-                    if (increase) {
-                        if (indentPos) {
-                            lines[i].dataset.atgIndentPos = indentPos + 1;
-                        } else {
-                            lines[i].dataset.atgIndentPos = 1;
-                        }
-                    } else {
-                        if (indentPos) {
-                            lines[i].dataset.atgIndentPos = indentPos -1;
-                        }
-                    }
-                    generateIndentationIdentifier(lines[i]);
+                    updateLineIndentation(lines[i], increase, list);
                 }
             }
             else {
@@ -1420,7 +1433,7 @@ var AutotagJS = (function() {
         var deleteSelection = function(range) { };
 
         var processDelete = function(range) {
-            return updateIndentation(range, false);
+            return updateIndentationInRange(range, false);
         };
 
         var updateList = function(line, stylePrefix, indentIndex, overrideStyle) {
@@ -1566,7 +1579,7 @@ var AutotagJS = (function() {
                 }
             }
             else if (isTabKey(keyCode)) {
-                updateIndentation(range, !shiftKey);
+                updateIndentationInRange(range, !shiftKey);
                 e.preventDefault();
             }
             else if (isReturnKey(keyCode)) {
