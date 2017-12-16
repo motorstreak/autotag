@@ -624,17 +624,13 @@ var AutotagJS = (function() {
                         break;
                 }
 
+                if (options.attachAs !== 'child') {
+                    line.dataset.atgIndentPos = refLine.dataset.atgIndentPos;
+                }
+
                 if (options.addPilotNode) {
                     renewLineBody(body, options.setCaret);
                 }
-
-                line.dataset.atgIndentPos = refLine.dataset.atgIndentPos;
-                // let indentIds = generateIndentationIdentifier(line, []);
-                //
-                // if (indentIds.length > 0) {
-                //     var text = createTextNode(indentIds.slice(0, parseInt(refLine.dataset.atgIndentPos)).join('.'));
-                //     line.appendChild(text);
-                // }
             }
             return line;
         };
