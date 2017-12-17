@@ -89,15 +89,16 @@ var AutotagJS = (function() {
     var _lineClassName = 'atg-line',
         _lineHeaderClassName = 'atg-line-leader',
         _lineBodyClassName = 'atg-line-body',
-        _tabFragmentClassName = 'atg-tab',
+        // _tabFragmentClassName = 'atg-tab',
         _markedFragmentClassName = 'atg-text',
         _listFragmentClassName = 'atg-list',
         _pilotClassName = 'atg-pilot',
 
         // Reserved class names
-        _anchorListClassName = 'atg-list-anchor',
-        _blankListClassName = 'atg-list-blank',
-        _rootListClassName = 'atg-list-root',
+        // _anchorListClassName = 'atg-list-anchor',
+        // _blankListClassName = 'atg-list-blank',
+        // _rootListClassName = 'atg-list-root',
+
         _menuClassName = 'atg-menu',
         _paletteClassName = 'atg-palette',
         _paletteCellClassName = 'atg-palette-cell',
@@ -571,10 +572,10 @@ var AutotagJS = (function() {
             }
 
             // Now generate the content.
-            let text = line.dataset.atgListId;
-            if (text) {
+            let listId = line.dataset.atgListId;
+            if (listId) {
                 removeAllChildNodes(header);
-                header.appendChild(createTextNode(text));
+                header.appendChild(createTextNode(listId));
             }
             return header;
         };
@@ -639,9 +640,9 @@ var AutotagJS = (function() {
             return pilot;
         };
 
-        var createListFragment = function(stringOrText) {
-            return createFragment(stringOrText);
-        };
+        // var createListFragment = function(stringOrText) {
+        //     return createFragment(stringOrText);
+        // };
 
         // Returns a marked fragment (<span>...</span>)
         var createMarkedFragment = function(text, cName, style) {
@@ -760,13 +761,13 @@ var AutotagJS = (function() {
             return getNodesInRange(range, NodeFilter.SHOW_TEXT, isTextNode);
         };
 
-        var getListPrefix = function(line) {
-            if (isEditor(line)) return 'atg';
-
-            let names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
-            let prefix = names && names[1];
-            return (prefix ? prefix : getListPrefix(line.parentNode));
-        };
+        // var getListPrefix = function(line) {
+        //     if (isEditor(line)) return 'atg';
+        //
+        //     let names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
+        //     let prefix = names && names[1];
+        //     return (prefix ? prefix : getListPrefix(line.parentNode));
+        // };
 
         var getNodesFromTree = function(walker, filter, limit) {
             let nodes = [];
@@ -820,10 +821,10 @@ var AutotagJS = (function() {
             });
         };
 
-        var getRootLine = function(node) {
-            node = initObject(node, _range && _range.endContainer);
-            return getLine(node, true);
-        };
+        // var getRootLine = function(node) {
+        //     node = initObject(node, _range && _range.endContainer);
+        //     return getLine(node, true);
+        // };
 
         var getStylePropertyValue = function(node, property) {
             return node &&
@@ -884,81 +885,81 @@ var AutotagJS = (function() {
             }
         };
 
-        var toggleList = function(line, prefix) {
-            if (isList(line) && !isAnonymousList(line)) {
-                outdentList(line, false);
-            }
-            else { createOrIndentList(line, prefix); }
-        };
+        // var toggleList = function(line, prefix) {
+        //     if (isList(line) && !isAnonymousList(line)) {
+        //         outdentList(line, false);
+        //     }
+        //     else { createOrIndentList(line, prefix); }
+        // };
 
-        var createOrIndentList = function(line, prefix, refresh) {
-            refresh = initObject(refresh, true);
-            prefix = initObject(prefix, getListPrefix(line));
+        // var createOrIndentList = function(line, prefix, refresh) {
+        //     refresh = initObject(refresh, true);
+        //     prefix = initObject(prefix, getListPrefix(line));
+        //
+        //     // Store the current selection nodes and offsets so that we can
+        //     // reinstate the selection after indentation.
+        //     let selection = getRangeContainersAndOffsets(_range);
+        //
+        //     // The second check is required to acomodate Firefox which
+        //     // appends the current lines classname to the previous line on
+        //     // delete.
+        //     if (isAnonymousList(line) ||
+        //         !isRootLine(line) && isListRoot(line)) {
+        //         updateList(line, prefix, getIndentationIndex(line), refresh);
+        //     }
+        //     else {
+        //         let anchor = line.previousSibling;
+        //         if (!isList(anchor)) {
+        //             anchor = createLine();
+        //             line.parentNode.insertBefore(anchor, line);
+        //
+        //             // If the newly created line is not a root list, make it
+        //             // one. Else, make this an anchor list node.
+        //             initList(anchor, _anchorListClassName);
+        //         }
+        //
+        //         anchor.appendChild(line);
+        //         updateList(line, prefix, getIndentationIndex(line), refresh);
+        //
+        //         // Now make line's children it's peer.
+        //         let children = getChildren(line, isLine);
+        //         for (let i=0; i < children.length; i++) {
+        //           line.parentNode.insertBefore(children[i], line.nextSibling);
+        //         }
+        //     }
+        //
+        //     // Reset the range to the original selection if possible.
+        //     setSelection(selection);
+        // };
 
-            // Store the current selection nodes and offsets so that we can
-            // reinstate the selection after indentation.
-            let selection = getRangeContainersAndOffsets(_range);
+        // var initList = function(line, klass) {
+        //     if (isRootLine(line)) {
+        //         updateListStyle(line, _rootListClassName);
+        //         return true;
+        //     }
+        //
+        //     if (klass) { updateListStyle(line, klass); }
+        //     return false;
+        // };
 
-            // The second check is required to acomodate Firefox which
-            // appends the current lines classname to the previous line on
-            // delete.
-            if (isAnonymousList(line) ||
-                !isRootLine(line) && isListRoot(line)) {
-                updateList(line, prefix, getIndentationIndex(line), refresh);
-            }
-            else {
-                let anchor = line.previousSibling;
-                if (!isList(anchor)) {
-                    anchor = createLine();
-                    line.parentNode.insertBefore(anchor, line);
+        // var isBlankNode = function(node) {
+        //     if (node) {
+        //         let str = node.textContent;
+        //         return (str.length == 0 || str == _zeroWidthSpace);
+        //     }
+        // };
 
-                    // If the newly created line is not a root list, make it
-                    // one. Else, make this an anchor list node.
-                    initList(anchor, _anchorListClassName);
-                }
+        // var isBlankLine = function(line) {
+        //     return isLine(line) && isBlankNode(line);
+        // };
 
-                anchor.appendChild(line);
-                updateList(line, prefix, getIndentationIndex(line), refresh);
+        // var isAnonymousList = function(line) {
+        //     return containsClass(line, _blankListClassName);
+        // };
 
-                // Now make line's children it's peer.
-                let children = getChildren(line, isLine);
-                for (let i=0; i < children.length; i++) {
-                  line.parentNode.insertBefore(children[i], line.nextSibling);
-                }
-            }
-
-            // Reset the range to the original selection if possible.
-            setSelection(selection);
-        };
-
-        var initList = function(line, klass) {
-            if (isRootLine(line)) {
-                updateListStyle(line, _rootListClassName);
-                return true;
-            }
-
-            if (klass) { updateListStyle(line, klass); }
-            return false;
-        };
-
-        var isBlankNode = function(node) {
-            if (node) {
-                let str = node.textContent;
-                return (str.length == 0 || str == _zeroWidthSpace);
-            }
-        };
-
-        var isBlankLine = function(line) {
-            return isLine(line) && isBlankNode(line);
-        };
-
-        var isAnonymousList = function(line) {
-            return containsClass(line, _blankListClassName);
-        };
-
-        var isAnchorList = function(line) {
-            return containsClass(line, _anchorListClassName);
-        };
+        // var isAnchorList = function(line) {
+        //     return containsClass(line, _anchorListClassName);
+        // };
 
         var isEditor = function(node) {
             return node && node.isSameNode(editor);
@@ -985,22 +986,22 @@ var AutotagJS = (function() {
         //         className.match(/(\w+(-\w+)*)-list-(.+)*/g);
         // };
 
-        var isListHead = function(line) {
-            let previousLine = line.previousSibling;
-            return isList(line) && (
-                !previousLine ||
-                getIndentationIndex(line) == 1 &&
-                    getIndentationIndex(previousLine) == 0
-            );
-        };
+        // var isListHead = function(line) {
+        //     let previousLine = line.previousSibling;
+        //     return isList(line) && (
+        //         !previousLine ||
+        //         getIndentationIndex(line) == 1 &&
+        //             getIndentationIndex(previousLine) == 0
+        //     );
+        // };
 
-        var isRootLine = function(line) {
-            return isLine(line) && isEditor(line.parentNode);
-        };
+        // var isRootLine = function(line) {
+        //     return isLine(line) && isEditor(line.parentNode);
+        // };
 
-        var isListRoot = function(line) {
-            return containsClass(line, _rootListClassName);
-        };
+        // var isListRoot = function(line) {
+        //     return containsClass(line, _rootListClassName);
+        // };
 
         var isFragment = function(node) {
             // return containsClass(node, _markedFragmentClassName);
@@ -1009,10 +1010,10 @@ var AutotagJS = (function() {
                     containsClass(node.parentNode, _markedFragmentClassName));
         };
 
-        var isTabFragment = function(node) {
-            return isFragment(node) &&
-                containsClass(node, _tabFragmentClassName);
-        };
+        // var isTabFragment = function(node) {
+        //     return isFragment(node) &&
+        //         containsClass(node, _tabFragmentClassName);
+        // };
 
         var isMarkedFragment = function(node) {
             return isFragment(node) &&
@@ -1032,12 +1033,12 @@ var AutotagJS = (function() {
             return isLine(node) && node.dataset.atgIndentPos !== '0';
         };
 
-        var getLastLineInList = function(line) {
-            while (isList(line.nextSibling)) {
-                line = line.nextSibling;
-            }
-            return line;
-        };
+        // var getLastLineInList = function(line) {
+        //     while (isList(line.nextSibling)) {
+        //         line = line.nextSibling;
+        //     }
+        //     return line;
+        // };
 
         var getFirstLineInList = function(line) {
             while (isList(line.previousSibling)) {
@@ -1052,20 +1053,28 @@ var AutotagJS = (function() {
                 let indentIds = [];
                 let indentPos = 0, curPos;
                 do {
-                    curPos = parseInt(line.dataset.atgIndentPos);
-                    if (curPos > indentPos) {
-                        indentIds[curPos - 1] = 0;
-                    }
-                    indentIds[curPos - 1] += 1;
-                    indentPos = curPos;
+                    let listId = line.dataset.atgListId;
 
-                    // Fill in for skipped positions
-                    for(let i=0; i<indentIds.length; i++) {
-                        if (!indentIds[i]) indentIds[i] = 1;
-                    }
+                    // If the listId is blank, do not consider this line
+                    // as a part of the list. However, proceed with generating
+                    // the Line header as usual since we want to maintain the
+                    // the same indentation as the previous line.
+                    if (isNaN(listId) || listId.length > 0) {
+                        curPos = parseInt(line.dataset.atgIndentPos);
+                        if (curPos > indentPos) {
+                            indentIds[curPos - 1] = 0;
+                        }
+                        indentIds[curPos - 1] += 1;
+                        indentPos = curPos;
 
-                    line.dataset.atgListId =
-                        indentIds.slice(0, parseInt(indentPos)).join('.');
+                        // Fill in for skipped positions
+                        for(let i=0; i<indentIds.length; i++) {
+                            if (!indentIds[i]) indentIds[i] = 1;
+                        }
+
+                        line.dataset.atgListId =
+                            indentIds.slice(0, parseInt(indentPos)).join('.');
+                    }
                     generateLineHeader(line);
 
                 } while (isList(line.nextSibling) && (line = line.nextSibling));
@@ -1080,46 +1089,46 @@ var AutotagJS = (function() {
             processInput();
         };
 
-        var outdentList = function(line, refresh) {
-            refresh = initObject(refresh, true);
-
-            if(isList(line)) {
-                let parentLine = line.parentNode;
-                if (!isEditor(parentLine)) {
-                    let selection = getRangeContainersAndOffsets(_range);
-                    prefix = getListPrefix(line);
-
-                    // Now make line's children the anchor's children.
-                    let children = getChildren(line, isLine);
-                    if (children.length > 0) {
-                        let anchor = createLine();
-                        initList(anchor, _anchorListClassName);
-
-                        line.insertBefore(anchor, children[0]);
-                        for (let i=0; i < children.length; i++) {
-                          anchor.appendChild(children[i]);
-                        }
-                    }
-
-                    while (line.nextSibling) {
-                        line.appendChild(line.nextSibling);
-                    }
-
-                    parentLine.parentNode.insertBefore(line,
-                        parentLine.nextSibling);
-
-                    let indentIndex = getIndentationIndex(parentLine);
-                    updateList(line, prefix, indentIndex, refresh);
-
-                    if ((getChildren(parentLine, isLine) +
-                        getChildren(parentLine, isFragment)) == 0) {
-                        removeNode(parentLine);
-                    }
-
-                    setSelection(selection);
-                }
-            }
-        };
+        // var outdentList = function(line, refresh) {
+        //     refresh = initObject(refresh, true);
+        //
+        //     if(isList(line)) {
+        //         let parentLine = line.parentNode;
+        //         if (!isEditor(parentLine)) {
+        //             let selection = getRangeContainersAndOffsets(_range);
+        //             prefix = getListPrefix(line);
+        //
+        //             // Now make line's children the anchor's children.
+        //             let children = getChildren(line, isLine);
+        //             if (children.length > 0) {
+        //                 let anchor = createLine();
+        //                 initList(anchor, _anchorListClassName);
+        //
+        //                 line.insertBefore(anchor, children[0]);
+        //                 for (let i=0; i < children.length; i++) {
+        //                   anchor.appendChild(children[i]);
+        //                 }
+        //             }
+        //
+        //             while (line.nextSibling) {
+        //                 line.appendChild(line.nextSibling);
+        //             }
+        //
+        //             parentLine.parentNode.insertBefore(line,
+        //                 parentLine.nextSibling);
+        //
+        //             let indentIndex = getIndentationIndex(parentLine);
+        //             updateList(line, prefix, indentIndex, refresh);
+        //
+        //             if ((getChildren(parentLine, isLine) +
+        //                 getChildren(parentLine, isFragment)) == 0) {
+        //                 removeNode(parentLine);
+        //             }
+        //
+        //             setSelection(selection);
+        //         }
+        //     }
+        // };
 
         var processInput = function() {
             let container = _range.endContainer;
@@ -1150,6 +1159,7 @@ var AutotagJS = (function() {
         var pasteClipboardContent = function(e) {
             let content;
             let container = _range.endContainer;
+
             if (!_copiedRange || _copiedRange.collapsed) {
                 if (e.clipboardData) {
                     content = (e.originalEvent || e)
@@ -1174,6 +1184,7 @@ var AutotagJS = (function() {
                 let fragment =
                     splitFragment(container.parentNode, _range.endOffset);
                 appendNode(_copiedRange.cloneContents(), fragment);
+
                 if (isBlankNode(fragment) && !isList(fragment.nextSibling)) {
                     removeNode(fragment);
                 }
@@ -1182,7 +1193,7 @@ var AutotagJS = (function() {
 
         var processArrowKeys = function(range, keyCode) {};
 
-        var processReturnKey = function(range) {
+        var processReturnKey = function(range, shifted) {
             let container = range.startContainer;
             let offset = range.startOffset;
 
@@ -1230,6 +1241,13 @@ var AutotagJS = (function() {
                     newLine.setAttribute('style', style);
                 }
 
+                // Shift + Return allows creating new lines without the list
+                // numbering while retaining the same indentation and allowing
+                // the list to continue as usual in the folllowing lines.
+                if (isList(newLine) && shifted) {
+                    newLine.dataset.atgListId = '';
+                }
+
                 generateIndentationIdentifier(newLine);
             }
         };
@@ -1246,9 +1264,9 @@ var AutotagJS = (function() {
             }
         };
 
-        var anonymizeList = function(line) {
-            updateListStyle(line, _blankListClassName);
-        };
+        // var anonymizeList = function(line) {
+        //     updateListStyle(line, _blankListClassName);
+        // };
 
         var setCaret = function(node, offset) {
             if (!isTextNode(node)) {
@@ -1276,16 +1294,16 @@ var AutotagJS = (function() {
             }
         };
 
-        var setListStyle = function(line, stylePrefix, indentIndex,
-                overrideStyle) {
-            if (indentIndex == 0) {
-                updateListStyle(line, _rootListClassName);
-            }
-            else if (stylePrefix && indentIndex &&
-                    (overrideStyle || (!isAnonymousList(line) && !isAnchorList(line)))) {
-                updateListStyle(line, stylePrefix + "-list-" + indentIndex);
-            }
-        };
+        // var setListStyle = function(line, stylePrefix, indentIndex,
+        //         overrideStyle) {
+        //     if (indentIndex == 0) {
+        //         updateListStyle(line, _rootListClassName);
+        //     }
+        //     else if (stylePrefix && indentIndex &&
+        //             (overrideStyle || (!isAnonymousList(line) && !isAnchorList(line)))) {
+        //         updateListStyle(line, stylePrefix + "-list-" + indentIndex);
+        //     }
+        // };
 
         var setListCounter = function(line, stylePrefix, indentIndex) {
             if (indentIndex > 0) {
@@ -1425,19 +1443,19 @@ var AutotagJS = (function() {
             return updateIndentationInRange(range, false);
         };
 
-        var updateList = function(line, stylePrefix, indentIndex, overrideStyle) {
-            overrideStyle = initObject(overrideStyle, true);
-            if (!initList(line)) {
-                setListCounter(line, stylePrefix, indentIndex);
-                setListStyle(line, stylePrefix, indentIndex, overrideStyle);
-            }
-        };
+        // var updateList = function(line, stylePrefix, indentIndex, overrideStyle) {
+        //     overrideStyle = initObject(overrideStyle, true);
+        //     if (!initList(line)) {
+        //         setListCounter(line, stylePrefix, indentIndex);
+        //         setListStyle(line, stylePrefix, indentIndex, overrideStyle);
+        //     }
+        // };
 
-        var updateListStyle = function(line, klass) {
-            line.className =
-                line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
-            line.classList.add(klass);
-        };
+        // var updateListStyle = function(line, klass) {
+        //     line.className =
+        //         line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
+        //     line.classList.add(klass);
+        // };
 
         var clearNodeStyle = function(node, force) {
             // Clear up the style attribute.
@@ -1573,7 +1591,7 @@ var AutotagJS = (function() {
             }
             else if (isReturnKey(keyCode)) {
                 if (!ignoreReturnKey) {
-                    processReturnKey(range);
+                    processReturnKey(range, shiftKey);
                 }
                 e.preventDefault();
             }
