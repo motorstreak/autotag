@@ -79,11 +79,14 @@ var AutotagJS = (function() {
     var _tab = '\u0009',
         _zeroWidthSpace = '\u00a0';
 
-    var _markedFragmentTag = 'span',
-        _lineTag = 'div',
+    var _listIndentCssStyle = 'margin-left:55px',
+        _lineIndentCssStyle = 'margin-left:55px';
+
+    var _lineTag = 'div',
+        _markedFragmentTag = 'span';
 
         // v3
-        _lineClassName = 'atg-line',
+    var _lineClassName = 'atg-line',
         _lineHeaderClassName = 'atg-line-leader',
         _lineBodyClassName = 'atg-line-body',
         _tabFragmentClassName = 'atg-tab',
@@ -337,34 +340,17 @@ var AutotagJS = (function() {
                 }
             } else {
                 for (let j = 0; j < commands.length; j++) {
-                    let cmd = commands[j];
-                    if (cmd == 'clear') {
-                        target.removeAttribute('style');
-                    }
-                    else if (cmd == 'indent') {
-                        updateLineIndentation(target, true);
-                    }
-                    else if (cmd == 'outdent') {
-                        updateLineIndentation(target, false);
-                    }
-                    else if (cmd.match(/^list(\s+\w+(-\w+)*){1}/)) {
-                        let listType = cmd.split(/\s+/)[1];
-                        updateLineIndentation(target, true, listType);
-
-                        // switch(listType) {
-                        //     case 'numbered':
-                        //         // clearList(target);
-                        //         break;
-                        //     case 'indent':
-                        //         updateLineIndentation(target, true);
-                        //         break;
-                        //     case 'outdent':
-                        //         updateLineIndentation(target, false);
-                        //         break;
-                        //     default:
-                        //         // toggleList(target, listPrefix);
-                        //         break;
-                        // }
+                    let cmd = commands[j].split(/ +/);
+                    switch(cmd[0]) {
+                        case 'indent':
+                            updateLineIndentation(target, true);
+                            break;
+                        case 'outdent':
+                            updateLineIndentation(target, false);
+                            break;
+                        case 'list':
+                            updateListIndentation(target, true, cmd[1]);
+                            break;
                     }
                 }
             }
@@ -1043,8 +1029,7 @@ var AutotagJS = (function() {
         };
 
         var isList = function(node) {
-            return node && node.dataset && node.dataset.atgIndentPos &&
-                node.dataset.atgIndentPos !== '0';
+            return isLine(node) && node.dataset.atgIndentPos !== '0';
         };
 
         var getLastLineInList = function(line) {
@@ -1354,55 +1339,59 @@ var AutotagJS = (function() {
             line.dataset.atgIndentPos = pos;
         };
 
+        var updateListIndentation = function(line, increase, type) {
+            applyStyle(line, getIncrementDecrementInstruction(increase),
+                [_listIndentCssStyle]);
+
+            var indentPos = parseInt(line.dataset.atgIndentPos);
+            if (increase) {
+                if (indentPos) {
+                    setLineIndentPosition(line, indentPos + 1);
+                }
+                else {
+                    setLineIndentPosition(line, 1);
+                }
+            }
+            else if (indentPos) {
+                setLineIndentPosition(line, indentPos - 1);
+            }
+            generateIndentationIdentifier(line);
+        };
+
         var updateLineIndentation = function(line, increase, list) {
-            let instruction = increase ? 'atgIncrement' : 'atgDecrement';
-            if (list || isList(line)) {
-                applyStyle(line, instruction, ['margin-left:55px']);
-                var indentPos = parseInt(line.dataset.atgIndentPos);
-                if (increase) {
-                    if (indentPos) {
-                        setLineIndentPosition(line, indentPos + 1);
-                    }
-                    else {
-                        setLineIndentPosition(line, 1);
-                    }
-                }
-                else if (indentPos) {
-                    setLineIndentPosition(line, indentPos - 1);
-                }
-                generateIndentationIdentifier(line);
-            }
-            else {
-                applyStyle(line, instruction, ['margin-left:55px']);
-            }
+            applyStyle(line, getIncrementDecrementInstruction(increase),
+                [_lineIndentCssStyle]);
+        };
+
+        var getIncrementDecrementInstruction = function(increase) {
+            return increase ? 'atgIncrement' : 'atgDecrement';
         };
 
         var updateIndentationInRange = function(range, increase, list) {
             let node = range.startContainer,
                 offset = range.startOffset,
-                collapsed = range.collapsed;
+                isCaret = range.collapsed;
 
+            let line = getLine(node);
+            let isCaretAtBeginning = isCaret &&
+                    isBeginingOfLine(node, offset);
 
-            if (collapsed && increase) {
-                let line = getLine(node);
+            if (isCaretAtBeginning || !isCaret) {
                 if (isList(line)) {
-                    updateLineIndentation(line, increase, list);
-                } else {
+                    updateListIndentation(line, increase);
+                }
+                else if (!isCaret){
+                    updateLineIndentation(line, increase);
+                }
+                else {
                     insertTab(node, offset);
                 }
             }
-            else if (collapsed && !increase &&
-                    isBeginingOfLine(node, offset) && isIndented(node) ||
-                    !collapsed && increase) {
-                let lines = getLinesInRange(range);
-                for (let i=0; i<lines.length; i++) {
-                    updateLineIndentation(lines[i], increase, list);
+            else {
+                if (increase && isCaret) {
+                    insertTab(node, offset);
                 }
             }
-            else {
-                return false;
-            }
-            return true;
         };
 
         var isIndented = function(node) {
