@@ -75,7 +75,6 @@ var AutotagJS = (function() {
         85: 'text-decoration:underline'
     };
 
-    // v3
     var _tab = '\u0009',
         _zeroWidthSpace = '\u00a0';
 
@@ -85,7 +84,6 @@ var AutotagJS = (function() {
     var _lineTag = 'div',
         _markedFragmentTag = 'span';
 
-        // v3
     var _lineClassName = 'atg-line',
         _lineHeaderClassName = 'atg-line-leader',
         _lineBodyClassName = 'atg-line-body',
@@ -692,16 +690,6 @@ var AutotagJS = (function() {
             return node.querySelector('.' + _lineHeaderClassName);
         };
 
-        var getIndentationIndex = function(line, maxIndex) {
-            maxIndex = initObject(maxIndex, 3);
-
-            let level = 0;
-            while ((line = line.parentNode) && !isEditor(line)) {
-                level++;
-            }
-            return (level == 0 ? 0 : (level % maxIndex || maxIndex));
-        };
-
         var getLine = function(node) {
             if (isEditor(node)) return getFirstLine();
 
@@ -769,12 +757,6 @@ var AutotagJS = (function() {
             return getTreeWalker(ancestor, whatToShow, function(node) {
                 return rangeIntersectsNode(range, node);
             });
-        };
-
-        var getStylePropertyValue = function(node, property) {
-            return node &&
-                property &&
-                window.getComputedStyle(node, null).getPropertyValue(property);
         };
 
         var getFragment = function(node) {
@@ -1044,10 +1026,6 @@ var AutotagJS = (function() {
             }
         };
 
-        var removeListStyle = function(line) {
-            updateListStyle(line, '');
-        };
-
         var saveSelectionRange = function() {
             let range = getRange();
             if (range && range.startContainer.nodeType != 9) {
@@ -1082,16 +1060,6 @@ var AutotagJS = (function() {
             }
         };
 
-        var setListCounter = function(line, stylePrefix, indentIndex) {
-            if (indentIndex > 0) {
-                line.parentNode.style.setProperty(
-                    'counter-reset', stylePrefix + "-counter-" + indentIndex);
-            }
-
-            line.style.setProperty(
-                'counter-reset', stylePrefix + "-counter-" + (indentIndex + 1));
-        };
-
         var setSelection = function(selection) {
             let range,
                 startNode = selection.startContainer,
@@ -1114,20 +1082,6 @@ var AutotagJS = (function() {
                 resetRange(range);
             }
             return range;
-        };
-
-        var getAncestorLines = function(lines) {
-            let ancestorNodes = [];
-            for(let i=0; i<lines.length; i++) {
-                let curNode = lines[i];
-                while (lines.indexOf(curNode.parentNode) != -1) {
-                    curNode = curNode.parentNode;
-                }
-                if (ancestorNodes.indexOf(curNode) == -1) {
-                    ancestorNodes.push(curNode);
-                }
-            }
-            return ancestorNodes;
         };
 
         var setLineIndentPosition = function(line, pos) {
