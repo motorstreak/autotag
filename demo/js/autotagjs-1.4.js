@@ -89,16 +89,9 @@ var AutotagJS = (function() {
     var _lineClassName = 'atg-line',
         _lineHeaderClassName = 'atg-line-leader',
         _lineBodyClassName = 'atg-line-body',
-        // _tabFragmentClassName = 'atg-tab',
         _markedFragmentClassName = 'atg-text',
         _listFragmentClassName = 'atg-list',
         _pilotClassName = 'atg-pilot',
-
-        // Reserved class names
-        // _anchorListClassName = 'atg-list-anchor',
-        // _blankListClassName = 'atg-list-blank',
-        // _rootListClassName = 'atg-list-root',
-
         _menuClassName = 'atg-menu',
         _paletteClassName = 'atg-palette',
         _paletteCellClassName = 'atg-palette-cell',
@@ -328,12 +321,6 @@ var AutotagJS = (function() {
 
         let doOnMenuClick = config.onMenuClick || function() {};
 
-        /**
-         * Processes one or more atg-command instructions on the targets
-         * specified.
-         * @param {Object} target - A single Node or an array of nodes.
-         * @param {Array} commands - An array of autotag commands.
-         */
         var applyCommand = function(target, commands) {
             if (Array.isArray(target)) {
                 for (let i = 0; i < target.length; i++) {
@@ -357,13 +344,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Process the autotag instructions on the given set of nodes.
-         * @param {Array} nodes - An array of nodes on which to apply the
-         * instrcution.
-         * @param {string} instruction - The autotag instruction to process.
-         * @param {Array} declarations - An array of CSS declarations to apply.
-         */
         var processInstruction = function(nodes, instruction, declarations) {
             if (instruction == 'atgCommand') {
                 applyCommand(nodes, declarations);
@@ -376,13 +356,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Apply the declarations specified in the autotag instruction.
-         * @param {Object} target - A single Node or an array of nodes to apply
-         * the css declarations on.
-         * @param {string} instruction - The autotag instruction to process.
-         * @param {Array} declarations - An array of CSS declarations to apply.
-         */
         var applyStyle = function(target, instruction, declarations) {
             if (Array.isArray(target)) {
                 for (let i = 0; i < target.length; i++) {
@@ -435,11 +408,6 @@ var AutotagJS = (function() {
             }
         };
 
-        /**
-         * Creates the palette submenu.
-         * @param {Node} menu - The menu to attach the submenu to.
-         * @param {string} type - The kind of palette to show.
-         */
         var createPalette = function(menu) {
             let palette = menu.getElementsByClassName(_submenuClassName)[0];
             if (palette) {
@@ -479,12 +447,6 @@ var AutotagJS = (function() {
             _activeSubmenu = palette;
         };
 
-        /**
-         * Create the style to apply on the selection and set it on the palette
-         * cell.
-         * @param {Node} cell - The palette cell to set the selected color.
-         * @param {string} type - The palette type.
-         */
         var createPaletteCellAction = function(cell, type) {
             let dataset = cell.dataset;
             if (!dataset.atgSet) {
@@ -640,10 +602,6 @@ var AutotagJS = (function() {
             return pilot;
         };
 
-        // var createListFragment = function(stringOrText) {
-        //     return createFragment(stringOrText);
-        // };
-
         // Returns a marked fragment (<span>...</span>)
         var createMarkedFragment = function(text, cName, style) {
             if (typeof text === 'string') {
@@ -761,14 +719,6 @@ var AutotagJS = (function() {
             return getNodesInRange(range, NodeFilter.SHOW_TEXT, isTextNode);
         };
 
-        // var getListPrefix = function(line) {
-        //     if (isEditor(line)) return 'atg';
-        //
-        //     let names = line.className.match(/(\w+(-\w+)*)-list-\d+/);
-        //     let prefix = names && names[1];
-        //     return (prefix ? prefix : getListPrefix(line.parentNode));
-        // };
-
         var getNodesFromTree = function(walker, filter, limit) {
             let nodes = [];
             do {
@@ -820,11 +770,6 @@ var AutotagJS = (function() {
                 return rangeIntersectsNode(range, node);
             });
         };
-
-        // var getRootLine = function(node) {
-        //     node = initObject(node, _range && _range.endContainer);
-        //     return getLine(node, true);
-        // };
 
         var getStylePropertyValue = function(node, property) {
             return node &&
@@ -885,82 +830,6 @@ var AutotagJS = (function() {
             }
         };
 
-        // var toggleList = function(line, prefix) {
-        //     if (isList(line) && !isAnonymousList(line)) {
-        //         outdentList(line, false);
-        //     }
-        //     else { createOrIndentList(line, prefix); }
-        // };
-
-        // var createOrIndentList = function(line, prefix, refresh) {
-        //     refresh = initObject(refresh, true);
-        //     prefix = initObject(prefix, getListPrefix(line));
-        //
-        //     // Store the current selection nodes and offsets so that we can
-        //     // reinstate the selection after indentation.
-        //     let selection = getRangeContainersAndOffsets(_range);
-        //
-        //     // The second check is required to acomodate Firefox which
-        //     // appends the current lines classname to the previous line on
-        //     // delete.
-        //     if (isAnonymousList(line) ||
-        //         !isRootLine(line) && isListRoot(line)) {
-        //         updateList(line, prefix, getIndentationIndex(line), refresh);
-        //     }
-        //     else {
-        //         let anchor = line.previousSibling;
-        //         if (!isList(anchor)) {
-        //             anchor = createLine();
-        //             line.parentNode.insertBefore(anchor, line);
-        //
-        //             // If the newly created line is not a root list, make it
-        //             // one. Else, make this an anchor list node.
-        //             initList(anchor, _anchorListClassName);
-        //         }
-        //
-        //         anchor.appendChild(line);
-        //         updateList(line, prefix, getIndentationIndex(line), refresh);
-        //
-        //         // Now make line's children it's peer.
-        //         let children = getChildren(line, isLine);
-        //         for (let i=0; i < children.length; i++) {
-        //           line.parentNode.insertBefore(children[i], line.nextSibling);
-        //         }
-        //     }
-        //
-        //     // Reset the range to the original selection if possible.
-        //     setSelection(selection);
-        // };
-
-        // var initList = function(line, klass) {
-        //     if (isRootLine(line)) {
-        //         updateListStyle(line, _rootListClassName);
-        //         return true;
-        //     }
-        //
-        //     if (klass) { updateListStyle(line, klass); }
-        //     return false;
-        // };
-
-        // var isBlankNode = function(node) {
-        //     if (node) {
-        //         let str = node.textContent;
-        //         return (str.length == 0 || str == _zeroWidthSpace);
-        //     }
-        // };
-
-        // var isBlankLine = function(line) {
-        //     return isLine(line) && isBlankNode(line);
-        // };
-
-        // var isAnonymousList = function(line) {
-        //     return containsClass(line, _blankListClassName);
-        // };
-
-        // var isAnchorList = function(line) {
-        //     return containsClass(line, _anchorListClassName);
-        // };
-
         var isEditor = function(node) {
             return node && node.isSameNode(editor);
         };
@@ -980,40 +849,12 @@ var AutotagJS = (function() {
                 containsClass(node, _lineHeaderClassName);
         };
 
-        // var isList = function(line) {
-        //     let className = line && line.className;
-        //     return className &&
-        //         className.match(/(\w+(-\w+)*)-list-(.+)*/g);
-        // };
-
-        // var isListHead = function(line) {
-        //     let previousLine = line.previousSibling;
-        //     return isList(line) && (
-        //         !previousLine ||
-        //         getIndentationIndex(line) == 1 &&
-        //             getIndentationIndex(previousLine) == 0
-        //     );
-        // };
-
-        // var isRootLine = function(line) {
-        //     return isLine(line) && isEditor(line.parentNode);
-        // };
-
-        // var isListRoot = function(line) {
-        //     return containsClass(line, _rootListClassName);
-        // };
-
         var isFragment = function(node) {
             // return containsClass(node, _markedFragmentClassName);
             return node && isTextNode(node) &&
                 (containsClass(node.parentNode, _lineBodyClassName) ||
                     containsClass(node.parentNode, _markedFragmentClassName));
         };
-
-        // var isTabFragment = function(node) {
-        //     return isFragment(node) &&
-        //         containsClass(node, _tabFragmentClassName);
-        // };
 
         var isMarkedFragment = function(node) {
             return isFragment(node) &&
@@ -1032,13 +873,6 @@ var AutotagJS = (function() {
         var isList = function(node) {
             return isLine(node) && node.dataset.atgIndentPos !== '0';
         };
-
-        // var getLastLineInList = function(line) {
-        //     while (isList(line.nextSibling)) {
-        //         line = line.nextSibling;
-        //     }
-        //     return line;
-        // };
 
         var getFirstLineInList = function(line) {
             while (isList(line.previousSibling)) {
@@ -1089,47 +923,6 @@ var AutotagJS = (function() {
             processInput();
         };
 
-        // var outdentList = function(line, refresh) {
-        //     refresh = initObject(refresh, true);
-        //
-        //     if(isList(line)) {
-        //         let parentLine = line.parentNode;
-        //         if (!isEditor(parentLine)) {
-        //             let selection = getRangeContainersAndOffsets(_range);
-        //             prefix = getListPrefix(line);
-        //
-        //             // Now make line's children the anchor's children.
-        //             let children = getChildren(line, isLine);
-        //             if (children.length > 0) {
-        //                 let anchor = createLine();
-        //                 initList(anchor, _anchorListClassName);
-        //
-        //                 line.insertBefore(anchor, children[0]);
-        //                 for (let i=0; i < children.length; i++) {
-        //                   anchor.appendChild(children[i]);
-        //                 }
-        //             }
-        //
-        //             while (line.nextSibling) {
-        //                 line.appendChild(line.nextSibling);
-        //             }
-        //
-        //             parentLine.parentNode.insertBefore(line,
-        //                 parentLine.nextSibling);
-        //
-        //             let indentIndex = getIndentationIndex(parentLine);
-        //             updateList(line, prefix, indentIndex, refresh);
-        //
-        //             if ((getChildren(parentLine, isLine) +
-        //                 getChildren(parentLine, isFragment)) == 0) {
-        //                 removeNode(parentLine);
-        //             }
-        //
-        //             setSelection(selection);
-        //         }
-        //     }
-        // };
-
         var processInput = function() {
             let container = _range.endContainer;
 
@@ -1142,7 +935,6 @@ var AutotagJS = (function() {
                     containsClass(parent, _pilotClassName)) {
 
                     container.nodeValue = value.replace(/\u00a0/g, '');
-                    // container.nodeValue = value.substr(1);
                     parent.classList.remove(_pilotClassName);
                     range = setCaret(container);
                 }
@@ -1264,10 +1056,6 @@ var AutotagJS = (function() {
             }
         };
 
-        // var anonymizeList = function(line) {
-        //     updateListStyle(line, _blankListClassName);
-        // };
-
         var setCaret = function(node, offset) {
             if (!isTextNode(node)) {
                 node = getTextNodesInRange(range).pop();
@@ -1293,17 +1081,6 @@ var AutotagJS = (function() {
                 }
             }
         };
-
-        // var setListStyle = function(line, stylePrefix, indentIndex,
-        //         overrideStyle) {
-        //     if (indentIndex == 0) {
-        //         updateListStyle(line, _rootListClassName);
-        //     }
-        //     else if (stylePrefix && indentIndex &&
-        //             (overrideStyle || (!isAnonymousList(line) && !isAnchorList(line)))) {
-        //         updateListStyle(line, stylePrefix + "-list-" + indentIndex);
-        //     }
-        // };
 
         var setListCounter = function(line, stylePrefix, indentIndex) {
             if (indentIndex > 0) {
@@ -1442,20 +1219,6 @@ var AutotagJS = (function() {
         var processDelete = function(range) {
             return updateIndentationInRange(range, false);
         };
-
-        // var updateList = function(line, stylePrefix, indentIndex, overrideStyle) {
-        //     overrideStyle = initObject(overrideStyle, true);
-        //     if (!initList(line)) {
-        //         setListCounter(line, stylePrefix, indentIndex);
-        //         setListStyle(line, stylePrefix, indentIndex, overrideStyle);
-        //     }
-        // };
-
-        // var updateListStyle = function(line, klass) {
-        //     line.className =
-        //         line.className.replace(/(\w+(-\w+)*)-list(-.+)*/g, '');
-        //     line.classList.add(klass);
-        // };
 
         var clearNodeStyle = function(node, force) {
             // Clear up the style attribute.
