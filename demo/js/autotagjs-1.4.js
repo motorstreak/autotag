@@ -463,23 +463,22 @@ var AutotagJS = (function() {
             }
         };
 
-        var emptyLineObserver = function(mutationList) {
-            for(let mutation of mutationList) {
-                let target = mutation.target;
-                if (mutation.type == 'childList' &&
-                        mutation.removedNodes.length > 0 &&
-                        target.textContent.length == 0) {
-
-                    // Disconnect the observer on this line so that it does not
-                    // fire when we add the pilot node.
-                    this.disconnect();
-                    renewLineBody(target, false);
-
-                    // Now connect it back.
-                    this.observe(target, { childList: true, subtree: true });
-                }
-            }
-        };
+        // var emptyLineObserver = function(mutationList) {
+        //     for(let mutation of mutationList) {
+        //         let target = mutation.target;
+        //         if (mutation.type == 'characterData' &&
+        //                 target.textContent.length == 0) {
+        //
+        //             // Disconnect the observer on this line so that it does not
+        //             // fire when we add the pilot node.
+        //             this.disconnect();
+        //             renewLineBody(target.parentNode, true);
+        //
+        //             // Now connect it back.
+        //             this.observe(target, { childList: true, subtree: true });
+        //         }
+        //     }
+        // };
 
         var createCrossedPaletteCell = function(row, type) {
             let cell = createPaletteCell(row, 0, 0, 100);
@@ -553,8 +552,8 @@ var AutotagJS = (function() {
 
             // Start observing the body for empty lines so that we can
             // replenish it with the pilot node.
-            let observer = new MutationObserver(emptyLineObserver);
-            observer.observe(body, { childList: true, subtree: true });
+            // let observer = new MutationObserver(emptyLineObserver);
+            // observer.observe(body, { characterData: true, childList: true, subtree: true });
 
             if (refLine) {
                 switch (options.attachAs) {
@@ -703,8 +702,9 @@ var AutotagJS = (function() {
             return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isLine);
         };
 
-        var getTextNodesInRange = function(range) {
-            return getNodesInRange(range, NodeFilter.SHOW_TEXT, isTextNode);
+        var getFragmentsInLine = function(line) {
+            let walker = getTreeWalker(getLineBody(line), NodeFilter.SHOW_TEXT);
+            return getNodesFromTree(walker, isTextNode);
         };
 
         var getNodesFromTree = function(walker, filter, limit) {
@@ -759,28 +759,29 @@ var AutotagJS = (function() {
             });
         };
 
-        var getFragment = function(node) {
-            if (isTextNode(node)) {
-                node = node.parentNode;
-            }
+        // var getFragment = function(node) {
+        //     if (isTextNode(node)) {
+        //         node = node.parentNode;
+        //     }
+        //
+        //     if (isFragment(node)) {
+        //         return node;
+        //     }
+        //     else if (isLine(node)) {
+        //         return getFragmentsInLine(node)[0];
+        //     }
+        // };
 
-            if (isFragment(node)) {
-                return node;
-            }
-            else if (isLine(node)) {
-                return getFragmentsInLine(node)[0];
-            }
-        };
-
-        var getFragmentsInLine = function(line, deep) {
-            if (deep) {
-                let walker = getTreeWalker(line, NodeFilter.SHOW_ELEMENT);
-                return getNodesFromTree(walker, isFragment);
-            }
-            else {
-                return getChildren(line, isFragment);
-            }
-        };
+        // var getFragmentsInLine = function(line) {
+        //
+        //     if (deep) {
+        //         let walker = getTreeWalker(line, NodeFilter.SHOW_ELEMENT);
+        //         return getNodesFromTree(walker, isFragment);
+        //     }
+        //     else {
+        //         return getChildren(line, isFragment);
+        //     }
+        // };
 
         var getFragmentsInRange = function(range) {
             return getNodesInRange(range, NodeFilter.SHOW_TEXT, isFragment);
@@ -849,6 +850,7 @@ var AutotagJS = (function() {
         };
 
         var isPilotNode = function(node) {
+            node = isTextNode(node) ? node.parentNode : node;
             return containsClass(node, _pilotClassName);
         };
 
@@ -864,6 +866,8 @@ var AutotagJS = (function() {
         };
 
         var generateIndentationIdentifier = function(line) {
+            let curLine = line;
+
             line = getFirstLineInList(line);
             if (isList(line)) {
                 let indentIds = [];
@@ -895,6 +899,12 @@ var AutotagJS = (function() {
 
                 } while (isList(line.nextSibling) && (line = line.nextSibling));
             }
+
+            if (!isList(curLine)){
+                let header = getLineHeader(curLine);
+                if (header) removeNode(header);
+            }
+
         };
 
         var insertTab = function(node, index) {
@@ -1036,7 +1046,7 @@ var AutotagJS = (function() {
 
         var setCaret = function(node, offset) {
             if (!isTextNode(node)) {
-                node = getTextNodesInRange(range).pop();
+                node = getFragmentsInRange(range).pop();
                 offset = 0;
             }
 
@@ -1132,15 +1142,20 @@ var AutotagJS = (function() {
                 else if (!isCaret){
                     updateLineIndentation(line, increase);
                 }
-                else {
+                else if (increase){
                     insertTab(node, offset);
+                } else {
+                    return false;
                 }
             }
             else {
                 if (increase && isCaret) {
                     insertTab(node, offset);
+                } else {
+                    return false;
                 }
             }
+            return true;
         };
 
         var isIndented = function(node) {
@@ -1149,11 +1164,10 @@ var AutotagJS = (function() {
         };
 
         var isBeginingOfLine = function(node, offset) {
-            let parent = node.parentNode;
-            return isTextNode(node) &&
-                ((offset == 0 &&
-                    (isLineBody(parent) || !parent.previousSibling)) ||
-                    isPilotNode(parent));
+            let line = getLine(node);
+            let firstFragment = getFragmentsInLine(line).shift();
+            return isTextNode(node) && node.isSameNode(firstFragment) &&
+                (offset == 0 || isPilotNode(node.parentNode));
         };
 
         var isEndOfLine = function(node, offset) {
@@ -1164,14 +1178,53 @@ var AutotagJS = (function() {
                     isPilotNode(parent));
         };
 
-        var deleteChar = function(text, offset) {};
+        var deleteChar = function(node, offset) {
+            node.nodeValue = node.textContent.splice(offset - 1, 1, '');
+            var body = getLineBody(node);
+            if (body.textContent.length == 0) {
+                renewLineBody(body, true);
+            }
+            else {
+                setCaret(node, offset - 1);
+            }
+        };
 
-        var deleteLine = function(line) { };
+        var deleteLine = function(line) {
+            let previousLine = line.previousSibling;
+            if (previousLine) {
+                // let children = getChildren(getLineBody(line));
+                let prevLineBody = getLineBody(previousLine);
+                setCaret(prevLineBody.lastChild.firstChild);
+
+                let lineBody = getLineBody(line);
+                let firstChild;
+                while ((firstChild = lineBody.firstChild) &&
+                    !isPilotNode(firstChild)) {
+                    prevLineBody.appendChild(firstChild);
+                }
+                removeNode(line);
+            }
+        };
 
         var deleteSelection = function(range) { };
 
         var processDelete = function(range) {
-            return updateIndentationInRange(range, false);
+            if (range.collapsed) {
+                let container = range.startContainer,
+                    offset = range.startOffset;
+                let line = getLine(container);
+
+                if (!updateIndentationInRange(range, false)) {
+                    if (isBeginingOfLine(container, offset)) {
+                        deleteLine(line);
+                    }
+                    else {
+                        deleteChar(container, offset);
+                    }
+                }
+            } else {
+
+            }
         };
 
         var clearNodeStyle = function(node, force) {
@@ -1298,9 +1351,10 @@ var AutotagJS = (function() {
             let range = getRange();
 
             if (isDeleteKey(keyCode)) {
-                if (processDelete(range)) {
+                processDelete(range);
+                // if (processDelete(range)) {
                     e.preventDefault();
-                }
+                // }
             }
             else if (isTabKey(keyCode)) {
                 updateIndentationInRange(range, !shiftKey);
