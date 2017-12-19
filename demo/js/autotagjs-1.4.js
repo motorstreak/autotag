@@ -14,10 +14,10 @@ var AutotagJS = (function() {
     //              the parts as an array. If not provided, the default
     //              splitter is used.
     //
-    // decorator:   A callback function that receives nodes for processing.
-    //              Use the decorator to apply styles on the node or do whatever
+    // decorator_:   A callback function that receives nodes for processing.
+    //              Use the decorator_ to apply styles on the node or do whatever
     //              processing you wish to do. If one is not provided, the
-    //              default decorator will be used.
+    //              default decorator_ will be used.
     //
     // The callback functions below are invoked before and after processing
     // the similarly named events. If any of the before<event> callbacks
@@ -28,14 +28,14 @@ var AutotagJS = (function() {
     //      afterKeypress - called after processing a keyup event.
     //      afterSelection
     //
-    // ignoreReturnKey: If set to true, return key presses will be
+    // ignoreReturnKey_: If set to true, return key presses will be
     //              ignored. False by default.
     //
     // onReturnKey: A callback function that gets invoked when a return key
     //              press is detected during the keydown event. The callback will
-    //              only be made if the 'ignoreReturnKey' flag is set to true.
+    //              only be made if the 'ignoreReturnKey_' flag is set to true.
     //
-    // trace:     Set this to true to see debug messages on the console.
+    // trace_:     Set this to true to see debug messages on the console.
 
 
     if (!String.prototype.splice) {
@@ -69,33 +69,39 @@ var AutotagJS = (function() {
     };
 
     // Map keeyboard controls to format options since we override them.
-    var _styleKeyMap = {
+    var StyleKeyMap = Object.freeze({
         66: 'font-weight:bold',
         73: 'font-style:italic',
         85: 'text-decoration:underline'
-    };
+    });
 
-    var _tab = '\u0009',
-        _zeroWidthSpace = '\u00a0';
+    var List = Object.freeze({
+        BLANK: 0,
+        INDENT: 1,
+        OUTDENT: 2
+    });
 
-    var _listIndentCssStyle = 'margin-left:55px',
-        _lineIndentCssStyle = 'margin-left:55px';
+    var TAB = '\u0009',
+        PILOT_CONTENT = '\u00a0';
 
-    var _lineTag = 'div',
-        _markedFragmentTag = 'span';
+    var LIST_INDENT_STYLE = 'margin-left:55px',
+        LINE_INDENT_STYLE = 'margin-left:55px';
 
-    var _lineClassName = 'atg-line',
-        _lineHeaderClassName = 'atg-line-leader',
-        _lineBodyClassName = 'atg-line-body',
-        _markedFragmentClassName = 'atg-text',
-        _listFragmentClassName = 'atg-list',
-        _pilotClassName = 'atg-pilot',
-        _menuClassName = 'atg-menu',
-        _paletteClassName = 'atg-palette',
-        _paletteCellClassName = 'atg-palette-cell',
-        _paletteRowClassName = 'atg-palette-row',
-        _paletteCellCrossClassName = 'atg-crossed-cell',
-        _submenuClassName = 'atg-submenu';
+    var LINE_TAG = 'div',
+        MARKED_FRAGMENT_TAG = 'span';
+
+    var LINE_CLASSNAME = 'atg-line',
+        LINE_HEADER_CLASSNAME = 'atg-line-leader',
+        LINE_BODY_CLASSNAME = 'atg-line-body',
+        MARKED_FRAGMENT_CLASSNAME = 'atg-text',
+        LIST_FRAGMENT_CLASSNAME = 'atg-list',
+        PILOT_CLASSNAME = 'atg-pilot',
+        MENU_CLASSNAME = 'atg-menu',
+        PALETTE_CLASSNAME = 'atg-palette',
+        PALETTE_CELL_CLASSNAME = 'atg-palette-cell',
+        PALETTE_ROW_CLASSNAME = 'atg-palette-row',
+        PALETTE_CROSSED_CELL_CLASSNAME = 'atg-crossed-cell',
+        SUBMENU_CLASSNAME = 'atg-submenu';
 
     function initObject(obj, toObj) {
         return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
@@ -104,23 +110,18 @@ var AutotagJS = (function() {
     function debounce(func, wait, immediate) {
         let timeout;
         return function() {
-            let context = this,
-                args = arguments;
-
+            let context = this;
+            let args = arguments;
             let later = function() {
                 timeout = null;
-                if (!immediate) {
-                    func.apply(context, args);
-                }
+                if (!immediate) func.apply(context, args);
             };
 
             let callNow = immediate && !timeout;
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
 
-            if (callNow) {
-                func.apply(context, args);
-            }
+            if (callNow) func.apply(context, args);
         };
     }
     function getKeyCode(e) {
@@ -136,8 +137,8 @@ var AutotagJS = (function() {
     }
 
     function appendNodes(nodeList, toNode) {
-        for (let i=0; i<nodeList.length; i++) {
-            toNode = appendNode(nodeList[i], toNode);
+        for (let i=0, node; (node = nodeList[i]); i++) {
+            toNode = appendNode(node, toNode);
         }
     }
 
@@ -172,9 +173,9 @@ var AutotagJS = (function() {
         return node && node.parentNode.removeChild(node);
     }
 
-    function removeNodesInList(nodeList) {
-        for (let i=0; nodeList && i<nodeList.length; i++) {
-            removeNode(nodeList[i]);
+    function removeNodesInList(nodeList, filter) {
+        for (let i=0, node; (node = nodeList[i]); i++) {
+            if (!filter || filter(node)) removeNode(node);
         }
     }
 
@@ -220,9 +221,7 @@ var AutotagJS = (function() {
         let children = [];
         node = node.firstChild;
         while(node) {
-            if (!filter || filter(node)) {
-                children.push(node);
-            }
+            if (!filter || filter(node)) children.push(node);
             node = node.nextSibling;
         }
         return children;
@@ -239,7 +238,8 @@ var AutotagJS = (function() {
             if (selection.rangeCount) {
                 range = selection.getRangeAt(0);
             }
-        } else if ((selection = document.selection) &&
+        }
+        else if ((selection = document.selection) &&
             selection.type != 'Control') {
             range = selection.createRange();
         }
@@ -250,13 +250,13 @@ var AutotagJS = (function() {
         if (range) {
             if (window.getSelection) {
                 let selection = window.getSelection();
-                if (selection.rangeCount > 0) {
-                    selection.removeAllRanges();
-                }
+                if (selection.rangeCount > 0) selection.removeAllRanges();
                 selection.addRange(range);
-            } else if (document.createRange) {
+            }
+            else if (document.createRange) {
                 window.getSelection().addRange(range);
-            } else if (document.selection) {
+            }
+            else if (document.selection) {
                 range.select();
             }
         }
@@ -266,11 +266,13 @@ var AutotagJS = (function() {
         let nodeRange;
         if (range.intersectsNode) {
             return range.intersectsNode(node);
-        } else {
+        }
+        else {
             nodeRange = node.ownerDocument.createRange();
             try {
                 nodeRange.selectNode(node);
-            } catch (e) {
+            }
+            catch (e) {
                 nodeRange.selectNodeContents(node);
             }
 
@@ -289,45 +291,46 @@ var AutotagJS = (function() {
 
     return function(editor, config) {
         // The latest selection made in the editor.
-        let _range,
+        let savedRange_,
 
             // All selection is copied to the clipboard buffer.
-            _copiedRange,
-            _editorMenubar,
+            copiedRange_,
+            editorMenubar_,
 
             // Continues the current text style to the next line and
             // across line breaks.
-            _continuingStyle = '';
+            continuingStyle_ = '';
 
         // Initialize configuration.
         config = config || {};
 
-        let ignoreReturnKey = config.ignoreReturnKey || false;
-        let trace = config.trace || false;
+        let ignoreReturnKey_ = config.ignoreReturnKey || false;
+        let trace_ = config.trace || false;
 
         // Callbacks
-        let decorator = config.decorator || function(node, text) {};
+        let decorator_ = config.decorator || function(node, text) {};
 
         // The default splitter splits on words.
-        let splitter = config.splitter || splitAtWord;
+        let splitter_ = config.splitter || splitAtWord;
 
         // Event callbacks
-        let doAfterKeypress = config.afterKeypress || function() {};
+        let doAfterKeypress_ = config.afterKeypress || function() {};
 
         // Returns the fragments under the selection.
-        let doAfterSelection = config.afterSelection || function(fragments) {};
+        let doAfterSelection_ = config.afterSelection || function(fragments) {};
 
-        let doOnMenuClick = config.onMenuClick || function() {};
+        let doOnMenuClick_ = config.onMenuClick || function() {};
 
         var applyCommand = function(target, commands) {
             if (Array.isArray(target)) {
-                for (let i = 0; i < target.length; i++) {
-                    applyCommand(target[i], commands);
+                for (let i = 0, node; (node = target[i]); i++) {
+                    applyCommand(node, commands);
                 }
-            } else {
-                for (let j = 0; j < commands.length; j++) {
-                    let cmd = commands[j].split(/ +/);
-                    switch(cmd[0]) {
+            }
+            else {
+                for (let j = 0, command; (command = commands[j]); j++) {
+                    command = command.split(/ +/);
+                    switch(command[0]) {
                         case 'indent':
                             updateLineIndentation(target, true);
                             break;
@@ -335,7 +338,7 @@ var AutotagJS = (function() {
                             updateLineIndentation(target, false);
                             break;
                         case 'list':
-                            updateListIndentation(target, true, cmd[1]);
+                            updateListIndentation(target, true, command[1]);
                             break;
                     }
                 }
@@ -347,7 +350,7 @@ var AutotagJS = (function() {
                 applyCommand(nodes, declarations);
             }
             else if (instruction == 'atgCallback') {
-                doOnMenuClick(declarations, nodes);
+                doOnMenuClick_(declarations, nodes);
             }
             else {
                 applyStyle(nodes, instruction, declarations);
@@ -359,7 +362,8 @@ var AutotagJS = (function() {
                 for (let i = 0; i < target.length; i++) {
                     applyStyle(target[i], instruction, declarations);
                 }
-            } else {
+            }
+            else {
                 target = isTextNode(target) ? target.parentNode : target;
                 for (let j = 0; j < declarations.length; j++) {
                     let declaration = declarations[j].split(/\s*:\s*/),
@@ -374,8 +378,7 @@ var AutotagJS = (function() {
                         targetStyle.removeProperty(property);
 
                     }
-                    else if (curValue.length === 0 &&
-                        instruction.match(/^atg(Set|Initialize|Toggle)/)) {
+                    else if (instruction.match(/^atg(Set|Initialize|Toggle)/)) {
                         targetStyle.setProperty(property, value);
 
                     }
@@ -383,8 +386,8 @@ var AutotagJS = (function() {
                         curValue = curValue ||
                             getComputedStyle(target).getPropertyValue(property);
 
-                        let amount = extractAmount(value),
-                            curAmount = extractAmount(curValue);
+                        let amount = extractAmount(value);
+                        let curAmount = extractAmount(curValue);
 
                         switch(instruction) {
                             case 'atgIncrement':
@@ -407,13 +410,13 @@ var AutotagJS = (function() {
         };
 
         var createPalette = function(menu) {
-            let palette = menu.getElementsByClassName(_submenuClassName)[0];
+            let palette = menu.getElementsByClassName(SUBMENU_CLASSNAME)[0];
             if (palette) {
                 palette.style.display = '';
             }
             else {
                 palette = createElement('div',
-                    _submenuClassName + ' ' + _paletteClassName);
+                    SUBMENU_CLASSNAME + ' ' + PALETTE_CLASSNAME);
 
                 let type = menu.dataset.atgSubmenu.split('Palette')[0];
                 palette.dataset.atgPalette = type;
@@ -427,7 +430,8 @@ var AutotagJS = (function() {
                     saturationStep = Math.round(10 / maxRows),
                     luminosityStep = Math.round(90 / maxRows);
 
-                for (let i = 0, s = 100, l = 94; i < maxRows; i++, s -= saturationStep, l -= luminosityStep) {
+                for (let i = 0, s = 100, l = 94; i < maxRows;
+                        i++, s -= saturationStep, l -= luminosityStep) {
                     row = createPaletteRow(palette);
                     for (let j = 0, h = 0; j < maxCols; j++, h += hueStep) {
                         createPaletteCell(row, h, s, l, type);
@@ -437,7 +441,8 @@ var AutotagJS = (function() {
                 row = createPaletteRow(palette);
                 luminosityStep = Math.round(100 / (maxCols-1));
 
-                for (i = 0, l = luminosityStep; i < maxCols-1; i++, l += luminosityStep) {
+                for (let i = 0, l = luminosityStep; i < maxCols-1;
+                        i++, l += luminosityStep) {
                     createPaletteCell(row, 0, 0, l, type);
                 }
                 createCrossedPaletteCell(row, type);
@@ -482,7 +487,7 @@ var AutotagJS = (function() {
 
         var createCrossedPaletteCell = function(row, type) {
             let cell = createPaletteCell(row, 0, 0, 100);
-            cell.classList.add(_paletteCellCrossClassName);
+            cell.classList.add(PALETTE_CROSSED_CELL_CLASSNAME);
 
             if (type === 'color') {
                 cell.dataset.atgPaletteColor = '#000';
@@ -492,7 +497,7 @@ var AutotagJS = (function() {
 
         var createPaletteCell = function(row, h, s, l, type) {
             let hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
-            let cell = createElement('div', _paletteCellClassName);
+            let cell = createElement('div', PALETTE_CELL_CLASSNAME);
 
             cell.style.background = hsla;
             cell.dataset.atgPaletteColor = hsla;
@@ -518,21 +523,21 @@ var AutotagJS = (function() {
 
         var createPaletteRow = function(palette) {
             return palette.appendChild(
-                createElement('div', _paletteRowClassName));
+                createElement('div', PALETTE_ROW_CLASSNAME));
         };
 
         var generateLineHeader = function(line) {
             let header = getLineHeader(line);
 
             if (!header) {
-                header = createElement(_lineTag, _lineHeaderClassName);
+                header = createElement(LINE_TAG, LINE_HEADER_CLASSNAME);
                 header.setAttribute('contenteditable', 'false');
                 line.insertBefore(header, line.firstChild);
             }
 
             // Now generate the content.
             let listId = line.dataset.atgListId;
-            if (listId) {
+            if (listId !== null) {
                 removeAllChildNodes(header);
                 header.appendChild(createTextNode(listId));
             }
@@ -541,9 +546,8 @@ var AutotagJS = (function() {
 
         var createLine = function(refLine, options) {
             options = options || {};
-
-            let line = createElement(_lineTag, _lineClassName),
-                body = createElement(_lineTag, _lineBodyClassName);
+            let line = createElement(LINE_TAG, LINE_CLASSNAME);
+            let body = createElement(LINE_TAG, LINE_BODY_CLASSNAME);
 
             line.appendChild(body);
 
@@ -575,27 +579,21 @@ var AutotagJS = (function() {
                     line.dataset.atgIndentPos = refLine.dataset.atgIndentPos;
                 }
 
-                if (options.addPilotNode) {
+                if (options.addPilotNode)
                     renewLineBody(body, options.setCaret);
-                }
             }
             return line;
         };
 
         var renewLineBody = function(node, focus) {
-            // Remove all content;
-            while (node.firstChild) {
-                node.removeChild(node.firstChild);
-            }
+            removeAllChildNodes(node);
 
             // Now create the pilot node.
-            let pilot = createTextNode(_zeroWidthSpace);
+            let pilot = createTextNode(PILOT_CONTENT);
             node.appendChild(pilot);
-            node.classList.add(_pilotClassName);
+            node.classList.add(PILOT_CLASSNAME);
 
-            if (focus) {
-                setCaret(pilot, 0);
-            }
+            if (focus) setCaret(pilot, 0);
             return pilot;
         };
 
@@ -606,10 +604,10 @@ var AutotagJS = (function() {
             }
 
             if (isTextNode(text)) {
-                let fragment = createElement(_markedFragmentTag, cName);
+                let fragment = createElement(MARKED_FRAGMENT_TAG, cName);
                 fragment.appendChild(text);
-                fragment.setAttribute('style', style || _continuingStyle);
-                fragment.classList.add(_markedFragmentClassName);
+                fragment.setAttribute('style', style || continuingStyle_);
+                fragment.classList.add(MARKED_FRAGMENT_CLASSNAME);
                 return fragment;
             }
         };
@@ -629,7 +627,7 @@ var AutotagJS = (function() {
         };
 
         var fixEditor = function() {
-            if (editor.textContent.length == 0) {
+            if (isBlank(editor)) {
                 return createLine(editor, {
                     attachAs: 'child',
                     addPilotNode: true,
@@ -639,7 +637,7 @@ var AutotagJS = (function() {
         };
 
         var formatSelection = function(dataset, scope) {
-            if (_range && dataset) {
+            if (savedRange_ && dataset) {
                 let nodes = getNodesInSelection(scope);
                 for (let key in dataset) {
                     if (dataset.hasOwnProperty(key)) {
@@ -650,7 +648,7 @@ var AutotagJS = (function() {
 
                 // Ensure that the selection does not disapper after we have
                 // applied formatting.
-                resetRange(_range);
+                resetRange(savedRange_);
             }
         };
 
@@ -658,40 +656,36 @@ var AutotagJS = (function() {
             let nodes;
             switch (scope) {
                 case 'line':
-                    nodes = getLinesInRange(_range);
+                    nodes = getLinesInRange(savedRange_);
                     break;
                 default:
-                    nodes = createFragmentsInRange(_range);
+                    nodes = createFragmentsInRange(savedRange_);
                     break;
             }
+            nodes = nodes || [];
             return nodes.filter(Boolean);
         };
 
         var getActiveLine = function() {
-            return _range && getLine(_range.startContainer, false);
+            return savedRange_ && getLine(savedRange_.startContainer, false);
         };
 
         var getFirstLine = function() {
-            return editor.querySelector(_lineTag + ':first-child');
+            return editor.querySelector(LINE_TAG + ':first-child');
         };
 
         var getLineBody = function(node) {
-            if (!isLine(node)) {
-                node = getLine(node);
-            }
-            return node.querySelector('.' + _lineBodyClassName);
+            if (!isLine(node)) node = getLine(node);
+            return node.querySelector('.' + LINE_BODY_CLASSNAME);
         };
 
         var getLineHeader = function(node) {
-            if (!isLine(node)) {
-                node = getLine(node);
-            }
-            return node.querySelector('.' + _lineHeaderClassName);
+            if (!isLine(node)) node = getLine(node);
+            return node.querySelector('.' + LINE_HEADER_CLASSNAME);
         };
 
         var getLine = function(node) {
             if (isEditor(node)) return getFirstLine();
-
             while (node && !isLine(node)) {
                 node = node.parentNode;
             }
@@ -702,28 +696,31 @@ var AutotagJS = (function() {
             return getNodesInRange(range, NodeFilter.SHOW_ELEMENT, isLine);
         };
 
-        var getFragmentsInLine = function(line) {
-            let walker = getTreeWalker(getLineBody(line), NodeFilter.SHOW_TEXT);
-            return getNodesFromTree(walker, isTextNode);
+        var getFragmentsInLine = function(node) {
+            node = isLine(node) ? node : getLine(node);
+            return getNodesFromTree(
+                getTreeWalker(getLineBody(node), NodeFilter.SHOW_TEXT),
+                isTextNode);
         };
 
         var getNodesFromTree = function(walker, filter, limit) {
             let nodes = [];
             do {
                 let node = walker.currentNode;
-                if (!filter || filter(node)) { nodes.push(node); }
+                if (!filter || filter(node)) nodes.push(node);
             } while (walker.nextNode() && (!limit || nodes.length <= limit));
             return nodes;
         };
 
         var getNodesInRange = function(range, nodeFilter, filter) {
-            let walker = getRangeWalker(range, nodeFilter, filter);
-            return getNodesFromTree(walker, filter);
+            return getNodesFromTree(
+                    getRangeWalker(range, nodeFilter, filter),
+                    filter);
         };
 
         var getParentMenu = function(node) {
-            while(node && !containsClass(node, _submenuClassName) &&
-                !containsClass(node, _menuClassName)) {
+            while(node && !containsClass(node, SUBMENU_CLASSNAME) &&
+                !containsClass(node, MENU_CLASSNAME)) {
                 node = node.parentNode;
 
                 // Should not happen! Ever.
@@ -759,30 +756,6 @@ var AutotagJS = (function() {
             });
         };
 
-        // var getFragment = function(node) {
-        //     if (isTextNode(node)) {
-        //         node = node.parentNode;
-        //     }
-        //
-        //     if (isFragment(node)) {
-        //         return node;
-        //     }
-        //     else if (isLine(node)) {
-        //         return getFragmentsInLine(node)[0];
-        //     }
-        // };
-
-        // var getFragmentsInLine = function(line) {
-        //
-        //     if (deep) {
-        //         let walker = getTreeWalker(line, NodeFilter.SHOW_ELEMENT);
-        //         return getNodesFromTree(walker, isFragment);
-        //     }
-        //     else {
-        //         return getChildren(line, isFragment);
-        //     }
-        // };
-
         var getFragmentsInRange = function(range) {
             return getNodesInRange(range, NodeFilter.SHOW_TEXT, isFragment);
         };
@@ -799,7 +772,7 @@ var AutotagJS = (function() {
                 whatToShow, {
                     acceptNode: function(node) {
                         return (!filter || filter(node)) ? NodeFilter.FILTER_ACCEPT
-                                                     : NodeFilter.FILTER_REJECT;
+                                                         : NodeFilter.FILTER_REJECT;
                     }
                 },
                 false
@@ -807,9 +780,9 @@ var AutotagJS = (function() {
         };
 
         var hideSubmenus = function() {
-            let submenus = menubar.querySelectorAll('.' + _submenuClassName);
-            for(let i=0; i<submenus.length; i++) {
-                hideNode(submenus[i]);
+            let submenus = menubar.querySelectorAll('.' + SUBMENU_CLASSNAME);
+            for (let i=0, submenu; (submenu = submenus[i]); i++) {
+                hideNode(submenu);
             }
         };
 
@@ -818,44 +791,50 @@ var AutotagJS = (function() {
         };
 
         var isLine = function(node) {
-            return isElementNode(node) &&
-                containsClass(node, _lineClassName);
+            return isElementNode(node) && containsClass(node, LINE_CLASSNAME);
         };
 
         var isLineBody = function(node) {
             return isElementNode(node) &&
-                containsClass(node, _lineBodyClassName);
+                containsClass(node, LINE_BODY_CLASSNAME);
         };
 
         var isLineHeader = function(node) {
             return isElementNode(node) &&
-                containsClass(node, _lineHeaderClassName);
+                containsClass(node, LINE_HEADER_CLASSNAME);
         };
 
         var isFragment = function(node) {
-            // return containsClass(node, _markedFragmentClassName);
             return node && isTextNode(node) &&
-                (containsClass(node.parentNode, _lineBodyClassName) ||
-                    containsClass(node.parentNode, _markedFragmentClassName));
+                (containsClass(node.parentNode, LINE_BODY_CLASSNAME) ||
+                    containsClass(node.parentNode, MARKED_FRAGMENT_CLASSNAME));
         };
 
         var isMarkedFragment = function(node) {
             return isFragment(node) &&
-                containsClass(node.parentNode, _markedFragmentClassName);
+                containsClass(node.parentNode, MARKED_FRAGMENT_CLASSNAME);
         };
 
         var isUnmarkedFragment = function(node) {
             return isFragment(node) &&
-                containsClass(node.parentNode, _lineBodyClassName);
+                containsClass(node.parentNode, LINE_BODY_CLASSNAME);
         };
 
-        var isPilotNode = function(node) {
+        var isBlank = function(node) {
+            return node && node.textContent.length ==0;
+        };
+
+        var isPilot = function(node) {
             node = isTextNode(node) ? node.parentNode : node;
-            return containsClass(node, _pilotClassName);
+            return containsClass(node, PILOT_CLASSNAME);
         };
 
         var isList = function(node) {
             return isLine(node) && node.dataset.atgIndentPos !== '0';
+        };
+
+        var isBlankList = function(node) {
+            return isList(node) && node.dataset.atgListId === '';
         };
 
         var getFirstLineInList = function(line) {
@@ -888,10 +867,9 @@ var AutotagJS = (function() {
                         indentPos = curPos;
 
                         // Fill in for skipped positions
-                        for(let i=0; i<indentIds.length; i++) {
+                        for (let i=0, id; i<indentIds.length; i++) {
                             if (!indentIds[i]) indentIds[i] = 1;
                         }
-
                         line.dataset.atgListId =
                             indentIds.slice(0, parseInt(indentPos)).join('.');
                     }
@@ -904,7 +882,6 @@ var AutotagJS = (function() {
                 let header = getLineHeader(curLine);
                 if (header) removeNode(header);
             }
-
         };
 
         var insertTab = function(node, index) {
@@ -916,18 +893,16 @@ var AutotagJS = (function() {
         };
 
         var processInput = function() {
-            let container = _range.endContainer;
-
+            let container = savedRange_.endContainer;
             if (isTextNode(container)) {
                 let value = container.nodeValue;
                 let parent = container.parentNode;
 
                 // Remove the lead character as it is no longer required.
                 if (value.match(/\u00a0/) &&
-                    containsClass(parent, _pilotClassName)) {
-
+                    containsClass(parent, PILOT_CLASSNAME)) {
                     container.nodeValue = value.replace(/\u00a0/g, '');
-                    parent.classList.remove(_pilotClassName);
+                    parent.classList.remove(PILOT_CLASSNAME);
                     range = setCaret(container);
                 }
 
@@ -942,9 +917,8 @@ var AutotagJS = (function() {
 
         var pasteClipboardContent = function(e) {
             let content;
-            let container = _range.endContainer;
-
-            if (!_copiedRange || _copiedRange.collapsed) {
+            let container = savedRange_.endContainer;
+            if (!copiedRange_ || copiedRange_.collapsed) {
                 if (e.clipboardData) {
                     content = (e.originalEvent || e)
                         .clipboardData.getData('text/plain');
@@ -966,10 +940,9 @@ var AutotagJS = (function() {
             }
             else {
                 let fragment =
-                    splitFragment(container.parentNode, _range.endOffset);
-                appendNode(_copiedRange.cloneContents(), fragment);
-
-                if (isBlankNode(fragment) && !isList(fragment.nextSibling)) {
+                    splitFragment(container.parentNode, savedRange_.endOffset);
+                appendNode(copiedRange_.cloneContents(), fragment);
+                if (isBlank(fragment) && !isList(fragment.nextSibling)) {
                     removeNode(fragment);
                 }
             }
@@ -1013,6 +986,12 @@ var AutotagJS = (function() {
 
                     getLineBody(newLine).appendChild(fragment);
                     appendNodes(nodes, fragment);
+
+                    // Remove empty fragment.
+                    if (isBlank(fragment)) {
+                        fragment = fragment.nextSibling;
+                        removeNode(fragment.previousSibling);
+                    }
                     setCaret(fragment.firstChild, 0);
                 }
 
@@ -1021,9 +1000,7 @@ var AutotagJS = (function() {
                 // A common line style is indentation set using CSS margins.
                 // Carry this onto the new line.
                 let style = line.getAttribute('style');
-                if (style) {
-                    newLine.setAttribute('style', style);
-                }
+                if (style) newLine.setAttribute('style', style);
 
                 // Shift + Return allows creating new lines without the list
                 // numbering while retaining the same indentation and allowing
@@ -1031,7 +1008,6 @@ var AutotagJS = (function() {
                 if (isList(newLine) && shifted) {
                     newLine.dataset.atgListId = '';
                 }
-
                 generateIndentationIdentifier(newLine);
             }
         };
@@ -1039,17 +1015,15 @@ var AutotagJS = (function() {
         var saveSelectionRange = function() {
             let range = getRange();
             if (range && range.startContainer.nodeType != 9) {
-                _range = getRange() || _range;
-                return _range;
+                savedRange_ = getRange() || savedRange_;
+                return savedRange_;
             }
         };
 
         var setCaret = function(node, offset) {
             if (!isTextNode(node)) {
-                node = getFragmentsInRange(range).pop();
-                offset = 0;
+                node = getFragmentsInLine(node).pop();
             }
-
             if (node) {
                 offset = initObject(offset, node.length);
                 return setSelection({
@@ -1062,10 +1036,10 @@ var AutotagJS = (function() {
         };
 
         var setContinuingStyle = function() {
-            if (_range) {
-                let fragment = getMarkedFragmentsInRange(_range).pop();
+            if (savedRange_) {
+                let fragment = getMarkedFragmentsInRange(savedRange_).pop();
                 if (fragment) {
-                    _continuingStyle = fragment.parentNode.getAttribute('style');
+                    continuingStyle_ = fragment.parentNode.getAttribute('style');
                 }
             }
         };
@@ -1084,8 +1058,9 @@ var AutotagJS = (function() {
                 try {
                     range.setStart(startNode, startOffset);
                     range.setEnd(endNode, endOffset);
-                    _range = range;
-                } catch (err) {
+                    savedRange_ = range;
+                }
+                catch (err) {
                     // Chrome does not like setting an offset of 1
                     // on an empty node.
                 }
@@ -1098,61 +1073,66 @@ var AutotagJS = (function() {
             line.dataset.atgIndentPos = pos;
         };
 
-        var updateListIndentation = function(line, increase, type) {
-            applyStyle(line, getIncrementDecrementInstruction(increase),
-                [_listIndentCssStyle]);
+        var updateListIndentation = function(line, indentType, type) {
+            if (indentType == List.BLANK && isBlankList(line)) {
+                indentType = List.OUTDENT;
+            }
+
+            let increaseIndent = (indentType == List.INDENT);
+            let decreaseIndent = (indentType == List.OUTDENT);
+
+            if (indentType !== List.BLANK) {
+                applyStyle(line,
+                    getIncrementDecrementInstruction(increaseIndent),
+                    [LIST_INDENT_STYLE]);
+            }
 
             var indentPos = parseInt(line.dataset.atgIndentPos);
-            if (increase) {
-                if (indentPos) {
-                    setLineIndentPosition(line, indentPos + 1);
-                }
-                else {
-                    setLineIndentPosition(line, 1);
-                }
+            if (increaseIndent) {
+                if (indentPos) setLineIndentPosition(line, indentPos + 1);
+                else setLineIndentPosition(line, 1);
             }
-            else if (indentPos) {
-                setLineIndentPosition(line, indentPos - 1);
+            else if (decreaseIndent) {
+                if (indentPos) setLineIndentPosition(line, indentPos - 1);
+            }
+            else {
+                line.dataset.atgListId = '';
             }
             generateIndentationIdentifier(line);
         };
 
         var updateLineIndentation = function(line, increase, list) {
             applyStyle(line, getIncrementDecrementInstruction(increase),
-                [_lineIndentCssStyle]);
+                [LINE_INDENT_STYLE]);
         };
 
         var getIncrementDecrementInstruction = function(increase) {
             return increase ? 'atgIncrement' : 'atgDecrement';
         };
 
-        var updateIndentationInRange = function(range, increase, list) {
-            let node = range.startContainer,
-                offset = range.startOffset,
-                isCaret = range.collapsed;
+        var updateIndentationInRange = function(range, indentType, list) {
+            let node = range.startContainer;
+            let offset = range.startOffset;
+            let isSelection = !range.collapsed;
+            let increase = (indentType == List.INDENT);
 
-            let line = getLine(node);
-            let isCaretAtBeginning = isCaret &&
-                    isBeginingOfLine(node, offset);
-
-            if (isCaretAtBeginning || !isCaret) {
-                if (isList(line)) {
-                    updateListIndentation(line, increase);
-                }
-                else if (!isCaret){
-                    updateLineIndentation(line, increase);
-                }
-                else if (increase){
-                    insertTab(node, offset);
-                } else {
-                    return false;
+            if (isSelection) {
+                let lines = getLinesInRange(range);
+                for(let i = 0, line; (line = lines[i]); i++) {
+                    if (isList(line)) updateListIndentation(line, indentType);
+                    else updateLineIndentation(line, increase);
                 }
             }
             else {
-                if (increase && isCaret) {
-                    insertTab(node, offset);
-                } else {
-                    return false;
+                let line = getLine(node);
+                if (isBeginingOfLine(node, offset)) {
+                    if (isList(line)) updateListIndentation(line, indentType);
+                    else if (increase) updateLineIndentation(line, increase);
+                    else return false;
+                }
+                else {
+                    if (increase) insertTab(node, offset);
+                    else return false;
                 }
             }
             return true;
@@ -1164,10 +1144,9 @@ var AutotagJS = (function() {
         };
 
         var isBeginingOfLine = function(node, offset) {
-            let line = getLine(node);
-            let firstFragment = getFragmentsInLine(line).shift();
+            let firstFragment = getFragmentsInLine(node).shift();
             return isTextNode(node) && node.isSameNode(firstFragment) &&
-                (offset == 0 || isPilotNode(node.parentNode));
+                (offset == 0 || isPilot(node.parentNode));
         };
 
         var isEndOfLine = function(node, offset) {
@@ -1175,56 +1154,63 @@ var AutotagJS = (function() {
             return isTextNode(node) &&
                 ((offset == node.textContent.length &&
                     (isLineBody(parent) || !parent.nextSibling)) ||
-                    isPilotNode(parent));
+                    isPilot(parent));
         };
 
         var deleteChar = function(node, offset) {
             node.nodeValue = node.textContent.splice(offset - 1, 1, '');
-            var body = getLineBody(node);
-            if (body.textContent.length == 0) {
-                renewLineBody(body, true);
-            }
-            else {
-                setCaret(node, offset - 1);
-            }
+            setCaret(node, offset - 1);
         };
 
         var deleteLine = function(line) {
             let previousLine = line.previousSibling;
             if (previousLine) {
-                // let children = getChildren(getLineBody(line));
                 let prevLineBody = getLineBody(previousLine);
-                setCaret(prevLineBody.lastChild.firstChild);
-
                 let lineBody = getLineBody(line);
-                let firstChild;
-                while ((firstChild = lineBody.firstChild) &&
-                    !isPilotNode(firstChild)) {
-                    prevLineBody.appendChild(firstChild);
+                if (isPilot(lineBody)) {
+                    setCaret(prevLineBody.lastChild);
+                }
+                else {
+                    if (isPilot(prevLineBody)) {
+                        removeAllChildNodes(prevLineBody);
+                    }
+                    let nodes = getChildren(lineBody);
+                    for (let i=0, node; (node = nodes[i]); i++) {
+                        prevLineBody.appendChild(node);
+                    }
+                    setCaret(nodes[0].firstChild, 0);
                 }
                 removeNode(line);
             }
         };
 
-        var deleteSelection = function(range) { };
+        var deleteSelection = function(range) {
+            let fragments = createFragmentsInRange(range);
+            for (let i=0, node; (node = fragments[i]); i++) {
+                if (isMarkedFragment(node)) node = node.parentNode;
+                removeNode(node);
+            }
+            removeNodesInList(getLinesInRange(range), function(line) {
+                return isPilot(line) || isBlank(getLineBody(line));
+            });
+        };
 
         var processDelete = function(range) {
             if (range.collapsed) {
                 let container = range.startContainer,
                     offset = range.startOffset;
-                let line = getLine(container);
 
-                if (!updateIndentationInRange(range, false)) {
-                    if (isBeginingOfLine(container, offset)) {
+                let line = getLine(container);
+                let updateSuccess = updateIndentationInRange(range, List.BLANK);
+                if (!updateSuccess) {
+                    if (isPilot(container) ||
+                        isBeginingOfLine(container, offset)) {
                         deleteLine(line);
                     }
-                    else {
-                        deleteChar(container, offset);
-                    }
+                    else deleteChar(container, offset);
                 }
-            } else {
-
             }
+            else deleteSelection(range);
         };
 
         var clearNodeStyle = function(node, force) {
@@ -1234,16 +1220,13 @@ var AutotagJS = (function() {
             }
         };
 
-        var splitFragment = function(fragment, offset) {
-        };
-
         var fragmentText = function(text, offset) {
             offset = initObject(offset, 0);
             if (isTextNode(text)) {
                 let newFragment;
                 let fragment = text.parentNode;
                 if (isMarkedFragment(text)) {
-                    if (offset == 0) {
+                    if (offset == 0 || offset == text.length) {
                         newFragment = fragment;
                     }
                     else {
@@ -1294,7 +1277,7 @@ var AutotagJS = (function() {
                 }
 
                 // Rebuild original selection range for further processing.
-                _range = setSelection({
+                savedRange_ = setSelection({
                     startContainer: startFragment.firstChild,
                     startOffset: 0,
                     endContainer: endFragment.firstChild,
@@ -1302,21 +1285,20 @@ var AutotagJS = (function() {
                 });
 
                 // Now return all tghe fragments.
-                var fragments =  getFragmentsInRange(_range);
+                let fragments =  getFragmentsInRange(savedRange_);
 
                 // Ensure all fragment are marked. If not, mark them. Note that
                 // unmarked fragments may show up when the selection covers
                 // multiple lines in which an intermediate line contains
                 // unmarked nodes.
-                for (let i=0; i<fragments.length; i++) {
-                    if (isUnmarkedFragment(fragments[i])) {
-                        let next = fragments[i].nextSibling;
-                        let parent = fragments[i].parentNode;
-                        let fragment = createMarkedFragment(fragments[i]);
+                for (let i=0, node; (node = fragments[i]); i++) {
+                    if (isUnmarkedFragment(node)) {
+                        let next = node.nextSibling;
+                        let parent = node.parentNode;
+                        let fragment = createMarkedFragment(node);
                         parent.insertBefore(fragment, next);
                     }
                 }
-
                 return fragments;
             }
         };
@@ -1342,38 +1324,31 @@ var AutotagJS = (function() {
             let keyCode = getKeyCode(e),
                 shiftKey = e.shiftKey;
 
-            if (!isDeleteKey(keyCode)) {
-                fixCaret();
-            }
+            if (!isDeleteKey(keyCode)) fixCaret();
 
             // Get the latest and greatest range since we cannot rely on
-            // any buffered selection range (_range).
+            // any buffered selection range (savedRange_).
             let range = getRange();
 
             if (isDeleteKey(keyCode)) {
                 processDelete(range);
-                // if (processDelete(range)) {
-                    e.preventDefault();
-                // }
+                e.preventDefault();
             }
             else if (isTabKey(keyCode)) {
-                updateIndentationInRange(range, !shiftKey);
+                updateIndentationInRange(range,
+                    shiftKey ? List.OUTDENT : List.INDENT);
                 e.preventDefault();
             }
             else if (isReturnKey(keyCode)) {
-                if (!ignoreReturnKey) {
-                    processReturnKey(range, shiftKey);
-                }
+                if (!ignoreReturnKey_) processReturnKey(range, shiftKey);
                 e.preventDefault();
             }
             else if (e.metaKey && isFormatKey(keyCode)) {
-                formatSelection({ atgToggle: _styleKeyMap[keyCode] });
+                formatSelection({ atgToggle: StyleKeyMap[keyCode] });
                 e.preventDefault();
             }
-            else if (isLeftArrowKey(keyCode) || isRightArrowKey(keyCode)){
-                if (processArrowKeys(range, keyCode)) {
-                     e.preventDefault();
-                }
+            else if (isLeftArrowKey(keyCode) || isRightArrowKey(keyCode)) {
+                if (processArrowKeys(range, keyCode)) e.preventDefault();
             }
         });
 
@@ -1393,33 +1368,32 @@ var AutotagJS = (function() {
 
         document.addEventListener('selectionchange', debounce(function(e) {
             if (saveSelectionRange()) {
-                // setContinuingStyle();
-                doAfterSelection(getMarkedFragmentsInRange(_range));
+                doAfterSelection_(getMarkedFragmentsInRange(savedRange_));
             }
         }, 200));
 
         return {
             attachMenubar: function(menubar) {
                 if (menubar) {
-                    _editorMenubar = menubar;
-                    _editorMenubar.addEventListener('click', function(e) {
+                    editorMenubar_ = menubar;
+                    editorMenubar_.addEventListener('click', function(e) {
                         hideSubmenus();
 
                         // The click event remove the text selection. Reinstate
                         // the selection so that we can format the content in
                         // the highlighted text.
-                        resetRange(_range);
+                        resetRange(savedRange_);
 
                         let target = e.target;
                         let menu = getParentMenu(target);
-                        let submenu = menu.querySelector('.' + _submenuClassName);
+
+                        if (!menu) return;
+                        let submenu =
+                            menu.querySelector('.' + SUBMENU_CLASSNAME);
 
                         // If a submenu already exists, just display it.
                         if (submenu) {
                             toggleNodeVisibility(submenu);
-
-                        // If atg-submenu is specified (and no submenu exists),
-                        // proceed to take action.
                         }
                         else if (menu.dataset.atgSubmenu) {
                             // If atg-submenu eludes to palette, create it and
