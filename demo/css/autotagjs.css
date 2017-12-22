@@ -2,7 +2,7 @@
 .atg-text,
 .atg-tab {
     caret-color: #777;
-    min-width: 1px;
+    /* min-width: 1px; */
 }
 
 /*.atg-cursor {
@@ -12,9 +12,7 @@
 /* Prevent words from breaking.
  * Courtesy: https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/
  */
- .atg-text,
- .atg-tab,
- .atg-line {
+ .atg-line > * {
     /* These are technically the same, but use both */
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -40,9 +38,10 @@
 
 .atg-line-leader {
     vertical-align: top;
-    min-width: 30px;
+    /* min-width: 30px; */
     text-align: right;
     padding-right: 10px;
+    word-break: normal;
 }
 
 .atg-line-body {
