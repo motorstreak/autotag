@@ -1193,12 +1193,13 @@ var AutotagJS = (function() {
             removeNodesInList(getLinesInRange(range), function(line) {
                 return isPilot(line) || isBlank(getLineBody(line));
             });
+            fixEditor();
         };
 
         var processDelete = function(range) {
             if (range.collapsed) {
-                let container = range.startContainer,
-                    offset = range.startOffset;
+                let container = range.startContainer;
+                let offset = range.startOffset;
 
                 let line = getLine(container);
                 let updateSuccess = updateIndentationInRange(range, List.BLANK);
@@ -1214,7 +1215,6 @@ var AutotagJS = (function() {
         };
 
         var clearNodeStyle = function(node, force) {
-            // Clear up the style attribute.
             if (force || !node.getAttribute('style')) {
                 node.removeAttribute('style');
             }
