@@ -596,7 +596,6 @@ var AutotagJS = (function() {
                 if (options.addPilotNode) {
                     renewLineBody(body, options.setCaret);
                 }
-
             }
             return line;
         };
@@ -654,7 +653,6 @@ var AutotagJS = (function() {
                             dataset[key].split(/\s*;\s*/));
                     }
                 }
-
                 // Ensure that the selection does not disapper after we have
                 // applied formatting.
                 resetRange(savedRange_);
@@ -977,7 +975,7 @@ var AutotagJS = (function() {
                     });
                 }
                 else {
-                    var fragment = splitFragment(container, offset)[1];
+                    let fragment = splitFragment(container, offset)[1];
                     newLine = createLine(line, {attachAs: 'next_sibling'});
 
                     // // Collect remaining nodes (Fragments and Lines) and append
@@ -1050,7 +1048,6 @@ var AutotagJS = (function() {
                     endOffset = initObject(selection.endOffset, endNode.length);
 
                 range = document.createRange();
-
                 try {
                     range.setStart(startNode, startOffset);
                     range.setEnd(endNode, endOffset);
@@ -1083,7 +1080,7 @@ var AutotagJS = (function() {
                     [LIST_INDENT_STYLE]);
             }
 
-            var indentPos = parseInt(line.dataset.atgIndentPos);
+            let indentPos = parseInt(line.dataset.atgIndentPos);
             if (increaseIndent) {
                 if (indentPos) setLineIndentPosition(line, indentPos + 1);
                 else setLineIndentPosition(line, 1);
