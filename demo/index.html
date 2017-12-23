@@ -262,6 +262,11 @@
             var italicMenuClassList = getMenuClassList('icon-italic');
             var underlinedMenuClassList = getMenuClassList('icon-underlined');
 
+            var textColorIcon =
+                menubar.getElementsByClassName('icon-color-text')[0];
+            var fillColorIcon =
+                menubar.getElementsByClassName('icon-color-fill')[0];
+
             var setMenuIconState = function(classList, isActive) {
                 if (classList) {
                     if (isActive) {
@@ -271,6 +276,7 @@
                     }
                 }
             };
+
 
             var isBold = function(fragment) {
                 return fragment.style.getPropertyValue('font-weight') == 'bold';
@@ -309,10 +315,15 @@
                 afterSelection: function(fragments) {
                     let fragment;
                     if (fragments.length == 1 && (fragment = fragments[0])) {
+                        console.log(fragment);
                         fragment = fragment.parentNode;
                         setMenuIconState(boldMenuClassList, isBold(fragment));
                         setMenuIconState(italicMenuClassList, isItalic(fragment));
                         setMenuIconState(underlinedMenuClassList, isUnderlined(fragment));
+
+                        // Other icons
+                        textColorIcon.style.color = fragment.style.color;
+                        fillColorIcon.style.color = fragment.style.backgroundColor;
                     }
                 },
 

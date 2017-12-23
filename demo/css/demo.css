@@ -185,8 +185,8 @@ body {
     flex-flow : row wrap;
     align-items : center;
     justify-content : center;
-    /*border-bottom : 1px solid #EEE;*/
-    /*background : #F5F5F5;*/
+    border-bottom : 1px solid #EEE;
+    background : #F5F5F5;
     position : relative;
     color : #000;
 }

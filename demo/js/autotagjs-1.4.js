@@ -52,7 +52,8 @@ var AutotagJS = (function() {
          * @return {string} A new string with the spliced substring.
          */
         String.prototype.splice = function(start, delCount, newSubStr) {
-            return this.slice(0, start) + newSubStr + this.slice(start + Math.abs(delCount));
+            return this.slice(0, start) + newSubStr +
+                this.slice(start + Math.abs(delCount));
         };
     }
 
@@ -139,6 +140,12 @@ var AutotagJS = (function() {
     function appendNodes(nodeList, toNode) {
         for (let i=0, node; (node = nodeList[i]); i++) {
             toNode = appendNode(node, toNode);
+        }
+    }
+
+    function appendChildNodes(nodeList, toNode) {
+        for (let i=0, node; (node = nodeList[i]); i++) {
+            toNode.appendChild(node);
         }
     }
 
@@ -289,6 +296,13 @@ var AutotagJS = (function() {
         return (code == 66 || code == 73 || code == 85);
     }
 
+    function wrapNode(node, wrapper) {
+        if (node.parentNode) {
+            node.parentNode.insertBefore(wrapper, node);
+        }
+        wrapper.appendChild(node);
+    }
+
     return function(editor, config) {
         // The latest selection made in the editor.
         let savedRange_,
@@ -359,16 +373,16 @@ var AutotagJS = (function() {
 
         var applyStyle = function(target, instruction, declarations) {
             if (Array.isArray(target)) {
-                for (let i = 0; i < target.length; i++) {
-                    applyStyle(target[i], instruction, declarations);
+                for (let i = 0, node; (node = target[i]); i++) {
+                    applyStyle(node, instruction, declarations);
                 }
             }
             else {
                 target = isTextNode(target) ? target.parentNode : target;
                 for (let j = 0; j < declarations.length; j++) {
-                    let declaration = declarations[j].split(/\s*:\s*/),
-                        property = declaration[0],
-                        value = declaration[1];
+                    let declaration = declarations[j].split(/\s*:\s*/);
+                    let property = declaration[0];
+                    let value = declaration[1];
 
                     let targetStyle = target.style;
                     let curValue = targetStyle.getPropertyValue(property);
@@ -579,35 +593,30 @@ var AutotagJS = (function() {
                     line.dataset.atgIndentPos = refLine.dataset.atgIndentPos;
                 }
 
-                if (options.addPilotNode)
+                if (options.addPilotNode) {
                     renewLineBody(body, options.setCaret);
+                }
+
             }
             return line;
         };
 
         var renewLineBody = function(node, focus) {
             removeAllChildNodes(node);
-
-            // Now create the pilot node.
-            let pilot = createMarkedFragment(PILOT_TEXT);
-            node.appendChild(pilot);
-            // node.classList.add(PILOT_CLASSNAME);
-
-            if (focus) setCaret(pilot, 0);
-            return pilot;
+            let fragment = markFragment(createTextNode(PILOT_TEXT));
+            node.appendChild(fragment.parentNode);
+            if (focus) setCaret(fragment, 0);
         };
 
         // Returns a marked fragment (<span>...</span>)
-        var createMarkedFragment = function(text, cName, style) {
-            if (typeof text === 'string') {
-                text = createTextNode(text);
-            }
-
-            if (isTextNode(text)) {
-                let fragment = createElement(MARKED_FRAGMENT_TAG, cName);
-                fragment.appendChild(text);
-                fragment.setAttribute('style', style || continuingStyle_);
-                fragment.classList.add(MARKED_FRAGMENT_CLASSNAME);
+        var markFragment = function(fragment, cName, style) {
+            if (isTextNode(fragment)) {
+                if (!fragment.parentNode || isUnmarkedFragment(fragment)){
+                    let wrapper = createElement(MARKED_FRAGMENT_TAG, cName);
+                    wrapper.setAttribute('style', style || continuingStyle_);
+                    wrapper.classList.add(MARKED_FRAGMENT_CLASSNAME);
+                    wrapNode(fragment, wrapper);
+                }
                 return fragment;
             }
         };
@@ -898,21 +907,10 @@ var AutotagJS = (function() {
             let container = savedRange_.endContainer;
             // let offset = savedRange_.endOffset;
             if (isTextNode(container)) {
-                // let value = container.nodeValue;
-                // let parent = container.parentNode;
-
-                // Remove the lead character as it is no longer required.
-                // let regEx = new RegExp('^' + PILOT_TEXT);
-                // if (value.match(regEx)) {
-                //     container.nodeValue = value.replace(regEx, '');
-                //     // parent.classList.remove(PILOT_CLASSNAME);
-                //     range = setCaret(container, offset);
-                // }
-
                 // Mark unmarked text nodes. This is not strictly required
                 // but it helps by pre-empting the burden of doing so later.
                 if (isUnmarkedFragment(container)) {
-                    fragmentText(container, 0);
+                    splitFragment(container, 0);
                     setCaret(container);
                 }
             }
@@ -979,25 +977,18 @@ var AutotagJS = (function() {
                     });
                 }
                 else {
-                    var fragment = fragmentText(container, offset)[1];
+                    var fragment = splitFragment(container, offset)[1];
                     newLine = createLine(line, {attachAs: 'next_sibling'});
 
                     // // Collect remaining nodes (Fragments and Lines) and append
                     // // them to the new line.
-                    let node = fragment, nodes = [];
-                    while ((node = node.nextSibling)) {
+                    let node = fragment.parentNode, nodes = [];
+                    do {
                         nodes.push(node);
-                    }
+                    } while ((node = node.nextSibling));
 
-                    getLineBody(newLine).appendChild(fragment);
-                    appendNodes(nodes, fragment);
-
-                    // Remove empty fragment.
-                    // if (isBlank(fragment)) {
-                    //     fragment = fragment.nextSibling;
-                    //     removeNode(fragment.previousSibling);
-                    // }
-                    setCaret(fragment.firstChild, 0);
+                    appendChildNodes(nodes, getLineBody(newLine));
+                    setCaret(fragment, 0);
                 }
 
                 newLine.className = line.className;
@@ -1195,10 +1186,10 @@ var AutotagJS = (function() {
                         removeAllChildNodes(prevLineBody);
                     }
                     let nodes = getChildren(lineBody);
-                    for (let i=0, node; (node = nodes[i]); i++) {
-                        prevLineBody.appendChild(node);
+                    if (nodes.length > 0) {
+                        appendChildNodes(nodes, prevLineBody);
+                        // setCaret(nodes[0], 0);
                     }
-                    setCaret(nodes[0].firstChild, 0);
                 }
                 removeNode(line);
             }
@@ -1240,31 +1231,32 @@ var AutotagJS = (function() {
             }
         };
 
-        var fragmentText = function(text, offset) {
+        var splitFragment = function(fragment, offset) {
             offset = initObject(offset, 0);
-            if (isTextNode(text)) {
-                let newFragment;
-                let fragment = text.parentNode;
-                if (isMarkedFragment(text)) {
-                    if (offset == 0 || offset == text.length) {
-                        newFragment = fragment;
-                    }
-                    else {
-                        let newText = text.splitText(offset);
-                        let style = fragment.getAttribute('style');
-                        newFragment = createMarkedFragment(
-                            removeNode(newText), null, style);
-                        appendNode(newFragment, fragment);
-                    }
-                    return [fragment, newFragment];
+            let firstFragment;
+            let secondFragment;
+            let fragments = getFragmentsInLine(getLine(fragment));
+            let fragmentIndex = fragments.indexOf(fragment);
+
+            if (isTextNode(fragment)) {
+                if (offset == 0) {
+                    firstFragment = markFragment(fragments[fragmentIndex - 1]);
+                    secondFragment = markFragment(fragment);
+                }
+                else if (offset == fragment.length) {
+                    firstFragment = markFragment(fragment);
+                    secondFragment = markFragment(fragments[fragmentIndex + 1]);
                 }
                 else {
-                    let next = text.nextSibling;
-                    newFragment = createMarkedFragment(removeNode(text));
-                    fragment.insertBefore(newFragment, next);
-                    return fragmentText(text, offset);
+                    firstFragment = markFragment(fragment);
+                    secondFragment = fragment.splitText(offset);
+                    markFragment(removeNode(secondFragment), null,
+                        firstFragment.parentNode.getAttribute('style'));
+                    appendNode(secondFragment.parentNode,
+                        firstFragment.parentNode);
                 }
             }
+            return [firstFragment, secondFragment];
         };
 
         var createMarkedFragmentsInRange = function(range) {
@@ -1282,12 +1274,12 @@ var AutotagJS = (function() {
                 // Split the start Text node. Note that if the offset is a
                 // 0 or the length of the container, the container wrapped
                 // as a fragment is returned.
-                let startFragment = fragmentText(startContainer, startOffset)[1];
+                let startFragment = splitFragment(startContainer, startOffset)[1];
 
                 let endFragment;
                 if (startContainer.isSameNode(endContainer)) {
                     endOffset = endOffset - startOffset;
-                    endContainer = startFragment.firstChild;
+                    endContainer = startFragment;
 
                     if (startContainer.length == endOffset) {
                         endFragment = startFragment;
@@ -1297,14 +1289,14 @@ var AutotagJS = (function() {
                 // Now split the end Text node if the first fragment does not
                 // already include the content.
                 if (!endFragment) {
-                    endFragment = fragmentText(endContainer, endOffset)[0];
+                    endFragment = splitFragment(endContainer, endOffset)[0];
                 }
 
                 // Rebuild original selection range for further processing.
                 savedRange_ = setSelection({
-                    startContainer: startFragment.firstChild,
+                    startContainer: startFragment,
                     startOffset: 0,
-                    endContainer: endFragment.firstChild,
+                    endContainer: endFragment,
                     endOffset: endOffset
                 });
 
@@ -1319,7 +1311,7 @@ var AutotagJS = (function() {
                 if (isUnmarkedFragment(node)) {
                     let next = node.nextSibling;
                     let parent = node.parentNode;
-                    let fragment = createMarkedFragment(node);
+                    let fragment = markFragment(node);
                     parent.insertBefore(fragment, next);
                 }
             }
@@ -1374,7 +1366,7 @@ var AutotagJS = (function() {
                 if (processArrowKeys(range, keyCode)) e.preventDefault();
             }
             else {
-                if (!e.metaKey && !e.shiftKey) processInput();
+                // if (!e.metaKey && !e.shiftKey) processInput();
             }
         });
 
