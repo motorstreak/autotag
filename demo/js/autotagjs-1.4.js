@@ -394,7 +394,6 @@ var AutotagJS = (function() {
                     }
                     else if (instruction.match(/^atg(Set|Initialize|Toggle)/)) {
                         targetStyle.setProperty(property, value);
-
                     }
                     else if (instruction.match(/^atg(Increment|Decrement)/)) {
                         curValue = curValue ||
@@ -473,10 +472,12 @@ var AutotagJS = (function() {
                 }
                 else if (type === 'highlight') {
                     style = 'background-color: ' + color;
-                    let contrast = dataset.atgPaletteContrastColor;
-                    if (contrast) {
-                        style = style + '; color: ' + contrast;
-                    }
+                    /** Uncomment to enable generation of contrast color
+                        let contrast = dataset.atgPaletteContrastColor;
+                        if (contrast) {
+                            style = style + '; color: ' + contrast;
+                        }
+                    */
                 }
                 dataset.atgSet = style;
             }
