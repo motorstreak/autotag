@@ -315,7 +315,6 @@
                 afterSelection: function(fragments) {
                     let fragment;
                     if (fragments.length == 1 && (fragment = fragments[0])) {
-                        console.log(fragment);
                         fragment = fragment.parentNode;
                         setMenuIconState(boldMenuClassList, isBold(fragment));
                         setMenuIconState(italicMenuClassList, isItalic(fragment));
