@@ -57,15 +57,28 @@ var AutotagJS = (function() {
         };
     }
 
-    var _lists = {
-        numbered: {
-            segments: [{
-                type: 'number',
-                suffix: '',
-                startAt: 1,
-                endAt: 100,
-                seperator: '.'
-            }]
+    var ListAction = Object.freeze({
+        BLANK: 0,
+        INDENT: 1,
+        OUTDENT: 2
+    });
+
+    var List = {
+        number_period: {
+            styles: [ 'decimal', 'lower-alpha', 'lower-roman' ],
+            suffix: '.'
+        },
+        number_bracket: {
+            styles: [ 'decimal', 'lower-alpha', 'lower-roman' ],
+            suffix: ')'
+        },
+        number_collated: {
+            styles: [ 'decimal'],
+            suffix: '. ',
+            seperator: '.'
+        },
+        bulletted: {
+            styles: [ 'disc', 'circle', 'square', 'white-square', 'diamond', 'white-diamond']
         }
     };
 
@@ -74,12 +87,6 @@ var AutotagJS = (function() {
         66: 'font-weight:bold',
         73: 'font-style:italic',
         85: 'text-decoration:underline'
-    });
-
-    var List = Object.freeze({
-        BLANK: 0,
-        INDENT: 1,
-        OUTDENT: 2
     });
 
     var TAB = '\u0009',
@@ -301,6 +308,83 @@ var AutotagJS = (function() {
             node.parentNode.insertBefore(wrapper, node);
         }
         wrapper.appendChild(node);
+    }
+
+    function romanize(num) {
+        let i, roman = '';
+        let lookup = {
+            M:1000, CM:900, D:500, CD:400, C:100, XC:90,
+            L:50, XL:40, X:10,IX:9,V:5,IV:4,I:1 };
+
+        for (i in lookup) {
+            while (num >= lookup[i]) {
+              roman += i;
+              num -= lookup[i];
+          }
+        }
+        return roman;
+    }
+
+    function generateListNumbering(listType, listId) {
+        let suffix = listType.suffix || '';
+        let seperator = listType.seperator || '';
+
+        let markers = [];
+        let positions = listId.split('.');
+        let stylesCount = listType.styles.length;
+
+        let hpos = (seperator) ? 0 : positions.length - 1;
+        for(let vpos; (vpos = parseInt(positions[hpos])); hpos++) {
+            let marker;
+            let styleIndex = (stylesCount + hpos) % stylesCount;
+            switch(listType.styles[styleIndex]) {
+                case 'decimal':
+                    marker = vpos;
+                    break;
+
+                case 'lower-alpha':
+                    marker = String.fromCharCode((97 + (26 + vpos - 1) % 26));
+                    break;
+
+                case 'upper-alpha':
+                    marker = String.fromCharCode((65 + (26 + vpos - 1) % 26));
+                    break;
+
+                case 'lower-roman':
+                    marker = romanize(vpos).toLowerCase();
+                    break;
+
+                case 'upper-roman':
+                    marker = romanize(vpos);
+                    break;
+
+                case 'disc':
+                    marker = '\u25cf';
+                    break;
+
+                case 'circle':
+                    marker = '\u25cb';
+                    break;
+
+                case 'square':
+                    marker = '\u25a0';
+                    break;
+
+                case 'white-square':
+                    marker = '\u25a1';
+                    break;
+
+                case 'diamond':
+                    marker = '\u25c6';
+                    break;
+
+                case 'white-diamond':
+                    marker = '\u25c7';
+                    break;
+            }
+            markers.push(marker);
+        }
+        return markers.join(seperator) + suffix;
     }
 
     return function(editor, config) {
@@ -552,9 +636,11 @@ var AutotagJS = (function() {
 
             // Now generate the content.
             let listId = line.dataset.atgListId;
+            // console.log(listId);
             if (listId !== null) {
                 removeAllChildNodes(header);
-                header.appendChild(createTextNode(listId));
+                let marker = generateListNumbering(List.bulletted, listId);
+                header.appendChild(createTextNode(marker));
             }
             return header;
         };
@@ -1068,14 +1154,14 @@ var AutotagJS = (function() {
         };
 
         var updateListIndentation = function(line, indentType, type) {
-            if (indentType == List.BLANK && isBlankList(line)) {
-                indentType = List.OUTDENT;
+            if (indentType == ListAction.CLEAR && isBlankList(line)) {
+                indentType = ListAction.OUTDENT;
             }
 
-            let increaseIndent = (indentType == List.INDENT);
-            let decreaseIndent = (indentType == List.OUTDENT);
+            let increaseIndent = (indentType == ListAction.INDENT);
+            let decreaseIndent = (indentType == ListAction.OUTDENT);
 
-            if (indentType !== List.BLANK) {
+            if (indentType !== ListAction.CLEAR) {
                 applyStyle(line,
                     getIncrementDecrementInstruction(increaseIndent),
                     [LIST_INDENT_STYLE]);
@@ -1108,7 +1194,7 @@ var AutotagJS = (function() {
             let node = range.startContainer;
             let offset = range.startOffset;
             let isSelection = !range.collapsed;
-            let increase = (indentType == List.INDENT);
+            let increase = (indentType == ListAction.INDENT);
 
             if (isSelection) {
                 let lines = getLinesInRange(range);
@@ -1211,7 +1297,7 @@ var AutotagJS = (function() {
                 let offset = range.startOffset;
 
                 let line = getLine(container);
-                let updateSuccess = updateIndentationInRange(range, List.BLANK);
+                let updateSuccess = updateIndentationInRange(range, ListAction.CLEAR);
                 if (!updateSuccess) {
                     if (isPilot(container) ||
                         isBeginingOfLine(container, offset)) {
@@ -1349,7 +1435,7 @@ var AutotagJS = (function() {
             }
             else if (isTabKey(keyCode)) {
                 updateIndentationInRange(range,
-                    e.shiftKey ? List.OUTDENT : List.INDENT);
+                    e.shiftKey ? ListAction.OUTDENT : ListAction.INDENT);
                 e.preventDefault();
             }
             else if (isReturnKey(keyCode)) {
@@ -1372,9 +1458,6 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('copy', function(e) {
-            // TODO: Remember to remove all \u200b chars from the copied text
-            // from the clipboard to prevent the user from pasting unwanted
-            // characters.
         });
 
         editor.addEventListener('paste', function(e) {
