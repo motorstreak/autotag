@@ -325,6 +325,14 @@ var AutotagJS = (function() {
         return roman;
     }
 
+    // 'position' is a circular offset that allows the function to return
+    // character codes in a circular fashion.
+    function getCharCode(type, position) {
+        // Get the Ascii character offset.
+        let offset = (type == 'lower') ? 97 : 65;
+        return String.fromCharCode((offset + (26 + position - 1) % 26));
+    }
+
     function generateListNumbering(listType, listId) {
         let suffix = listType.suffix || '';
         let seperator = listType.seperator || '';
@@ -341,43 +349,33 @@ var AutotagJS = (function() {
                 case 'decimal':
                     marker = vpos;
                     break;
-
                 case 'lower-alpha':
-                    marker = String.fromCharCode((97 + (26 + vpos - 1) % 26));
+                    marker = getCharCode('lower', vpos);
                     break;
-
                 case 'upper-alpha':
-                    marker = String.fromCharCode((65 + (26 + vpos - 1) % 26));
+                    marker = getCharCode('upper', vpos);
                     break;
-
                 case 'lower-roman':
                     marker = romanize(vpos).toLowerCase();
                     break;
-
                 case 'upper-roman':
                     marker = romanize(vpos);
                     break;
-
                 case 'disc':
                     marker = '\u25cf';
                     break;
-
                 case 'circle':
                     marker = '\u25cb';
                     break;
-
                 case 'square':
                     marker = '\u25a0';
                     break;
-
                 case 'white-square':
                     marker = '\u25a1';
                     break;
-
                 case 'diamond':
                     marker = '\u25c6';
                     break;
-
                 case 'white-diamond':
                     marker = '\u25c7';
                     break;
@@ -556,7 +554,8 @@ var AutotagJS = (function() {
                 }
                 else if (type === 'highlight') {
                     style = 'background-color: ' + color;
-                    /** Uncomment to enable generation of contrast color
+                    /**
+                        Uncomment to enable generation of contrast color
                         let contrast = dataset.atgPaletteContrastColor;
                         if (contrast) {
                             style = style + '; color: ' + contrast;
@@ -665,10 +664,10 @@ var AutotagJS = (function() {
                     case 'child':
                         refLine.appendChild(line);
                         break;
-                    case 'next_sibling':
+                    case 'next-sibling':
                         appendNode(line, refLine);
                         break;
-                    case 'previous_sibling':
+                    case 'previous-sibling':
                         prependNode(line, refLine);
                         break;
                     default:
@@ -808,8 +807,8 @@ var AutotagJS = (function() {
 
         var getNodesInRange = function(range, nodeFilter, filter) {
             return getNodesFromTree(
-                    getRangeWalker(range, nodeFilter, filter),
-                    filter);
+                getRangeWalker(range, nodeFilter, filter),
+                filter);
         };
 
         var getParentMenu = function(node) {
@@ -1056,14 +1055,14 @@ var AutotagJS = (function() {
                 }
                 else if (isBeginingOfLine(container, offset)) {
                     newLine = createLine(line, {
-                        attachAs: 'previous_sibling',
+                        attachAs: 'previous-sibling',
                         addPilotNode: true,
                         setCaret: false
                     });
                 }
                 else {
                     let fragment = splitFragment(container, offset)[1];
-                    newLine = createLine(line, {attachAs: 'next_sibling'});
+                    newLine = createLine(line, {attachAs: 'next-sibling'});
 
                     // // Collect remaining nodes (Fragments and Lines) and append
                     // // them to the new line.
