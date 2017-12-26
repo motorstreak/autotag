@@ -1115,7 +1115,7 @@ var AutotagJS = (function() {
 
         var saveSelectionRange = function() {
             let range = getRange();
-            if (range) {
+            if (range && range != savedRange_) {
                 let startContainer = range.startContainer;
                 let endContainer = range.endContainer;
                 if (isTextNode(startContainer) && isTextNode(endContainer)) {
@@ -1125,10 +1125,13 @@ var AutotagJS = (function() {
                             endContainer.parentNode.getAttribute('style');
                     }
 
-                    if (isBlank(endContainer)) setCaret(endContainer, 0);
+                    if (range.collapsed && range.endOffset == 1 &&
+                            isBlank(endContainer)) {
+                        setCaret(endContainer, 0);
+                    }
                 }
+                return savedRange_;
             }
-            return savedRange_;
         };
 
         var setCaret = function(node, offset) {
@@ -1496,11 +1499,17 @@ var AutotagJS = (function() {
             e.preventDefault();
         });
 
-        document.addEventListener('selectionchange', debounce(function(e) {
+        // document.addEventListener('selectionchange', debounce(function(e) {
+        //     if (saveSelectionRange()) {
+        //         doAfterSelection_(getMarkedFragmentsInRange(savedRange_));
+        //     }
+        // }, 10));
+
+        document.addEventListener('selectionchange', function(e) {
             if (saveSelectionRange()) {
                 doAfterSelection_(getMarkedFragmentsInRange(savedRange_));
             }
-        }, 200));
+        });
 
         return {
             attachMenubar: function(menubar) {
