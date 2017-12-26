@@ -10,9 +10,12 @@
 var AutotagJS = (function() {
     // Configuration options
     //
-    // splitter:    A callback function that can receive a string, split it and return
-    //              the parts as an array. If not provided, the default
-    //              splitter is used.
+    // splitter: A callback function that can receive a Text Node and returns
+    //           the offset at which to split the text. Offsets equivalent to
+    //           null, zero or the length of the text content are ignored. Note
+    //           that splitting text unwantedly increses the size of your
+    //           note and therefore slowdown note load and processing,
+    //           especially if the note is large.
     //
     // decorator_:   A callback function that receives nodes for processing.
     //              Use the decorator_ to apply styles on the node or do whatever
@@ -301,9 +304,6 @@ var AutotagJS = (function() {
         }
     }
 
-    function splitAtWord(str) {
-        return str.match(/([^,\s\.]+)|[,\s\.]+/ig);
-    }
 
     function isFormatKey(code) {
         return (code == 66 || code == 73 || code == 85);
@@ -413,7 +413,12 @@ var AutotagJS = (function() {
         let decorator_ = config.decorator || function(node, text) {};
 
         // The default splitter splits on words.
-        let splitter_ = config.splitter || splitAtWord;
+        let splitter_ = config.splitter || function(fragment) {
+            let value = fragment.textContent;
+            if (value.match(/(.+[ !?\.])|([ !?\.].)/)) {
+                return value.length-1;
+            }
+        };
 
         // Event callbacks
         let doAfterKeypress_ = config.afterKeypress || function() {};
@@ -699,7 +704,7 @@ var AutotagJS = (function() {
             let markedFragment = fragment.parentNode;
             node.appendChild(markedFragment);
             setStyle(markedFragment, continuingStyle_);
-            markedFragment.style.setProperty('display', 'inline-block');
+            // markedFragment.style.setProperty('display', 'inline-block');
             markedFragment.classList.add('atg-pilot');
             if (focus) setCaret(fragment, 0);
         };
@@ -854,10 +859,10 @@ var AutotagJS = (function() {
             ancestorFilter =  ancestorFilter || isFragment;
 
             let ancestor = range.commonAncestorContainer ;
-            while (ancestor && !ancestorFilter(ancestor) &&
-                !isEditor(ancestor) && !isDocumentNode(ancestor)) {
-                ancestor = ancestor.parentNode;
-            }
+            // while (ancestor && !ancestorFilter(ancestor) &&
+            //     !isEditor(ancestor) && !isDocumentNode(ancestor)) {
+            //     ancestor = ancestor.parentNode;
+            // }
 
             return getTreeWalker(ancestor, whatToShow, function(node) {
                 return rangeIntersectsNode(range, node);
@@ -1014,8 +1019,14 @@ var AutotagJS = (function() {
                 container.nodeValue =
                     container.textContent.replace(new RegExp(PILOT_TEXT, 'g'), '');
                 setCaret(container);
-                container.parentNode.style.display = 'inline';
+                // container.parentNode.style.display = 'inline';
                 container.parentNode.classList.remove('atg-pilot');
+            }
+
+            let splitOffset = splitter_(container);
+            if (splitOffset && splitOffset > 0 && splitOffset < value.length) {
+                let newFragment = splitFragment(container, splitOffset)[1];
+                setCaret(newFragment);
             }
 
             // Remove unwanted break nodes inserted by Forefox.
@@ -1125,9 +1136,12 @@ var AutotagJS = (function() {
                             endContainer.parentNode.getAttribute('style');
                     }
 
-                    if (range.collapsed && range.endOffset == 1 &&
-                            isBlank(endContainer)) {
-                        setCaret(endContainer, 0);
+                    if (range.collapsed) {
+                        decorator_(endContainer.parentNode,
+                            endContainer.textContent);
+                        if (range.endOffset == 1 && isBlank(endContainer)) {
+                            setCaret(endContainer, 0);
+                        }
                     }
                 }
                 return savedRange_;
@@ -1293,7 +1307,7 @@ var AutotagJS = (function() {
 
         var deleteLine = function(line) {
             let previousLine = line.previousSibling;
-            if (previousLine) {
+            if (isLine(previousLine)) {
                 let prevLineBody = getLineBody(previousLine);
                 let lineBody = getLineBody(line);
                 if (isBlank(lineBody)) {

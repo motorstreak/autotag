@@ -182,7 +182,7 @@
             </div>
             <div id="textbox" class="demo-inputplus demo-inputplus-textbox"
                 contentEditable="true">
-                <div><span style="" class="demo-hash-tag">#awesome</span><span style="">&nbsp;</span><span style="">text</span></div>
+                <div class="atg-line" data-atg-indent-pos="0"><div class="atg-line-body"><span style="" class="atg-text">autotagjs</span><span style="" class="atg-text"> </span><span style="" class="atg-text">is</span><span style="" class="atg-text"> </span><span style="" class="atg-text demo-hash-tag">#awesome</span><span style="" class="atg-text">!</span></div></div>
             </div>
 
             <div class="demo-inputplus-label">
@@ -190,7 +190,7 @@
             </div>
             <div id="textarea" class="demo-inputplus demo-inputplus-textarea"
                 contentEditable="true">
-                <div><span style="" class="demo-hash-tag">#awesome</span><span style="">&nbsp;</span><span style="">text</span><span style="">&nbsp;</span><span style="">on</span><span style="">&nbsp;</span><span style="" class="demo-plus-sign">+steroids</span></div>
+                <div class="atg-line" data-atg-indent-pos="0"><div class="atg-line-body"><span style="" class="atg-text">Try</span><span style="" class="atg-text"> </span><span style="" class="atg-text demo-pronoun" data-tooltip="Pronoun">it</span><span style="" class="atg-text"> </span><span style="" class="atg-text">on</span><span style="" class="atg-text"> </span><span style="" class="atg-text demo-pronoun" data-tooltip="Pronoun">your</span><span style="" class="atg-text"> </span><span style="" class="atg-text demo-plus-sign">+project</span><span style="" class="atg-text"> </span><span style="" class="atg-text demo-hash-tag">#today</span><span style="" class="atg-text">.</span><span style="" class="atg-text"> </span></div></div>
             </div>
         </div>
         <div class="section-text">
@@ -300,11 +300,12 @@
                 decorator: function(node, text) {
                     text = text.replace(/,$/, '').toLowerCase();
                     if (pronouns.indexOf(text) >= 0) {
-                        node.setAttribute('class', 'demo-pronoun');
+                        node.classList.add('demo-pronoun');
                         node.setAttribute('data-tooltip', 'Pronoun');
-                    } else {
+                    }
+                    else {
                         // Always remember to clean the node!
-                        node.removeAttribute('class');
+                        node.classList.remove('demo-pronoun');
                         node.removeAttribute('data-tooltip');
                     }
                 },
@@ -342,15 +343,22 @@
             // Enable the editor element with the provided config and attach the menubar.
             new AutotagJS(editor, editorConfig).attachMenubar(menubar);
 
-
             var inputConfig = {
                 decorator: function(node, text) {
+                    var classList = node.classList;
                     if (text.match(/^#[\w]{2}[\w]*$/)) {
-                        node.setAttribute('class', 'demo-hash-tag');
-                    } else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
-                        node.setAttribute('class', 'demo-plus-sign');
-                    } else {
-                        node.removeAttribute('class');
+                        classList.add('demo-hash-tag');
+                    }
+                    else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
+                        classList.add('demo-plus-sign');
+                    }
+                    else if (text.match(/^[\@][\w]{2}[\w]*$/)) {
+                        classList.add('demo-at-tag');
+                    }
+                    else {
+                        classList.remove('demo-hash-tag');
+                        classList.remove('demo-at-tag');
+                        classList.remove('demo-plus-sign');
                     }
                 },
                 ignoreReturnKey: true
@@ -358,7 +366,6 @@
 
             new AutotagJS(document.getElementById('textbox'), inputConfig);
             new AutotagJS(document.getElementById('textarea'), inputConfig);
-
     </script>
 </body>
 

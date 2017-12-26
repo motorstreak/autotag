@@ -4,7 +4,7 @@
     caret-color: #777;
     /* Rquired to display cursor in Chrome.  */
     min-width: 1px;
-    display: inline-block;
+    /*display: inline-block;*/
 }
 
 /*.atg-cursor {
@@ -34,6 +34,7 @@
 
 .atg-pilot {
     background-color: #FFF !important;
+    display: inline-block !important;
 }
 
 .atg-line {
