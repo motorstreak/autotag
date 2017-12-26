@@ -1,16 +1,67 @@
 
-/* Prevent word breaks */
-[contenteditable] div > span {
-    word-break : break-all;
+.atg-text,
+.atg-tab {
     caret-color: #777;
-    display: inline-block;
+    /* Rquired to display cursor in Chrome.  */
+    min-width: 1px;
+    /*display: inline-block;*/
+}
+
+/*.atg-cursor {
+    border-left: 1px solid #000;
+}*/
+
+/* Prevent words from breaking.
+ * Courtesy: https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/
+ */
+ .atg-line > * {
+    /* These are technically the same, but use both */
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+
+    -ms-word-break: break-all;
+    /* This is the dangerous one in WebKit, as it breaks things wherever */
+    word-break: break-all;
+    /* Instead use this non-standard one: */
+    word-break: break-word;
+
+    /* Adds a hyphen where the word breaks, if supported (No Blink) */
+    -ms-hyphens: auto;
+    -moz-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+.atg-pilot {
+    background-color: #FFF !important;
+    display: inline-block !important;
+}
+
+.atg-line {
+    display: flex;
+    white-space: pre-wrap;
+    cursor: text;
+}
+
+.atg-line-leader {
+    vertical-align: top;
+    /* min-width: 30px; */
+    text-align: right;
+    padding-right: 10px;
+    word-break: normal;
+}
+
+.atg-line-body {
+    /*display: table-cell;*/
+}
+
+.atg-list {
+    min-width: 30px;
 }
 
 /* Deal with IE paragraph style within the editor. */
-[contenteditable] > div,
-[contenteditable] div > span {
+[contenteditable] * {
     margin : 0;
-    /*min-height: 28px;*/
 }
 
 ::-moz-selection {
@@ -24,8 +75,7 @@
 }
 
 /* Prevent outlines on contenteditable items in IE. */
-[contenteditable]:focus,
-[contenteditable] div > span:focus {
+[contenteditable]:focus {
     outline : 0;
 }
 
@@ -98,7 +148,7 @@
     border-radius : 2px;
 }
 
-.atg-list div {
+.atg-list-root div {
     display: list-item;
     list-style-position: outside;
     list-style-type: none;
@@ -106,43 +156,41 @@
     padding-left: 55px;
 }
 
-.atg-list div:before {
+.atg-list-root div::before {
     position: absolute;
     left: 0;
     width: 40px;
     text-align: right;
 }
 
-.atg-list-1:before,
-.atg-list-2:before,
-.atg-list-3:before {
-    content: '';
-}
+/*div[class^="atg-"]:hover::before {
+    background-color: #BFD3FA;
+}*/
 
-.atg-numbered-list-1:before {
+.atg-numbered-list-1::before {
     content: counter(atg-numbered-counter-1) ".";
     counter-increment: atg-numbered-counter-1;
 }
 
-.atg-numbered-list-2:before {
+.atg-numbered-list-2::before {
     content: counter(atg-numbered-counter-2, lower-latin) ".";
     counter-increment: atg-numbered-counter-2;
 }
 
-.atg-numbered-list-3:before {
+.atg-numbered-list-3::before {
     content: counter(atg-numbered-counter-3, lower-roman) ".";
     counter-increment: atg-numbered-counter-3;
 }
 
-.atg-bulleted-list-1:before {
+.atg-bulleted-list-1::before {
     content: '●';
 }
 
-.atg-bulleted-list-2:before {
+.atg-bulleted-list-2::before {
     content : '○';
 }
 
-.atg-bulleted-list-3:before {
+.atg-bulleted-list-3::before {
     content : '▪';
 }
 
@@ -163,4 +211,9 @@
         width: 26px;
         margin: 4px;
     }
+}
+
+/* V3 */
+.atg-tab {
+    white-space: pre;
 }
