@@ -89,8 +89,10 @@ var AutotagJS = (function() {
         85: 'text-decoration:underline'
     });
 
-    var TAB = '\u0009',
-        PILOT_TEXT = '\u00a0';
+    // var PILOT_TEXT = '\u200b';
+    // Having space as the pilot indicator allows the highlighting
+    // of empty lines.
+    var PILOT_TEXT = '\u00a0';
 
     var LIST_INDENT_STYLE = 'margin-left:25px',
         LINE_INDENT_STYLE = 'margin-left:35px';
@@ -103,7 +105,7 @@ var AutotagJS = (function() {
         LINE_BODY_CLASSNAME = 'atg-line-body',
         MARKED_FRAGMENT_CLASSNAME = 'atg-text',
         LIST_FRAGMENT_CLASSNAME = 'atg-list',
-        PILOT_CLASSNAME = 'atg-pilot',
+        // PILOT_CLASSNAME = 'atg-pilot',
         MENU_CLASSNAME = 'atg-menu',
         PALETTE_CLASSNAME = 'atg-palette',
         PALETTE_CELL_CLASSNAME = 'atg-palette-cell',
@@ -148,6 +150,10 @@ var AutotagJS = (function() {
         for (let i=0, node; (node = nodeList[i]); i++) {
             toNode = appendNode(node, toNode);
         }
+    }
+
+    function setStyle(node, style) {
+        if (isElementNode(node)) node.setAttribute('style', style);
     }
 
     function appendChildNodes(nodeList, toNode) {
@@ -460,6 +466,7 @@ var AutotagJS = (function() {
                 }
             }
             else {
+                // if (isBlank(target)) return;
                 target = isTextNode(target) ? target.parentNode : target;
                 for (let j = 0; j < declarations.length; j++) {
                     let declaration = declarations[j].split(/\s*:\s*/);
@@ -689,7 +696,11 @@ var AutotagJS = (function() {
         var renewLineBody = function(node, focus) {
             removeAllChildNodes(node);
             let fragment = markFragment(createTextNode(PILOT_TEXT));
-            node.appendChild(fragment.parentNode);
+            let markedFragment = fragment.parentNode;
+            node.appendChild(markedFragment);
+            setStyle(markedFragment, continuingStyle_);
+            markedFragment.style.setProperty('display', 'inline-block');
+            markedFragment.classList.add('atg-pilot');
             if (focus) setCaret(fragment, 0);
         };
 
@@ -698,7 +709,7 @@ var AutotagJS = (function() {
             if (isTextNode(fragment)) {
                 if (!fragment.parentNode || isUnmarkedFragment(fragment)){
                     let wrapper = createElement(MARKED_FRAGMENT_TAG, cName);
-                    wrapper.setAttribute('style', style || continuingStyle_);
+                    setStyle(wrapper, style || continuingStyle_);
                     wrapper.classList.add(MARKED_FRAGMENT_CLASSNAME);
                     wrapNode(fragment, wrapper);
                 }
@@ -732,16 +743,20 @@ var AutotagJS = (function() {
 
         var formatSelection = function(dataset, scope) {
             if (savedRange_ && dataset) {
-                let nodes = getNodesInSelection(scope);
-                for (let key in dataset) {
-                    if (dataset.hasOwnProperty(key)) {
-                        processInstruction(nodes, key,
-                            dataset[key].split(/\s*;\s*/));
+                // Allow users to chose formatting on empty lines and apply
+                // style to following text.
+                if (!savedRange_.collapsed || isBlank(savedRange_.endContainer)) {
+                    let nodes = getNodesInSelection(scope);
+                    for (let key in dataset) {
+                        if (dataset.hasOwnProperty(key)) {
+                            processInstruction(nodes, key,
+                                dataset[key].split(/\s*;\s*/));
+                        }
                     }
+                    // Ensure that the selection does not disapper after we have
+                    // applied formatting.
+                    resetRange(savedRange_);
                 }
-                // Ensure that the selection does not disapper after we have
-                // applied formatting.
-                resetRange(savedRange_);
             }
         };
 
@@ -914,14 +929,9 @@ var AutotagJS = (function() {
         };
 
         var isBlank = function(node) {
-            return node &&
-                (node.textContent.length ==0 ||
-                    node.textContent == PILOT_TEXT);
-        };
-
-        var isPilot = function(node) {
-            node = isTextNode(node) ? node.parentNode : node;
-            return containsClass(node, PILOT_CLASSNAME);
+            let content = node && node.textContent;
+            return (content.length ==0 ||
+                    content.length == 1 && content == PILOT_TEXT);
         };
 
         var isList = function(node) {
@@ -989,7 +999,7 @@ var AutotagJS = (function() {
 
         var processInput = function() {
             let container = savedRange_.endContainer;
-            // let offset = savedRange_.endOffset;
+            let offset = savedRange_.endOffset;
             if (isTextNode(container)) {
                 // Mark unmarked text nodes. This is not strictly required
                 // but it helps by pre-empting the burden of doing so later.
@@ -998,6 +1008,18 @@ var AutotagJS = (function() {
                     setCaret(container);
                 }
             }
+
+            let value = container.textContent;
+            if (value.match(new RegExp(PILOT_TEXT))) {
+                container.nodeValue =
+                    container.textContent.replace(new RegExp(PILOT_TEXT, 'g'), '');
+                setCaret(container);
+                container.parentNode.style.display = 'inline';
+                container.parentNode.classList.remove('atg-pilot');
+            }
+
+            // Remove unwanted break nodes inserted by Forefox.
+            removeNodesInList(editor.querySelectorAll('br'));
         };
 
         var pasteClipboardContent = function(e) {
@@ -1033,8 +1055,8 @@ var AutotagJS = (function() {
             }
         };
 
-        var processArrowKeys = function(range, keyCode) {
-
+        var processRightArrowKey = function(range) {
+            return isBlank(range.endContainer);
         };
 
         var processReturnKey = function(range, shifted) {
@@ -1079,8 +1101,7 @@ var AutotagJS = (function() {
 
                 // A common line style is indentation set using CSS margins.
                 // Carry this onto the new line.
-                let style = line.getAttribute('style');
-                if (style) newLine.setAttribute('style', style);
+                setStyle(newLine, line.getAttribute('style'));
 
                 // Shift + Return allows creating new lines without the list
                 // numbering while retaining the same indentation and allowing
@@ -1094,10 +1115,20 @@ var AutotagJS = (function() {
 
         var saveSelectionRange = function() {
             let range = getRange();
-            if (range && range.startContainer.nodeType != 9) {
-                savedRange_ = getRange() || savedRange_;
-                return savedRange_;
+            if (range) {
+                let startContainer = range.startContainer;
+                let endContainer = range.endContainer;
+                if (isTextNode(startContainer) && isTextNode(endContainer)) {
+                    savedRange_  = range;
+                    if (isMarkedFragment(endContainer)) {
+                        continuingStyle_ =
+                            endContainer.parentNode.getAttribute('style');
+                    }
+
+                    if (isBlank(endContainer)) setCaret(endContainer, 0);
+                }
             }
+            return savedRange_;
         };
 
         var setCaret = function(node, offset) {
@@ -1115,14 +1146,14 @@ var AutotagJS = (function() {
             }
         };
 
-        var setContinuingStyle = function() {
-            if (savedRange_) {
-                let fragment = getMarkedFragmentsInRange(savedRange_).pop();
-                if (fragment) {
-                    continuingStyle_ = fragment.parentNode.getAttribute('style');
-                }
-            }
-        };
+        // var setContinuingStyle = function() {
+        //     if (savedRange_) {
+        //         let fragment = getMarkedFragmentsInRange(savedRange_).pop();
+        //         if (fragment) {
+        //             continuingStyle_ = fragment.parentNode.getAttribute('style');
+        //         }
+        //     }
+        // };
 
         var setSelection = function(selection) {
             let range,
@@ -1225,7 +1256,7 @@ var AutotagJS = (function() {
         var isBeginingOfLine = function(node, offset) {
             let firstFragment = getFragmentsInLine(node).shift();
             return isTextNode(node) && node.isSameNode(firstFragment) &&
-                (offset == 0 || isPilot(node.parentNode));
+                (offset == 0 || isBlank(node.parentNode));
         };
 
         var isEndOfLine = function(node, offset) {
@@ -1233,7 +1264,7 @@ var AutotagJS = (function() {
             return isTextNode(node) &&
                 ((offset == node.textContent.length &&
                     (isLineBody(parent) || !parent.nextSibling)) ||
-                    isPilot(parent));
+                    isBlank(parent));
         };
 
         var deleteChar = function(node, offset) {
@@ -1244,6 +1275,7 @@ var AutotagJS = (function() {
 
             if (isBlank(line)) {
                 renewLineBody(getLineBody(line), true);
+                // deleteLine(line);
             }
             else {
                 if (isBlank(node)) {
@@ -1261,11 +1293,11 @@ var AutotagJS = (function() {
             if (previousLine) {
                 let prevLineBody = getLineBody(previousLine);
                 let lineBody = getLineBody(line);
-                if (isPilot(lineBody)) {
+                if (isBlank(lineBody)) {
                     setCaret(prevLineBody.lastChild);
                 }
                 else {
-                    if (isPilot(prevLineBody)) {
+                    if (isBlank(prevLineBody)) {
                         removeAllChildNodes(prevLineBody);
                     }
                     let nodes = getChildren(lineBody);
@@ -1285,7 +1317,7 @@ var AutotagJS = (function() {
                 removeNode(node);
             }
             removeNodesInList(getLinesInRange(range), function(line) {
-                return isPilot(line) || isBlank(getLineBody(line));
+                return isBlank(line) || isBlank(getLineBody(line));
             });
             initializeEditor();
         };
@@ -1298,7 +1330,7 @@ var AutotagJS = (function() {
                 let line = getLine(container);
                 let updateSuccess = updateIndentationInRange(range, ListAction.CLEAR);
                 if (!updateSuccess) {
-                    if (isPilot(container) ||
+                    if (isBlank(container) ||isBlank(line) ||
                         isBeginingOfLine(container, offset)) {
                         deleteLine(line);
                     }
@@ -1445,8 +1477,8 @@ var AutotagJS = (function() {
                 formatSelection({ atgToggle: StyleKeyMap[keyCode] });
                 e.preventDefault();
             }
-            else if (isLeftArrowKey(keyCode) || isRightArrowKey(keyCode)) {
-                if (processArrowKeys(range, keyCode)) e.preventDefault();
+            else if (isRightArrowKey(keyCode) && processRightArrowKey(range)) {
+                e.preventDefault();
             }
             else {
                 // if (!e.metaKey && !e.shiftKey) processInput();

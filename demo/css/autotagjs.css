@@ -2,7 +2,9 @@
 .atg-text,
 .atg-tab {
     caret-color: #777;
-    /* min-width: 1px; */
+    /* Rquired to display cursor in Chrome.  */
+    min-width: 1px;
+    display: inline-block;
 }
 
 /*.atg-cursor {
@@ -28,6 +30,10 @@
     -moz-hyphens: auto;
     -webkit-hyphens: auto;
     hyphens: auto;
+}
+
+.atg-pilot {
+    background-color: #FFF !important;
 }
 
 .atg-line {
