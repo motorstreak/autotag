@@ -61,26 +61,26 @@ var AutotagJS = (function() {
     }
 
     var ListAction = Object.freeze({
-        BLANK: 0,
+        CLEAR: 0,
         INDENT: 1,
         OUTDENT: 2
     });
 
     var List = {
-        number_period: {
+        'numbered-period': {
             styles: [ 'decimal', 'lower-alpha', 'lower-roman' ],
             suffix: '.'
         },
-        number_bracket: {
+        'numbered-bracket': {
             styles: [ 'decimal', 'lower-alpha', 'lower-roman' ],
             suffix: ')'
         },
-        number_collated: {
+        'numbered-collated': {
             styles: [ 'decimal'],
             suffix: '. ',
             seperator: '.'
         },
-        bulletted: {
+        'bulletted': {
             styles: [ 'disc', 'circle', 'square', 'white-square', 'diamond', 'white-diamond']
         }
     };
@@ -340,6 +340,11 @@ var AutotagJS = (function() {
     }
 
     function generateListNumbering(listType, listId) {
+        // This is a blank/clear list.
+        // There is no need to generate the list marker.
+        if (listId.length == 0) return '';
+
+        // Continue otherwise..
         let suffix = listType.suffix || '';
         let seperator = listType.seperator || '';
 
@@ -384,6 +389,9 @@ var AutotagJS = (function() {
                     break;
                 case 'white-diamond':
                     marker = '\u25c7';
+                    break;
+                default:
+                    marker = vpos;
                     break;
             }
             markers.push(marker);
@@ -636,7 +644,7 @@ var AutotagJS = (function() {
                 createElement('div', PALETTE_ROW_CLASSNAME));
         };
 
-        var generateLineHeader = function(line) {
+        var generateLineHeader = function(line, listType) {
             let header = getLineHeader(line);
 
             if (!header) {
@@ -645,12 +653,15 @@ var AutotagJS = (function() {
                 line.insertBefore(header, line.firstChild);
             }
 
+            // Set the listType from the header if not provided.
+            listType = listType || header.dataset.atgListType;
+            header.dataset.atgListType = listType;
+
             // Now generate the content.
             let listId = line.dataset.atgListId;
-            // console.log(listId);
             if (listId !== null) {
                 removeAllChildNodes(header);
-                let marker = generateListNumbering(List.bulletted, listId);
+                let marker = generateListNumbering(List[listType], listId);
                 header.appendChild(createTextNode(marker));
             }
             return header;
@@ -750,7 +761,7 @@ var AutotagJS = (function() {
             if (savedRange_ && dataset) {
                 // Allow users to chose formatting on empty lines and apply
                 // style to following text.
-                if (!savedRange_.collapsed || isBlank(savedRange_.endContainer)) {
+                // if (!savedRange_.collapsed || isBlank(savedRange_.endContainer)) {
                     let nodes = getNodesInSelection(scope);
                     for (let key in dataset) {
                         if (dataset.hasOwnProperty(key)) {
@@ -761,7 +772,7 @@ var AutotagJS = (function() {
                     // Ensure that the selection does not disapper after we have
                     // applied formatting.
                     resetRange(savedRange_);
-                }
+                // }
             }
         };
 
@@ -859,10 +870,10 @@ var AutotagJS = (function() {
             ancestorFilter =  ancestorFilter || isFragment;
 
             let ancestor = range.commonAncestorContainer ;
-            // while (ancestor && !ancestorFilter(ancestor) &&
-            //     !isEditor(ancestor) && !isDocumentNode(ancestor)) {
-            //     ancestor = ancestor.parentNode;
-            // }
+            while (ancestor && !ancestorFilter(ancestor) &&
+                !isEditor(ancestor) && !isDocumentNode(ancestor)) {
+                ancestor = ancestor.parentNode;
+            }
 
             return getTreeWalker(ancestor, whatToShow, function(node) {
                 return rangeIntersectsNode(range, node);
@@ -954,7 +965,7 @@ var AutotagJS = (function() {
             return line;
         };
 
-        var generateIndentationIdentifier = function(line) {
+        var generateIndentationIdentifier = function(line, listType) {
             let curLine = line;
 
             line = getFirstLineInList(line);
@@ -983,7 +994,8 @@ var AutotagJS = (function() {
                         line.dataset.atgListId =
                             indentIds.slice(0, parseInt(indentPos)).join('.');
                     }
-                    generateLineHeader(line);
+
+                    generateLineHeader(line, listType);
 
                 } while (isList(line.nextSibling) && (line = line.nextSibling));
             }
@@ -1120,7 +1132,12 @@ var AutotagJS = (function() {
                 if (isList(newLine) && shifted) {
                     newLine.dataset.atgListId = '';
                 }
-                generateIndentationIdentifier(newLine);
+
+                let listType;
+                if (isList(line)) {
+                    listType = getLineHeader(line).dataset.atgListType;
+                }
+                generateIndentationIdentifier(newLine, listType);
             }
         };
 
@@ -1200,7 +1217,7 @@ var AutotagJS = (function() {
             line.dataset.atgIndentPos = pos;
         };
 
-        var updateListIndentation = function(line, indentType, type) {
+        var updateListIndentation = function(line, indentType, listType) {
             if (indentType == ListAction.CLEAR && isBlankList(line)) {
                 indentType = ListAction.OUTDENT;
             }
@@ -1225,7 +1242,7 @@ var AutotagJS = (function() {
             else {
                 line.dataset.atgListId = '';
             }
-            generateIndentationIdentifier(line);
+            generateIndentationIdentifier(line, listType);
         };
 
         var updateLineIndentation = function(line, increase, list) {
@@ -1237,7 +1254,7 @@ var AutotagJS = (function() {
             return increase ? 'atgIncrement' : 'atgDecrement';
         };
 
-        var updateIndentationInRange = function(range, indentType, list) {
+        var updateIndentationInRange = function(range, indentType) {
             let node = range.startContainer;
             let offset = range.startOffset;
             let isSelection = !range.collapsed;
