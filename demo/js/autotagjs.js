@@ -60,10 +60,10 @@ var AutotagJS = (function() {
         };
     }
 
-    var ListAction = Object.freeze({
-        CLEAR: 0,
-        INDENT: 1,
-        OUTDENT: 2
+    var Indent = Object.freeze({
+        CLEAR_LIST: 0,
+        INCREASE: 1,
+        DECREASE: 2
     });
 
     var List = {
@@ -447,13 +447,14 @@ var AutotagJS = (function() {
                     command = command.split(/ +/);
                     switch(command[0]) {
                         case 'indent':
-                            updateLineIndentation(target, true);
+                            updateIndentation(target, Indent.INCREASE);
                             break;
                         case 'outdent':
-                            updateLineIndentation(target, false);
+                            updateIndentation(target, Indent.DECREASE);
                             break;
                         case 'list':
-                            updateListIndentation(target, true, command[1]);
+                            updateListIndentation(
+                                target, Indent.INCREASE, command[1]);
                             break;
                     }
                 }
@@ -1218,25 +1219,25 @@ var AutotagJS = (function() {
         };
 
         var updateListIndentation = function(line, indentType, listType) {
-            if (indentType == ListAction.CLEAR && isBlankList(line)) {
-                indentType = ListAction.OUTDENT;
+            if (indentType == Indent.CLEAR_LIST && isBlankList(line)) {
+                indentType = Indent.DECREASE;
             }
 
-            let increaseIndent = (indentType == ListAction.INDENT);
-            let decreaseIndent = (indentType == ListAction.OUTDENT);
+            // let increaseIndent = (indentType == Indent.INCREASE);
+            // let decreaseIndent = (indentType == Indent.DECREASE);
 
-            if (indentType !== ListAction.CLEAR) {
+            if (indentType !== Indent.CLEAR_LIST) {
                 applyStyle(line,
-                    getIncrementDecrementInstruction(increaseIndent),
+                    getIndentationInstruction(indentType),
                     [LIST_INDENT_STYLE]);
             }
 
             let indentPos = parseInt(line.dataset.atgIndentPos);
-            if (increaseIndent) {
+            if (indentType == Indent.INCREASE) {
                 if (indentPos) setLineIndentPosition(line, indentPos + 1);
                 else setLineIndentPosition(line, 1);
             }
-            else if (decreaseIndent) {
+            else if (indentType == Indent.DECREASE) {
                 if (indentPos) setLineIndentPosition(line, indentPos - 1);
             }
             else {
@@ -1245,34 +1246,49 @@ var AutotagJS = (function() {
             generateIndentationIdentifier(line, listType);
         };
 
-        var updateLineIndentation = function(line, increase, list) {
-            applyStyle(line, getIncrementDecrementInstruction(increase),
-                [LINE_INDENT_STYLE]);
+        var updateIndentation = function(line, indentType) {
+            if (isList(line)) updateListIndentation(line, indentType);
+            else updateLineIndentation(line, indentType);
         };
 
-        var getIncrementDecrementInstruction = function(increase) {
-            return increase ? 'atgIncrement' : 'atgDecrement';
+        var updateLineIndentation = function(line, indentType) {
+            applyStyle(line,
+                getIndentationInstruction(indentType),
+                [ LINE_INDENT_STYLE ]);
+        };
+
+        var getIndentationInstruction = function(indentType) {
+            return (indentType == Indent.INCREASE) ? 'atgIncrement'
+                                                   : 'atgDecrement';
         };
 
         var updateIndentationInRange = function(range, indentType) {
             let node = range.startContainer;
             let offset = range.startOffset;
             let isSelection = !range.collapsed;
-            let increase = (indentType == ListAction.INDENT);
+            let increase = (indentType == Indent.INCREASE);
 
             if (isSelection) {
                 let lines = getLinesInRange(range);
                 for(let i = 0, line; (line = lines[i]); i++) {
-                    if (isList(line)) updateListIndentation(line, indentType);
-                    else updateLineIndentation(line, increase);
+                    if (isList(line)) {
+                        updateListIndentation(line, indentType);
+                    }
+                    else updateLineIndentation(line, Indent.INCREASE);
                 }
             }
             else {
                 let line = getLine(node);
                 if (isBeginingOfLine(node, offset)) {
-                    if (isList(line)) updateListIndentation(line, indentType);
-                    else if (increase) updateLineIndentation(line, increase);
-                    else return false;
+                    if (isList(line)) {
+                        updateListIndentation(line, indentType);
+                    }
+                    else {
+                        if (increase || isIndented(line)) {
+                            updateLineIndentation(line, indentType);
+                        }
+                        else return false;
+                    }
                 }
                 else {
                     if (increase) insertTab(node, offset);
@@ -1362,7 +1378,7 @@ var AutotagJS = (function() {
                 let offset = range.startOffset;
 
                 let line = getLine(container);
-                let updateSuccess = updateIndentationInRange(range, ListAction.CLEAR);
+                let updateSuccess = updateIndentationInRange(range, Indent.CLEAR_LIST);
                 if (!updateSuccess) {
                     if (isBlank(container) ||isBlank(line) ||
                         isBeginingOfLine(container, offset)) {
@@ -1500,7 +1516,7 @@ var AutotagJS = (function() {
             }
             else if (isTabKey(keyCode)) {
                 updateIndentationInRange(range,
-                    e.shiftKey ? ListAction.OUTDENT : ListAction.INDENT);
+                    e.shiftKey ? Indent.DECREASE : Indent.INCREASE);
                 e.preventDefault();
             }
             else if (isReturnKey(keyCode)) {
