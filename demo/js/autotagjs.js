@@ -743,7 +743,7 @@ var AutotagJS = (function() {
                 if (!fragment.parentNode || isUnmarkedFragment(fragment)){
                     let wrapper = createElement(MARKED_FRAGMENT_TAG, cName);
                     setStyle(wrapper, style || continuingStyle_);
-                    wrapper.classList.add(MARKED_FRAGMENT_CLASSNAME);
+                    // wrapper.classList.add(MARKED_FRAGMENT_CLASSNAME);
                     wrapNode(fragment, wrapper);
                 }
                 return fragment;
@@ -955,14 +955,17 @@ var AutotagJS = (function() {
         };
 
         var isFragment = function(node) {
+            // return node && isTextNode(node) &&
+            //     (containsClass(node.parentNode, LINE_BODY_CLASSNAME) ||
+            //         containsClass(node.parentNode, MARKED_FRAGMENT_CLASSNAME));
             return node && isTextNode(node) &&
-                (containsClass(node.parentNode, LINE_BODY_CLASSNAME) ||
-                    containsClass(node.parentNode, MARKED_FRAGMENT_CLASSNAME));
+                (isLineBody(node.parentNode) || isLineBody(node.parentNode.parentNode));
         };
 
         var isMarkedFragment = function(node) {
-            return isFragment(node) &&
-                containsClass(node.parentNode, MARKED_FRAGMENT_CLASSNAME);
+            // return isFragment(node) &&
+            //     containsClass(node.parentNode, MARKED_FRAGMENT_CLASSNAME);
+            return isFragment(node) && !isLineBody(node.parentNode);
         };
 
         var isUnmarkedFragment = function(node) {
