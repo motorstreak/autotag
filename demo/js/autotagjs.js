@@ -751,8 +751,7 @@ var AutotagJS = (function() {
         };
 
         var createTextNode = function(str) {
-            // Firefox hack - without this, firefox will ignore the leading
-            // space in the element causing all sorts of headache.
+            // Replace all shitespaces w/ non-breaking spaces.
             str = str && str.replace(/ /g, '\u00a0') || '';
             return document.createTextNode(str);
         };
@@ -1060,11 +1059,11 @@ var AutotagJS = (function() {
             }
 
             let value = container.textContent;
-            if (value.match(new RegExp(PILOT_TEXT))) {
-                container.nodeValue =
-                    container.textContent.replace(new RegExp(PILOT_TEXT, 'g'), '');
+            let classList = container.parentNode.classList;
+            if (classList.contains(PILOT_CLASSNAME)) {
+                container.nodeValue = value.replace(/[ \u00a0]/g, '');
+                classList.remove(PILOT_CLASSNAME);
                 setCaret(container);
-                container.parentNode.classList.remove(PILOT_CLASSNAME);
             }
 
             let splitOffset = splitter_(container);
@@ -1484,7 +1483,6 @@ var AutotagJS = (function() {
         };
 
         editor.addEventListener('dblclick', function(e) {
-            saveSelectionRange();
         });
 
         editor.addEventListener('click', function(e) {
