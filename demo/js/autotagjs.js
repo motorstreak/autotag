@@ -96,7 +96,8 @@ var AutotagJS = (function() {
     // var PILOT_TEXT = '\u200b';
     // Having space as the pilot indicator allows the highlighting
     // of empty lines.
-    var PILOT_TEXT = '\u00a0';
+    var PILOT_TEXT = '\u00a0',
+        TAB_TEXT = '\u0009';
 
     var LIST_INDENT_STYLE = 'margin-left:25px',
         LINE_INDENT_STYLE = 'margin-left:35px';
@@ -107,7 +108,6 @@ var AutotagJS = (function() {
     var LINE_CLASSNAME = 'atg-line',
         LINE_HEADER_CLASSNAME = 'atg-line-leader',
         LINE_BODY_CLASSNAME = 'atg-line-body',
-        MARKED_FRAGMENT_CLASSNAME = 'atg-text',
         PILOT_CLASSNAME = 'atg-pilot',
         MENU_CLASSNAME = 'atg-menu',
         PALETTE_CLASSNAME = 'atg-palette',
@@ -141,6 +141,7 @@ var AutotagJS = (function() {
             }
         };
     }
+
     function getKeyCode(e) {
         return (e.which || e.keyCode || 0);
     }
@@ -414,7 +415,7 @@ var AutotagJS = (function() {
 
     return function(editor, config) {
         // The latest selection made in the editor.
-        let savedRange_;
+        // let savedRange_;
 
         // All selection is copied to the clipboard buffer.
         let copiedRange_;
@@ -743,7 +744,6 @@ var AutotagJS = (function() {
                 if (!fragment.parentNode || isUnmarkedFragment(fragment)){
                     let wrapper = createElement(MARKED_FRAGMENT_TAG, cName);
                     setStyle(wrapper, style || continuingStyle_);
-                    // wrapper.classList.add(MARKED_FRAGMENT_CLASSNAME);
                     wrapNode(fragment, wrapper);
                 }
                 return fragment;
@@ -775,7 +775,7 @@ var AutotagJS = (function() {
         };
 
         var formatSelection = function(dataset, scope) {
-            if (savedRange_ && dataset) {
+            if (dataset) {
                 // Allow users to chose formatting on empty lines and apply
                 // style to following text.
                 // if (!savedRange_.collapsed || isBlank(savedRange_.endContainer)) {
@@ -788,19 +788,23 @@ var AutotagJS = (function() {
                     }
                     // Ensure that the selection does not disapper after we have
                     // applied formatting.
-                    resetRange(savedRange_);
+                    setSelection({
+                        startContainer: nodes.shift(),
+                        endContainer: nodes.pop(),
+                    });
                 // }
             }
         };
 
         var getNodesInSelection = function(scope) {
             let nodes;
+            let range = getRange();
             switch (scope) {
                 case 'line':
-                    nodes = getLinesInRange(savedRange_);
+                    nodes = getLinesInRange(range);
                     break;
                 default:
-                    nodes = createMarkedFragmentsInRange(savedRange_);
+                    nodes = createMarkedFragmentsInRange(range);
                     break;
             }
             nodes = nodes || [];
@@ -808,7 +812,7 @@ var AutotagJS = (function() {
         };
 
         var getActiveLine = function() {
-            return savedRange_ && getLine(savedRange_.startContainer, false);
+            return getLine(getRange().startContainer, false);
         };
 
         var getFirstLine = function() {
@@ -955,16 +959,11 @@ var AutotagJS = (function() {
         };
 
         var isFragment = function(node) {
-            // return node && isTextNode(node) &&
-            //     (containsClass(node.parentNode, LINE_BODY_CLASSNAME) ||
-            //         containsClass(node.parentNode, MARKED_FRAGMENT_CLASSNAME));
             return node && isTextNode(node) &&
                 (isLineBody(node.parentNode) || isLineBody(node.parentNode.parentNode));
         };
 
         var isMarkedFragment = function(node) {
-            // return isFragment(node) &&
-            //     containsClass(node.parentNode, MARKED_FRAGMENT_CLASSNAME);
             return isFragment(node) && !isLineBody(node.parentNode);
         };
 
@@ -1041,15 +1040,16 @@ var AutotagJS = (function() {
 
         var insertTab = function(node, index) {
             if (isTextNode(node)){
-                node.nodeValue = node.textContent.splice(index, 0, '\u0009');
+                node.nodeValue = node.textContent.splice(index, 0, TAB_TEXT);
                 setCaret(node, index + 1);
             }
             processInput();
         };
 
         var processInput = function() {
-            let container = savedRange_.endContainer;
-            let offset = savedRange_.endOffset;
+            let range = getRange();
+            let container = range.endContainer;
+            let offset = range.endOffset;
             if (isTextNode(container)) {
                 // Mark unmarked text nodes. This is not strictly required
                 // but it helps by pre-empting the burden of doing so later.
@@ -1069,8 +1069,9 @@ var AutotagJS = (function() {
 
             let splitOffset = splitter_(container);
             if (splitOffset && splitOffset > 0 && splitOffset < value.length) {
-                let newFragment = splitFragment(container, splitOffset)[1];
-                setCaret(newFragment);
+                let fragments = splitFragment(container, splitOffset);
+                decorator_(fragments[0].parentNode, fragments[0].textContent);
+                setCaret(fragments[1]);
             }
 
             // Remove unwanted break nodes inserted by Forefox.
@@ -1173,30 +1174,6 @@ var AutotagJS = (function() {
             }
         };
 
-        var saveSelectionRange = function() {
-            let range = getRange();
-            if (range && range != savedRange_) {
-                let startContainer = range.startContainer;
-                let endContainer = range.endContainer;
-                if (isTextNode(startContainer) && isTextNode(endContainer)) {
-                    savedRange_  = range;
-                    if (isMarkedFragment(endContainer)) {
-                        continuingStyle_ =
-                            endContainer.parentNode.getAttribute('style');
-                    }
-
-                    if (range.collapsed) {
-                        decorator_(endContainer.parentNode,
-                            endContainer.textContent);
-                        if (range.endOffset == 1 && isBlank(endContainer)) {
-                            setCaret(endContainer, 0);
-                        }
-                    }
-                }
-                return savedRange_;
-            }
-        };
-
         var setCaret = function(node, offset) {
             if (!isTextNode(node)) {
                 node = getFragmentsInLine(node).pop();
@@ -1225,7 +1202,7 @@ var AutotagJS = (function() {
                 try {
                     range.setStart(startNode, startOffset);
                     range.setEnd(endNode, endOffset);
-                    savedRange_ = range;
+                    // savedRange_ = range;
                 }
                 catch (err) {
                     // Chrome does not like setting an offset of 1
@@ -1477,7 +1454,7 @@ var AutotagJS = (function() {
                 }
 
                 // Rebuild original selection range for further processing.
-                savedRange_ = setSelection({
+                let newRange = setSelection({
                     startContainer: startFragment,
                     startOffset: 0,
                     endContainer: endFragment,
@@ -1485,7 +1462,7 @@ var AutotagJS = (function() {
                 });
 
                 // Now return all tghe fragments.
-                fragments =  getFragmentsInRange(savedRange_);
+                fragments =  getFragmentsInRange(newRange);
             }
             // Ensure all fragment are marked. If not, mark them. Note that
             // unmarked fragments may show up when the selection covers
@@ -1564,16 +1541,8 @@ var AutotagJS = (function() {
             e.preventDefault();
         });
 
-        // document.addEventListener('selectionchange', debounce(function(e) {
-        //     if (saveSelectionRange()) {
-        //         doAfterSelection_(getMarkedFragmentsInRange(savedRange_));
-        //     }
-        // }, 10));
-
         document.addEventListener('selectionchange', function(e) {
-            if (saveSelectionRange()) {
-                doAfterSelection_(getMarkedFragmentsInRange(savedRange_));
-            }
+            doAfterSelection_(getMarkedFragmentsInRange(getRange()));
         });
 
         return {
@@ -1582,11 +1551,6 @@ var AutotagJS = (function() {
                     editorMenubar_ = menubar;
                     editorMenubar_.addEventListener('click', function(e) {
                         hideSubmenus();
-
-                        // The click event remove the text selection. Reinstate
-                        // the selection so that we can format the content in
-                        // the highlighted text.
-                        resetRange(savedRange_);
 
                         let target = e.target;
                         let menu = getParentMenu(target);
@@ -1620,6 +1584,7 @@ var AutotagJS = (function() {
                             formatSelection(target.dataset, scope);
                             hideSubmenus();
                         }
+
                     });
                 }
             }

@@ -2,7 +2,7 @@ body {
     background-color : #EEE;
     margin : 0;
     padding : 0;
-    font-family : 'Varela Round', Arial, Helvetica, sans-serif;
+    font-family : Arial, Helvetica, sans-serif;
     font-size : 16px;
 }
 
@@ -173,7 +173,7 @@ body {
 
 .demo-input {
     /*font-family : 'Caveat', cursive;*/
-    font-family: 'Lato', sans-serif;
+    font-family: 'Khula', sans-serif;
     font-size : 16px;
     font-weight: 300;
 }

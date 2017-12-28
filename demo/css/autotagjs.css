@@ -1,14 +1,16 @@
 
-.atg-text {
+/*.atg-text {
     caret-color: #777;
     /* Rquired to display cursor in Chrome.  */
-    min-width: 1px;
-}
+    /*min-width: 1px;*/
+}*/
 
 /* Prevent words from breaking.
  * Courtesy: https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/
  */
  .atg-line > * {
+     caret-color: #777;
+
     /* These are technically the same, but use both */
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -39,7 +41,7 @@
 
 .atg-line-leader {
     vertical-align: top;
-     min-width: 50px; 
+     min-width: 50px;
     text-align: right;
     padding-right: 10px;
     word-break: normal;
@@ -57,12 +59,12 @@
 
 ::-moz-selection {
     color : #000;
-    background : #BFD3FA;
+    background : #BFF5AC;
 }
 
 ::selection {
     color : #000;
-    background : #BFD3FA;
+    background : #BFF5AC;
 }
 
 /* Prevent outlines on contenteditable items in IE. */
