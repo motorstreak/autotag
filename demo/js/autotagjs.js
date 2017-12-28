@@ -1210,7 +1210,11 @@ var AutotagJS = (function() {
                 }
                 resetRange(range);
             }
-            return range;
+
+            // Note that the range object will sometimes be null in Edge and
+            // therefore it is safer to call getRange() as opposed to returning
+            // 'range'.
+            return getRange();
         };
 
         var setLineIndentPosition = function(line, pos) {
