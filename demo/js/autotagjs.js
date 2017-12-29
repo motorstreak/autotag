@@ -1091,29 +1091,20 @@ var AutotagJS = (function() {
                 setCaret(container);
             }
 
-            // let splitOffset = splitter_(container);
-            // if (splitOffset && splitOffset > 0 && splitOffset < value.length) {
-            //     let fragments = splitFragment(container, splitOffset);
-            //     decorator_(fragments[0].parentNode, fragments[0].textContent);
-            //     setCaret(fragments[1]);
-            // }
-
-            splitAndDecorate(container);
+            // splitAndDecorate(container);
+            let splitOffset = splitter_(container.textContent);
+            if (splitOffset) {
+                let fragment =
+                    splitFragment(container, splitOffset, true).pop();
+                setCaret(fragment);
+            }
 
             // Remove unwanted break nodes inserted by Forefox.
             removeNodesInList(editor.querySelectorAll('br'));
         };
 
-        var splitAndDecorate = function(fgmt) {
-            let content = fgmt.textContent;
-            let splitOffset = splitter_(content);
-            if (splitOffset && splitOffset > 0 &&
-                    splitOffset < content.length) {
-                let fragments = splitFragment(fgmt, splitOffset);
-                decorator_(fragments[0].parentNode, fragments[0].textContent);
-                setCaret(fragments[1]);
-                return fragments[1];
-            }
+        var splitAndDecorate = function(fragment) {
+
         };
 
         var pasteClipboardContent = function(e) {
@@ -1137,42 +1128,36 @@ var AutotagJS = (function() {
             let fragment = markFragment(createTextNode(pastedContent));
             let previousNode = fragments.pop().parentNode;
             appendNode(fragment.parentNode, previousNode);
-            // setCaret(node);
 
             if (isBlank(previousNode)) {
                 removeNode(previousNode);
             }
-            setSelection({
-                startContainer: fragment,
-                endContainer: fragment
-            });
 
-            let i = 1;
+            // Pasting content creates one large fragment. Break this up
+            // based on splitter and apply decoration as configured.
+            let index = 1;
             let content = fragment.textContent;
             let contentLength = content.length;
+            let startFragment = fragment;
+
             do  {
-                let splitOffset = splitter_(content.slice(0, i));
+                let splitOffset = splitter_(content.slice(0, index));
                 if (splitOffset) {
-                    let fragments = splitFragment(fragment, splitOffset);
-                    decorator_(fragments[0].parentNode, fragments[0].textContent);
-                    fragment = fragments[1];
+                    fragment = splitFragment(fragment, splitOffset, true).pop();
                     content = fragment.textContent;
                     contentLength = content.length;
-                    i = 1;
+                    index = 1;
                 }
                 else {
-                    i += 1;
+                    index += 1;
                 }
-                // let newFragment =
-                //     splitAndDecorate(fragment.textContent.slice(0, i));
-                // if (newFragment) {
-                //     fragment = newFragment;
-                //     i=1;
-                // }
-                // else {
-                //     i += 1;
-                // }
-            } while (i <= contentLength);
+            } while (index <= contentLength);
+
+            //  Make sure that the pasted text remains highlighted.
+            setSelection({
+                startContainer: startFragment,
+                endContainer: fragment
+            });
         };
 
         var processRightArrowKey = function(range) {
@@ -1390,7 +1375,6 @@ var AutotagJS = (function() {
 
             if (isBlank(line)) {
                 renewLineBody(getLineBody(line), true);
-                // deleteLine(line);
             }
             else {
                 if (isBlank(node)) {
@@ -1418,7 +1402,6 @@ var AutotagJS = (function() {
                     let nodes = getChildren(lineBody);
                     if (nodes.length > 0) {
                         appendChildNodes(nodes, prevLineBody);
-                        // setCaret(nodes[0], 0);
                     }
                 }
                 removeNode(line);
@@ -1427,18 +1410,25 @@ var AutotagJS = (function() {
 
         var deleteSelection = function(range) {
             let fragments = createMarkedFragmentsInRange(range);
-            let firstFragment = fragments[0];
-            let nextFragment = getFragmentSibling(firstFragment, -1) ||
-                getFragmentSibling(firstFragment, 1);
+            let nextFragment = getFragmentSibling(fragments[0], -1) ||
+                getFragmentSibling(fragments[fragments.length - 1], 1);
 
             for (let i=0, node; (node = fragments[i]); i++) {
                 if (isMarkedFragment(node)) node = node.parentNode;
                 removeNode(node);
             }
+
+            if (nextFragment) {
+                setCaret(nextFragment);
+            }
+
             removeNodesInList(getLinesInRange(range), function(line) {
                 return isBlank(line) || isBlank(getLineBody(line));
             });
-            if (!setCaret(nextFragment)) initializeEditor();
+
+            // ..just in case all lines were deleted, including the line on
+            // which we set the caret.
+            initializeEditor();
         };
 
         var processDelete = function(range) {
@@ -1465,7 +1455,7 @@ var AutotagJS = (function() {
             }
         };
 
-        var splitFragment = function(fragment, offset) {
+        var splitFragment = function(fragment, offset, decorate) {
             offset = initObject(offset, 0);
             let firstFragment;
             let secondFragment;
@@ -1489,6 +1479,10 @@ var AutotagJS = (function() {
                     appendNode(secondFragment.parentNode,
                         firstFragment.parentNode);
                 }
+            }
+
+            if (decorate) {
+                decorator_(firstFragment.parentNode, firstFragment.textContent);
             }
             return [firstFragment, secondFragment];
         };
