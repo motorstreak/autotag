@@ -159,7 +159,8 @@ body {
 }
 
 .demo-pronoun {
-    color : purple !important;
+    color : blue !important;
+    font-style: italic !important;
 }
 
 .demo-pronoun:hover {

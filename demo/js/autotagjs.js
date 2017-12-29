@@ -435,11 +435,11 @@ var AutotagJS = (function() {
         let decorator_ = config.decorator || function(node, text) {};
 
         // The default splitter splits on words.
-        let splitter_ = config.splitter || function(fragment) {
-            let value = fragment.textContent;
+        let splitter_ = config.splitter || function(str) {
+            // let value = fragment.textContent;
             // if (value.match(/(.+[ !?\.])|(([ !?\.])+.)/)) {
-            if (value.match(/(\b[ !\?\.])|([ !\?\.]+\b)/)) {
-                return value.length-1;
+            if (str.match(/(\b[ \u00a0!\?\.])|([ \u00a0!\?\.]+\b)/)) {
+                return str.length-1;
             }
         };
 
@@ -815,21 +815,21 @@ var AutotagJS = (function() {
         };
 
         var getFirstLine = function() {
-            return editor.querySelector(LINE_TAG + ':first-child');
+            return editor && editor.querySelector(LINE_TAG + ':first-child');
         };
 
         var getLineBody = function(node) {
-            if (!isLine(node)) {
+            if (node && !isLine(node)) {
                 node = getLine(node);
             }
-            return node.querySelector('.' + LINE_BODY_CLASSNAME);
+            return node && node.querySelector('.' + LINE_BODY_CLASSNAME);
         };
 
         var getLineHeader = function(node) {
-            if (!isLine(node)) {
+            if (node && !isLine(node)) {
                 node = getLine(node);
             }
-            return node.querySelector('.' + LINE_HEADER_CLASSNAME);
+            return node && node.querySelector('.' + LINE_HEADER_CLASSNAME);
         };
 
         var getLine = function(node) {
@@ -856,12 +856,14 @@ var AutotagJS = (function() {
 
         var getNodesFromTree = function(walker, filter, limit) {
             let nodes = [];
-            do {
-                let node = walker.currentNode;
-                if (!filter || filter(node)) {
-                    nodes.push(node);
-                }
-            } while (walker.nextNode() && (!limit || nodes.length <= limit));
+            if (walker) {
+                do {
+                    let node = walker.currentNode;
+                    if (!filter || filter(node)) {
+                        nodes.push(node);
+                    }
+                } while (walker.nextNode() && (!limit || nodes.length <= limit));
+            }
             return nodes;
         };
 
@@ -896,17 +898,19 @@ var AutotagJS = (function() {
         };
 
         var getRangeWalker = function(range, whatToShow, ancestorFilter) {
-            ancestorFilter =  ancestorFilter || isFragment;
+            if (range) {
+                ancestorFilter =  ancestorFilter || isFragment;
 
-            let ancestor = range.commonAncestorContainer ;
-            while (ancestor && !ancestorFilter(ancestor) &&
-                !isEditor(ancestor) && !isDocumentNode(ancestor)) {
-                ancestor = ancestor.parentNode;
+                let ancestor = range.commonAncestorContainer ;
+                while (ancestor && !ancestorFilter(ancestor) &&
+                    !isEditor(ancestor) && !isDocumentNode(ancestor)) {
+                    ancestor = ancestor.parentNode;
+                }
+
+                return getTreeWalker(ancestor, whatToShow, function(node) {
+                    return rangeIntersectsNode(range, node);
+                });
             }
-
-            return getTreeWalker(ancestor, whatToShow, function(node) {
-                return rangeIntersectsNode(range, node);
-            });
         };
 
         var getFragmentsInRange = function(range) {
@@ -1029,7 +1033,7 @@ var AutotagJS = (function() {
                 } while (isList(line.nextSibling) && (line = line.nextSibling));
             }
 
-            if (!isList(curLine)){
+            if (curLine && !isList(curLine)){
                 let header = getLineHeader(curLine);
                 if (header) {
                     removeNode(header);
@@ -1043,6 +1047,27 @@ var AutotagJS = (function() {
                 setCaret(node, index + 1);
             }
             processInput();
+        };
+
+        var getFragmentSibling = function(fragment, direction) {
+            // limit to -2 > direction < 2
+            direction = direction % 2;
+
+            let line = getLine(fragment);
+            let fragments = getFragmentsInLine(line);
+            let index = fragments.indexOf(fragment);
+
+            if (index === 0 && direction === -1) {
+                return line.previousSibling &&
+                    getFragmentsInLine(line.previousSibling).pop();
+            }
+            else if ((index === fragments.length - 1) && direction === 1) {
+                return line.nextSibling &&
+                    getFragmentsInLine(line.nextSibling).shift();
+            }
+            else {
+                return fragments[index + direction];
+            }
         };
 
         var processInput = function() {
@@ -1066,48 +1091,88 @@ var AutotagJS = (function() {
                 setCaret(container);
             }
 
-            let splitOffset = splitter_(container);
-            if (splitOffset && splitOffset > 0 && splitOffset < value.length) {
-                let fragments = splitFragment(container, splitOffset);
-                decorator_(fragments[0].parentNode, fragments[0].textContent);
-                setCaret(fragments[1]);
-            }
+            // let splitOffset = splitter_(container);
+            // if (splitOffset && splitOffset > 0 && splitOffset < value.length) {
+            //     let fragments = splitFragment(container, splitOffset);
+            //     decorator_(fragments[0].parentNode, fragments[0].textContent);
+            //     setCaret(fragments[1]);
+            // }
+
+            splitAndDecorate(container);
 
             // Remove unwanted break nodes inserted by Forefox.
             removeNodesInList(editor.querySelectorAll('br'));
         };
 
-        var pasteClipboardContent = function(e) {
-            let content;
-            let container = savedRange_.endContainer;
-            if (!copiedRange_ || copiedRange_.collapsed) {
-                if (e.clipboardData) {
-                    content = (e.originalEvent || e)
-                        .clipboardData.getData('text/plain');
-                }
-                else if (window.clipboardData) {
-                    content = window.clipboardData.getData('Text');
-                }
+        var splitAndDecorate = function(fgmt) {
+            let content = fgmt.textContent;
+            let splitOffset = splitter_(content);
+            if (splitOffset && splitOffset > 0 &&
+                    splitOffset < content.length) {
+                let fragments = splitFragment(fgmt, splitOffset);
+                decorator_(fragments[0].parentNode, fragments[0].textContent);
+                setCaret(fragments[1]);
+                return fragments[1];
+            }
+        };
 
-                if (isTextNode(container)) {
-                    container.nodeValue = container.nodeValue + content;
-                    setCaret(container);
+        var pasteClipboardContent = function(e) {
+            let range = getRange();
+            if (!range.collapsed) {
+                deleteSelection(range);
+                range = getRange();
+            }
+
+            let pastedContent;
+            let fragments = createMarkedFragmentsInRange(range);
+
+            if (e.clipboardData) {
+                pastedContent = (e.originalEvent || e)
+                    .clipboardData.getData('text/plain');
+            }
+            else if (window.clipboardData) {
+                pastedContent = window.clipboardData.getData('Text');
+            }
+
+            let fragment = markFragment(createTextNode(pastedContent));
+            let previousNode = fragments.pop().parentNode;
+            appendNode(fragment.parentNode, previousNode);
+            // setCaret(node);
+
+            if (isBlank(previousNode)) {
+                removeNode(previousNode);
+            }
+            setSelection({
+                startContainer: fragment,
+                endContainer: fragment
+            });
+
+            let i = 1;
+            let content = fragment.textContent;
+            let contentLength = content.length;
+            do  {
+                let splitOffset = splitter_(content.slice(0, i));
+                if (splitOffset) {
+                    let fragments = splitFragment(fragment, splitOffset);
+                    decorator_(fragments[0].parentNode, fragments[0].textContent);
+                    fragment = fragments[1];
+                    content = fragment.textContent;
+                    contentLength = content.length;
+                    i = 1;
                 }
                 else {
-                    let textNode = document.createTextNode(content);
-                    container.insertBefore(textNode, container.firstChild);
-                    setCaret(textNode);
+                    i += 1;
                 }
-                processInput();
-            }
-            else {
-                let fragment =
-                    splitFragment(container.parentNode, savedRange_.endOffset);
-                appendNode(copiedRange_.cloneContents(), fragment);
-                if (isBlank(fragment) && !isList(fragment.nextSibling)) {
-                    removeNode(fragment);
-                }
-            }
+                // let newFragment =
+                //     splitAndDecorate(fragment.textContent.slice(0, i));
+                // if (newFragment) {
+                //     fragment = newFragment;
+                //     i=1;
+                // }
+                // else {
+                //     i += 1;
+                // }
+            } while (i <= contentLength);
         };
 
         var processRightArrowKey = function(range) {
@@ -1174,9 +1239,10 @@ var AutotagJS = (function() {
         };
 
         var setCaret = function(node, offset) {
-            if (!isTextNode(node)) {
+            if (node && !isTextNode(node)) {
                 node = getFragmentsInLine(node).pop();
             }
+
             if (node) {
                 offset = initObject(offset, node.length);
                 return setSelection({
@@ -1361,6 +1427,10 @@ var AutotagJS = (function() {
 
         var deleteSelection = function(range) {
             let fragments = createMarkedFragmentsInRange(range);
+            let firstFragment = fragments[0];
+            let nextFragment = getFragmentSibling(firstFragment, -1) ||
+                getFragmentSibling(firstFragment, 1);
+
             for (let i=0, node; (node = fragments[i]); i++) {
                 if (isMarkedFragment(node)) node = node.parentNode;
                 removeNode(node);
@@ -1368,7 +1438,7 @@ var AutotagJS = (function() {
             removeNodesInList(getLinesInRange(range), function(line) {
                 return isBlank(line) || isBlank(getLineBody(line));
             });
-            initializeEditor();
+            if (!setCaret(nextFragment)) initializeEditor();
         };
 
         var processDelete = function(range) {
