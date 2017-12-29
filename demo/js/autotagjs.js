@@ -432,16 +432,10 @@ var AutotagJS = (function() {
         let trace_ = config.trace || false;
 
         // Callbacks
-        let decorator_ = config.decorator || function(node, text) {};
+        let decorator_ = config.decorator || function(nodes) {};
 
-        // The default splitter splits on words.
-        let splitter_ = config.splitter || function(str) {
-            // let value = fragment.textContent;
-            // if (value.match(/(.+[ !?\.])|(([ !?\.])+.)/)) {
-            if (str.match(/(\b[ \u00a0!\?\.])|([ \u00a0!\?\.]+\b)/)) {
-                return str.length-1;
-            }
-        };
+        // The default splitter does not split.
+        let splitter_ = config.splitter || function(str) {};
 
         // Event callbacks
         let doAfterKeypress_ = config.afterKeypress || function() {};
@@ -1482,7 +1476,7 @@ var AutotagJS = (function() {
             }
 
             if (decorate) {
-                decorator_(firstFragment.parentNode, firstFragment.textContent);
+                decorator_([firstFragment, secondFragment]);
             }
             return [firstFragment, secondFragment];
         };

@@ -292,20 +292,32 @@
 
             // Some configuration options for the editor.
             var editorConfig = {
+                // The splitter returns an index at which the text should
+                // be split. We can later use the split fragments to apply
+                // custom styles via the decorator callback.
+                splitter: function(text) {
+                    console.log(text);
+                    let match;
+                    if ((match = text.match(/((?<=^\w+)\W$)|((?<=\W+)\w$)/))) {
+                        return match.index;
+                    }
+                },
 
-                // A callback that gets called when the splitter encounters a change.
-                // The callback contains the text (or autotagjs tag) being processed.
-                // In this demo, we use the decorator to apply custom styles based
-                // on the content in the tag.
-                decorator: function(node, text) {
-                    text = text.replace(/,$/, '').toLowerCase();
+                // A callback that gets called when the splitter
+                decorator: function(nodes) {
+                    // The splitter above splits the text at the point it
+                    // detects a word boundary.
+                    let node = nodes[0].parentNode;
+                    let text = node.textContent.toLowerCase();
+                    let classList = node.classList;
+
                     if (pronouns.indexOf(text) >= 0) {
-                        node.classList.add('demo-pronoun');
+                        classList.add('demo-pronoun');
                         node.setAttribute('data-tooltip', 'Pronoun');
                     }
                     else {
                         // Always remember to clean the node!
-                        node.classList.remove('demo-pronoun');
+                        classList.remove('demo-pronoun');
                         node.removeAttribute('data-tooltip');
                     }
                 },
@@ -344,7 +356,22 @@
             new AutotagJS(editor, editorConfig).attachMenubar(menubar);
 
             var inputConfig = {
-                decorator: function(node, text) {
+                // The splitter returns an index at which the text should
+                // be split. We can later use the split fragments to apply
+                // custom styles via the decorator callback.
+                splitter: function(text) {
+                    let match;
+                    if ((match = text.match(/([#\+\@]\w{2}$)|((?<=^[#\+\@]\w{2,})\W$)/))) {
+                        return match.index;
+                    }
+                },
+
+                // The splitter splits the text at the point it
+                // detects a '#', '@', or '+'.
+                // Eg. "Hello #yo" => ["Hello ", "#yo"]
+                decorator: function(nodes) {
+                    let node = nodes[1].parentNode;
+                    let text = node.textContent;
                     var classList = node.classList;
                     if (text.match(/^#[\w]{2}[\w]*$/)) {
                         classList.add('demo-hash-tag');
