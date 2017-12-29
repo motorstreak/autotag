@@ -81,7 +81,8 @@ var AutotagJS = (function() {
             seperator: '.'
         },
         'bulletted': {
-            styles: [ 'disc', 'circle', 'square', 'white-square', 'diamond', 'white-diamond']
+            styles: [ 'disc', 'circle', 'square', 'white-square', 'diamond',
+                'white-diamond']
         }
     };
 
@@ -95,7 +96,8 @@ var AutotagJS = (function() {
     // var PILOT_TEXT = '\u200b';
     // Having space as the pilot indicator allows the highlighting
     // of empty lines.
-    var PILOT_TEXT = '\u00a0';
+    var PILOT_TEXT = '\u00a0',
+        TAB_TEXT = '\u0009';
 
     var LIST_INDENT_STYLE = 'margin-left:25px',
         LINE_INDENT_STYLE = 'margin-left:35px';
@@ -106,9 +108,7 @@ var AutotagJS = (function() {
     var LINE_CLASSNAME = 'atg-line',
         LINE_HEADER_CLASSNAME = 'atg-line-leader',
         LINE_BODY_CLASSNAME = 'atg-line-body',
-        MARKED_FRAGMENT_CLASSNAME = 'atg-text',
-        LIST_FRAGMENT_CLASSNAME = 'atg-list',
-        // PILOT_CLASSNAME = 'atg-pilot',
+        PILOT_CLASSNAME = 'atg-pilot',
         MENU_CLASSNAME = 'atg-menu',
         PALETTE_CLASSNAME = 'atg-palette',
         PALETTE_CELL_CLASSNAME = 'atg-palette-cell',
@@ -127,16 +127,21 @@ var AutotagJS = (function() {
             let args = arguments;
             let later = function() {
                 timeout = null;
-                if (!immediate) func.apply(context, args);
+                if (!immediate) {
+                    func.apply(context, args);
+                }
             };
 
             let callNow = immediate && !timeout;
             clearTimeout(timeout);
             timeout = setTimeout(later, wait);
 
-            if (callNow) func.apply(context, args);
+            if (callNow) {
+                func.apply(context, args);
+            }
         };
     }
+
     function getKeyCode(e) {
         return (e.which || e.keyCode || 0);
     }
@@ -156,7 +161,9 @@ var AutotagJS = (function() {
     }
 
     function setStyle(node, style) {
-        if (isElementNode(node)) node.setAttribute('style', style);
+        if (isElementNode(node) && style && style.length) {
+            node.setAttribute('style', style);
+        }
     }
 
     function appendChildNodes(nodeList, toNode) {
@@ -198,7 +205,9 @@ var AutotagJS = (function() {
 
     function removeNodesInList(nodeList, filter) {
         for (let i=0, node; (node = nodeList[i]); i++) {
-            if (!filter || filter(node)) removeNode(node);
+            if (!filter || filter(node)) {
+                removeNode(node);
+            }
         }
     }
 
@@ -244,7 +253,9 @@ var AutotagJS = (function() {
         let children = [];
         node = node.firstChild;
         while(node) {
-            if (!filter || filter(node)) children.push(node);
+            if (!filter || filter(node)) {
+                children.push(node);
+            }
             node = node.nextSibling;
         }
         return children;
@@ -273,7 +284,9 @@ var AutotagJS = (function() {
         if (range) {
             if (window.getSelection) {
                 let selection = window.getSelection();
-                if (selection.rangeCount > 0) selection.removeAllRanges();
+                if (selection.rangeCount > 0) {
+                    selection.removeAllRanges();
+                }
                 selection.addRange(range);
             }
             else if (document.createRange) {
@@ -303,7 +316,6 @@ var AutotagJS = (function() {
                 range.compareBoundaryPoints(Range.START_TO_END, nodeRange) == 1;
         }
     }
-
 
     function isFormatKey(code) {
         return (code == 66 || code == 73 || code == 85);
@@ -342,7 +354,9 @@ var AutotagJS = (function() {
     function generateListNumbering(listType, listId) {
         // This is a blank/clear list.
         // There is no need to generate the list marker.
-        if (listId.length == 0) return '';
+        if (listId.length == 0) {
+            return '';
+        }
 
         // Continue otherwise..
         let suffix = listType.suffix || '';
@@ -401,15 +415,15 @@ var AutotagJS = (function() {
 
     return function(editor, config) {
         // The latest selection made in the editor.
-        let savedRange_,
+        // let savedRange_;
 
-            // All selection is copied to the clipboard buffer.
-            copiedRange_,
-            editorMenubar_,
+        // All selection is copied to the clipboard buffer.
+        let copiedRange_;
+        let editorMenubar_;
 
-            // Continues the current text style to the next line and
-            // across line breaks.
-            continuingStyle_ = '';
+        // Continues the current text style to the next line and
+        // across line breaks.
+        let continuingStyle_ = '';
 
         // Initialize configuration.
         config = config || {};
@@ -421,10 +435,11 @@ var AutotagJS = (function() {
         let decorator_ = config.decorator || function(node, text) {};
 
         // The default splitter splits on words.
-        let splitter_ = config.splitter || function(fragment) {
-            let value = fragment.textContent;
-            if (value.match(/(.+[ !?\.])|([ !?\.].)/)) {
-                return value.length-1;
+        let splitter_ = config.splitter || function(str) {
+            // let value = fragment.textContent;
+            // if (value.match(/(.+[ !?\.])|(([ !?\.])+.)/)) {
+            if (str.match(/(\b[ \u00a0!\?\.])|([ \u00a0!\?\.]+\b)/)) {
+                return str.length-1;
             }
         };
 
@@ -443,9 +458,9 @@ var AutotagJS = (function() {
                 }
             }
             else {
-                for (let j = 0, command; (command = commands[j]); j++) {
-                    command = command.split(/ +/);
-                    switch(command[0]) {
+                for (let j = 0, cmd; (cmd = commands[j]); j++) {
+                    cmd = cmd.split(/ +/);
+                    switch(cmd[0]) {
                         case 'indent':
                             updateIndentation(target, Indent.INCREASE);
                             break;
@@ -454,7 +469,7 @@ var AutotagJS = (function() {
                             break;
                         case 'list':
                             updateListIndentation(
-                                target, Indent.INCREASE, command[1]);
+                                target, Indent.INCREASE, cmd[1]);
                             break;
                     }
                 }
@@ -484,9 +499,7 @@ var AutotagJS = (function() {
                 target = isTextNode(target) ? target.parentNode : target;
                 for (let j = 0; j < declarations.length; j++) {
                     let declaration = declarations[j].split(/\s*:\s*/);
-                    let property = declaration[0];
-                    let value = declaration[1];
-
+                    let property = declaration[0], value = declaration[1];
                     let targetStyle = target.style;
                     let curValue = targetStyle.getPropertyValue(property);
 
@@ -714,20 +727,23 @@ var AutotagJS = (function() {
             removeAllChildNodes(node);
             let fragment = markFragment(createTextNode(PILOT_TEXT));
             let markedFragment = fragment.parentNode;
+
             node.appendChild(markedFragment);
             setStyle(markedFragment, continuingStyle_);
-            // markedFragment.style.setProperty('display', 'inline-block');
-            markedFragment.classList.add('atg-pilot');
-            if (focus) setCaret(fragment, 0);
+            markedFragment.classList.add(PILOT_CLASSNAME);
+
+            if (focus) {
+                setCaret(fragment, 0);
+            }
         };
 
-        // Returns a marked fragment (<span>...</span>)
+        // Wraps the fragment in a span tag and returns the same
+        // fragment (text node).
         var markFragment = function(fragment, cName, style) {
             if (isTextNode(fragment)) {
                 if (!fragment.parentNode || isUnmarkedFragment(fragment)){
                     let wrapper = createElement(MARKED_FRAGMENT_TAG, cName);
                     setStyle(wrapper, style || continuingStyle_);
-                    wrapper.classList.add(MARKED_FRAGMENT_CLASSNAME);
                     wrapNode(fragment, wrapper);
                 }
                 return fragment;
@@ -735,8 +751,7 @@ var AutotagJS = (function() {
         };
 
         var createTextNode = function(str) {
-            // Firefox hack - without this, firefox will ignore the leading
-            // space in the element causing all sorts of headache.
+            // Replace all shitespaces w/ non-breaking spaces.
             str = str && str.replace(/ /g, '\u00a0') || '';
             return document.createTextNode(str);
         };
@@ -759,7 +774,7 @@ var AutotagJS = (function() {
         };
 
         var formatSelection = function(dataset, scope) {
-            if (savedRange_ && dataset) {
+            if (dataset) {
                 // Allow users to chose formatting on empty lines and apply
                 // style to following text.
                 // if (!savedRange_.collapsed || isBlank(savedRange_.endContainer)) {
@@ -772,19 +787,23 @@ var AutotagJS = (function() {
                     }
                     // Ensure that the selection does not disapper after we have
                     // applied formatting.
-                    resetRange(savedRange_);
+                    setSelection({
+                        startContainer: nodes.shift(),
+                        endContainer: nodes.pop(),
+                    });
                 // }
             }
         };
 
         var getNodesInSelection = function(scope) {
             let nodes;
+            let range = getRange();
             switch (scope) {
                 case 'line':
-                    nodes = getLinesInRange(savedRange_);
+                    nodes = getLinesInRange(range);
                     break;
                 default:
-                    nodes = createMarkedFragmentsInRange(savedRange_);
+                    nodes = createMarkedFragmentsInRange(range);
                     break;
             }
             nodes = nodes || [];
@@ -792,25 +811,32 @@ var AutotagJS = (function() {
         };
 
         var getActiveLine = function() {
-            return savedRange_ && getLine(savedRange_.startContainer, false);
+            return getLine(getRange().startContainer, false);
         };
 
         var getFirstLine = function() {
-            return editor.querySelector(LINE_TAG + ':first-child');
+            return editor && editor.querySelector(LINE_TAG + ':first-child');
         };
 
         var getLineBody = function(node) {
-            if (!isLine(node)) node = getLine(node);
-            return node.querySelector('.' + LINE_BODY_CLASSNAME);
+            if (node && !isLine(node)) {
+                node = getLine(node);
+            }
+            return node && node.querySelector('.' + LINE_BODY_CLASSNAME);
         };
 
         var getLineHeader = function(node) {
-            if (!isLine(node)) node = getLine(node);
-            return node.querySelector('.' + LINE_HEADER_CLASSNAME);
+            if (node && !isLine(node)) {
+                node = getLine(node);
+            }
+            return node && node.querySelector('.' + LINE_HEADER_CLASSNAME);
         };
 
         var getLine = function(node) {
-            if (isEditor(node)) return getFirstLine();
+            if (isEditor(node)) {
+                return getFirstLine();
+            }
+
             while (node && !isLine(node)) {
                 node = node.parentNode;
             }
@@ -830,10 +856,14 @@ var AutotagJS = (function() {
 
         var getNodesFromTree = function(walker, filter, limit) {
             let nodes = [];
-            do {
-                let node = walker.currentNode;
-                if (!filter || filter(node)) nodes.push(node);
-            } while (walker.nextNode() && (!limit || nodes.length <= limit));
+            if (walker) {
+                do {
+                    let node = walker.currentNode;
+                    if (!filter || filter(node)) {
+                        nodes.push(node);
+                    }
+                } while (walker.nextNode() && (!limit || nodes.length <= limit));
+            }
             return nodes;
         };
 
@@ -868,17 +898,19 @@ var AutotagJS = (function() {
         };
 
         var getRangeWalker = function(range, whatToShow, ancestorFilter) {
-            ancestorFilter =  ancestorFilter || isFragment;
+            if (range) {
+                ancestorFilter =  ancestorFilter || isFragment;
 
-            let ancestor = range.commonAncestorContainer ;
-            while (ancestor && !ancestorFilter(ancestor) &&
-                !isEditor(ancestor) && !isDocumentNode(ancestor)) {
-                ancestor = ancestor.parentNode;
+                let ancestor = range.commonAncestorContainer ;
+                while (ancestor && !ancestorFilter(ancestor) &&
+                    !isEditor(ancestor) && !isDocumentNode(ancestor)) {
+                    ancestor = ancestor.parentNode;
+                }
+
+                return getTreeWalker(ancestor, whatToShow, function(node) {
+                    return rangeIntersectsNode(range, node);
+                });
             }
-
-            return getTreeWalker(ancestor, whatToShow, function(node) {
-                return rangeIntersectsNode(range, node);
-            });
         };
 
         var getFragmentsInRange = function(range) {
@@ -931,13 +963,11 @@ var AutotagJS = (function() {
 
         var isFragment = function(node) {
             return node && isTextNode(node) &&
-                (containsClass(node.parentNode, LINE_BODY_CLASSNAME) ||
-                    containsClass(node.parentNode, MARKED_FRAGMENT_CLASSNAME));
+                (isLineBody(node.parentNode) || isLineBody(node.parentNode.parentNode));
         };
 
         var isMarkedFragment = function(node) {
-            return isFragment(node) &&
-                containsClass(node.parentNode, MARKED_FRAGMENT_CLASSNAME);
+            return isFragment(node) && !isLineBody(node.parentNode);
         };
 
         var isUnmarkedFragment = function(node) {
@@ -990,7 +1020,9 @@ var AutotagJS = (function() {
 
                         // Fill in for skipped positions
                         for (let i=0, id; i<indentIds.length; i++) {
-                            if (!indentIds[i]) indentIds[i] = 1;
+                            if (!indentIds[i]) {
+                                indentIds[i] = 1;
+                            }
                         }
                         line.dataset.atgListId =
                             indentIds.slice(0, parseInt(indentPos)).join('.');
@@ -1001,23 +1033,47 @@ var AutotagJS = (function() {
                 } while (isList(line.nextSibling) && (line = line.nextSibling));
             }
 
-            if (!isList(curLine)){
+            if (curLine && !isList(curLine)){
                 let header = getLineHeader(curLine);
-                if (header) removeNode(header);
+                if (header) {
+                    removeNode(header);
+                }
             }
         };
 
         var insertTab = function(node, index) {
             if (isTextNode(node)){
-                node.nodeValue = node.textContent.splice(index, 0, '\u0009');
+                node.nodeValue = node.textContent.splice(index, 0, TAB_TEXT);
                 setCaret(node, index + 1);
             }
             processInput();
         };
 
+        var getFragmentSibling = function(fragment, direction) {
+            // limit to -2 > direction < 2
+            direction = direction % 2;
+
+            let line = getLine(fragment);
+            let fragments = getFragmentsInLine(line);
+            let index = fragments.indexOf(fragment);
+
+            if (index === 0 && direction === -1) {
+                return line.previousSibling &&
+                    getFragmentsInLine(line.previousSibling).pop();
+            }
+            else if ((index === fragments.length - 1) && direction === 1) {
+                return line.nextSibling &&
+                    getFragmentsInLine(line.nextSibling).shift();
+            }
+            else {
+                return fragments[index + direction];
+            }
+        };
+
         var processInput = function() {
-            let container = savedRange_.endContainer;
-            let offset = savedRange_.endOffset;
+            let range = getRange();
+            let container = range.endContainer;
+            let offset = range.endOffset;
             if (isTextNode(container)) {
                 // Mark unmarked text nodes. This is not strictly required
                 // but it helps by pre-empting the burden of doing so later.
@@ -1028,55 +1084,80 @@ var AutotagJS = (function() {
             }
 
             let value = container.textContent;
-            if (value.match(new RegExp(PILOT_TEXT))) {
-                container.nodeValue =
-                    container.textContent.replace(new RegExp(PILOT_TEXT, 'g'), '');
+            let classList = container.parentNode.classList;
+            if (classList.contains(PILOT_CLASSNAME)) {
+                container.nodeValue = value.replace(/[ \u00a0]/g, '');
+                classList.remove(PILOT_CLASSNAME);
                 setCaret(container);
-                // container.parentNode.style.display = 'inline';
-                container.parentNode.classList.remove('atg-pilot');
             }
 
-            let splitOffset = splitter_(container);
-            if (splitOffset && splitOffset > 0 && splitOffset < value.length) {
-                let newFragment = splitFragment(container, splitOffset)[1];
-                setCaret(newFragment);
+            // splitAndDecorate(container);
+            let splitOffset = splitter_(container.textContent);
+            if (splitOffset) {
+                let fragment =
+                    splitFragment(container, splitOffset, true).pop();
+                setCaret(fragment);
             }
 
             // Remove unwanted break nodes inserted by Forefox.
             removeNodesInList(editor.querySelectorAll('br'));
         };
 
-        var pasteClipboardContent = function(e) {
-            let content;
-            let container = savedRange_.endContainer;
-            if (!copiedRange_ || copiedRange_.collapsed) {
-                if (e.clipboardData) {
-                    content = (e.originalEvent || e)
-                        .clipboardData.getData('text/plain');
-                }
-                else if (window.clipboardData) {
-                    content = window.clipboardData.getData('Text');
-                }
+        var splitAndDecorate = function(fragment) {
 
-                if (isTextNode(container)) {
-                    container.nodeValue = container.nodeValue + content;
-                    setCaret(container);
+        };
+
+        var pasteClipboardContent = function(e) {
+            let range = getRange();
+            if (!range.collapsed) {
+                deleteSelection(range);
+                range = getRange();
+            }
+
+            let pastedContent;
+            let fragments = createMarkedFragmentsInRange(range);
+
+            if (e.clipboardData) {
+                pastedContent = (e.originalEvent || e)
+                    .clipboardData.getData('text/plain');
+            }
+            else if (window.clipboardData) {
+                pastedContent = window.clipboardData.getData('Text');
+            }
+
+            let fragment = markFragment(createTextNode(pastedContent));
+            let previousNode = fragments.pop().parentNode;
+            appendNode(fragment.parentNode, previousNode);
+
+            if (isBlank(previousNode)) {
+                removeNode(previousNode);
+            }
+
+            // Pasting content creates one large fragment. Break this up
+            // based on splitter and apply decoration as configured.
+            let index = 1;
+            let content = fragment.textContent;
+            let contentLength = content.length;
+            let startFragment = fragment;
+
+            do  {
+                let splitOffset = splitter_(content.slice(0, index));
+                if (splitOffset) {
+                    fragment = splitFragment(fragment, splitOffset, true).pop();
+                    content = fragment.textContent;
+                    contentLength = content.length;
+                    index = 1;
                 }
                 else {
-                    let textNode = document.createTextNode(content);
-                    container.insertBefore(textNode, container.firstChild);
-                    setCaret(textNode);
+                    index += 1;
                 }
-                processInput();
-            }
-            else {
-                let fragment =
-                    splitFragment(container.parentNode, savedRange_.endOffset);
-                appendNode(copiedRange_.cloneContents(), fragment);
-                if (isBlank(fragment) && !isList(fragment.nextSibling)) {
-                    removeNode(fragment);
-                }
-            }
+            } while (index <= contentLength);
+
+            //  Make sure that the pasted text remains highlighted.
+            setSelection({
+                startContainer: startFragment,
+                endContainer: fragment
+            });
         };
 
         var processRightArrowKey = function(range) {
@@ -1142,34 +1223,11 @@ var AutotagJS = (function() {
             }
         };
 
-        var saveSelectionRange = function() {
-            let range = getRange();
-            if (range && range != savedRange_) {
-                let startContainer = range.startContainer;
-                let endContainer = range.endContainer;
-                if (isTextNode(startContainer) && isTextNode(endContainer)) {
-                    savedRange_  = range;
-                    if (isMarkedFragment(endContainer)) {
-                        continuingStyle_ =
-                            endContainer.parentNode.getAttribute('style');
-                    }
-
-                    if (range.collapsed) {
-                        decorator_(endContainer.parentNode,
-                            endContainer.textContent);
-                        if (range.endOffset == 1 && isBlank(endContainer)) {
-                            setCaret(endContainer, 0);
-                        }
-                    }
-                }
-                return savedRange_;
-            }
-        };
-
         var setCaret = function(node, offset) {
-            if (!isTextNode(node)) {
+            if (node && !isTextNode(node)) {
                 node = getFragmentsInLine(node).pop();
             }
+
             if (node) {
                 offset = initObject(offset, node.length);
                 return setSelection({
@@ -1180,15 +1238,6 @@ var AutotagJS = (function() {
                 });
             }
         };
-
-        // var setContinuingStyle = function() {
-        //     if (savedRange_) {
-        //         let fragment = getMarkedFragmentsInRange(savedRange_).pop();
-        //         if (fragment) {
-        //             continuingStyle_ = fragment.parentNode.getAttribute('style');
-        //         }
-        //     }
-        // };
 
         var setSelection = function(selection) {
             let range,
@@ -1203,7 +1252,7 @@ var AutotagJS = (function() {
                 try {
                     range.setStart(startNode, startOffset);
                     range.setEnd(endNode, endOffset);
-                    savedRange_ = range;
+                    // savedRange_ = range;
                 }
                 catch (err) {
                     // Chrome does not like setting an offset of 1
@@ -1211,7 +1260,11 @@ var AutotagJS = (function() {
                 }
                 resetRange(range);
             }
-            return range;
+
+            // Note that the range object will sometimes be null in Edge and
+            // therefore it is safer to call getRange() as opposed to returning
+            // 'range'.
+            return getRange();
         };
 
         var setLineIndentPosition = function(line, pos) {
@@ -1222,9 +1275,6 @@ var AutotagJS = (function() {
             if (indentType == Indent.CLEAR_LIST && isBlankList(line)) {
                 indentType = Indent.DECREASE;
             }
-
-            // let increaseIndent = (indentType == Indent.INCREASE);
-            // let decreaseIndent = (indentType == Indent.DECREASE);
 
             if (indentType !== Indent.CLEAR_LIST) {
                 applyStyle(line,
@@ -1325,7 +1375,6 @@ var AutotagJS = (function() {
 
             if (isBlank(line)) {
                 renewLineBody(getLineBody(line), true);
-                // deleteLine(line);
             }
             else {
                 if (isBlank(node)) {
@@ -1353,7 +1402,6 @@ var AutotagJS = (function() {
                     let nodes = getChildren(lineBody);
                     if (nodes.length > 0) {
                         appendChildNodes(nodes, prevLineBody);
-                        // setCaret(nodes[0], 0);
                     }
                 }
                 removeNode(line);
@@ -1362,13 +1410,24 @@ var AutotagJS = (function() {
 
         var deleteSelection = function(range) {
             let fragments = createMarkedFragmentsInRange(range);
+            let nextFragment = getFragmentSibling(fragments[0], -1) ||
+                getFragmentSibling(fragments[fragments.length - 1], 1);
+
             for (let i=0, node; (node = fragments[i]); i++) {
                 if (isMarkedFragment(node)) node = node.parentNode;
                 removeNode(node);
             }
+
+            if (nextFragment) {
+                setCaret(nextFragment);
+            }
+
             removeNodesInList(getLinesInRange(range), function(line) {
                 return isBlank(line) || isBlank(getLineBody(line));
             });
+
+            // ..just in case all lines were deleted, including the line on
+            // which we set the caret.
             initializeEditor();
         };
 
@@ -1396,7 +1455,7 @@ var AutotagJS = (function() {
             }
         };
 
-        var splitFragment = function(fragment, offset) {
+        var splitFragment = function(fragment, offset, decorate) {
             offset = initObject(offset, 0);
             let firstFragment;
             let secondFragment;
@@ -1420,6 +1479,10 @@ var AutotagJS = (function() {
                     appendNode(secondFragment.parentNode,
                         firstFragment.parentNode);
                 }
+            }
+
+            if (decorate) {
+                decorator_(firstFragment.parentNode, firstFragment.textContent);
             }
             return [firstFragment, secondFragment];
         };
@@ -1458,7 +1521,7 @@ var AutotagJS = (function() {
                 }
 
                 // Rebuild original selection range for further processing.
-                savedRange_ = setSelection({
+                let newRange = setSelection({
                     startContainer: startFragment,
                     startOffset: 0,
                     endContainer: endFragment,
@@ -1466,7 +1529,7 @@ var AutotagJS = (function() {
                 });
 
                 // Now return all tghe fragments.
-                fragments =  getFragmentsInRange(savedRange_);
+                fragments =  getFragmentsInRange(newRange);
             }
             // Ensure all fragment are marked. If not, mark them. Note that
             // unmarked fragments may show up when the selection covers
@@ -1484,7 +1547,6 @@ var AutotagJS = (function() {
         };
 
         editor.addEventListener('dblclick', function(e) {
-            saveSelectionRange();
         });
 
         editor.addEventListener('click', function(e) {
@@ -1510,28 +1572,27 @@ var AutotagJS = (function() {
             // any buffered selection range (savedRange_).
             let range = getRange();
 
-            if (isDeleteKey(keyCode)) {
-                processDelete(range);
-                e.preventDefault();
-            }
-            else if (isTabKey(keyCode)) {
-                updateIndentationInRange(range,
-                    e.shiftKey ? Indent.DECREASE : Indent.INCREASE);
-                e.preventDefault();
-            }
-            else if (isReturnKey(keyCode)) {
-                if (!ignoreReturnKey_) processReturnKey(range, e.shiftKey);
-                e.preventDefault();
-            }
-            else if (e.metaKey && isFormatKey(keyCode)) {
-                formatSelection({ atgToggle: StyleKeyMap[keyCode] });
-                e.preventDefault();
-            }
-            else if (isRightArrowKey(keyCode) && processRightArrowKey(range)) {
-                e.preventDefault();
-            }
-            else {
-                // if (!e.metaKey && !e.shiftKey) processInput();
+            if (range) {
+                if (isDeleteKey(keyCode)) {
+                    processDelete(range);
+                    e.preventDefault();
+                }
+                else if (isTabKey(keyCode)) {
+                    updateIndentationInRange(range,
+                        e.shiftKey ? Indent.DECREASE : Indent.INCREASE);
+                    e.preventDefault();
+                }
+                else if (isReturnKey(keyCode)) {
+                    if (!ignoreReturnKey_) processReturnKey(range, e.shiftKey);
+                    e.preventDefault();
+                }
+                else if (e.metaKey && isFormatKey(keyCode)) {
+                    formatSelection({ atgToggle: StyleKeyMap[keyCode] });
+                    e.preventDefault();
+                }
+                else if (isRightArrowKey(keyCode) && processRightArrowKey(range)) {
+                    e.preventDefault();
+                }
             }
         });
 
@@ -1546,16 +1607,8 @@ var AutotagJS = (function() {
             e.preventDefault();
         });
 
-        // document.addEventListener('selectionchange', debounce(function(e) {
-        //     if (saveSelectionRange()) {
-        //         doAfterSelection_(getMarkedFragmentsInRange(savedRange_));
-        //     }
-        // }, 10));
-
         document.addEventListener('selectionchange', function(e) {
-            if (saveSelectionRange()) {
-                doAfterSelection_(getMarkedFragmentsInRange(savedRange_));
-            }
+            doAfterSelection_(getMarkedFragmentsInRange(getRange()));
         });
 
         return {
@@ -1564,11 +1617,6 @@ var AutotagJS = (function() {
                     editorMenubar_ = menubar;
                     editorMenubar_.addEventListener('click', function(e) {
                         hideSubmenus();
-
-                        // The click event remove the text selection. Reinstate
-                        // the selection so that we can format the content in
-                        // the highlighted text.
-                        resetRange(savedRange_);
 
                         let target = e.target;
                         let menu = getParentMenu(target);
@@ -1602,6 +1650,7 @@ var AutotagJS = (function() {
                             formatSelection(target.dataset, scope);
                             hideSubmenus();
                         }
+
                     });
                 }
             }
