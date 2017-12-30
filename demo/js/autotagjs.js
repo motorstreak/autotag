@@ -38,7 +38,7 @@ var AutotagJS = (function() {
     //              press is detected during the keydown event. The callback will
     //              only be made if the 'ignoreReturnKey_' flag is set to true.
     //
-    // trace_:     Set this to true to see debug messages on the console.
+    // trace_:     Set this to true to see debug message s on the console.
 
 
     if (!String.prototype.splice) {
@@ -1097,10 +1097,6 @@ var AutotagJS = (function() {
             removeNodesInList(editor.querySelectorAll('br'));
         };
 
-        var splitAndDecorate = function(fragment) {
-
-        };
-
         var pasteClipboardContent = function(e) {
             let range = getRange();
             if (!range.collapsed) {
@@ -1109,7 +1105,8 @@ var AutotagJS = (function() {
             }
 
             let pastedContent;
-            let fragments = createMarkedFragmentsInRange(range);
+            let startFragment = range.endContainer;
+            let curLine = getLine(startFragment);
 
             if (e.clipboardData) {
                 pastedContent = (e.originalEvent || e)
@@ -1119,33 +1116,73 @@ var AutotagJS = (function() {
                 pastedContent = window.clipboardData.getData('Text');
             }
 
-            let fragment = markFragment(createTextNode(pastedContent));
-            let previousNode = fragments.pop().parentNode;
-            appendNode(fragment.parentNode, previousNode);
+            // If the pasted text is too large, do not apply the splitter
+            // and proceed to decorate as it will take a long time and the
+            // browser may become unresponsive.
+            let splitAndDecorate = (pastedContent.length < 10000);
 
-            if (isBlank(previousNode)) {
-                removeNode(previousNode);
+            // Split pasted content into Lines
+            let segments = pastedContent.split('\n');
+
+            // If there are multiple lines in the pasted text, breakup the
+            // current line at the piont of insertion.
+            if (segments.length > 1) {
+                processReturnKey(range);
             }
 
-            // Pasting content creates one large fragment. Break this up
-            // based on splitter and apply decoration as configured.
-            let index = 1;
-            let content = fragment.textContent;
-            let contentLength = content.length;
-            let startFragment = fragment;
+            let fragment = startFragment;
+            for(let i=0; i < segments.length; i++) {
+                let segment = segments[i];
 
-            do  {
-                let splitOffset = splitter_(content.slice(0, index));
-                if (splitOffset) {
-                    fragment = splitFragment(fragment, splitOffset, true).pop();
-                    content = fragment.textContent;
-                    contentLength = content.length;
-                    index = 1;
+                // DO NOT REMOVE
+                // Chunks large segments for performance. Keep this code in
+                // place for future use.
+                //
+                // if (segment.length > 1024) {
+                //     let subSegments = segment.match(/(.|[\r\n]){1,1024}/g);
+                //     segments[i] = subSegments.shift();
+                //     for (let j=0, sub; (sub = subSegments[j]); j++) {
+                //         segments.splice(i+j, 0, sub);
+                //     }
+                // }
+
+                if (segment.length > 0) {
+                    let pastedFragment = markFragment(createTextNode(segment));
+                    appendNode(pastedFragment.parentNode, fragment.parentNode);
+
+                    // If the line was empty before, it is highly possible that
+                    // we appended to a pilot node. Remove it if so.
+                    if (isBlank(fragment)) {
+                        removeNode(fragment.parentNode);
+                    }
+
+                    // Pasting content creates one large fragment. Break this up
+                    // based on splitter and apply decoration as configured.
+
+                    let index = 1;
+                    let content = pastedFragment.textContent;
+                    let contentLength = content.length;
+
+                    do  {
+                        let splitOffset = splitter_(content.slice(0, index));
+                        if (splitOffset) {
+                            pastedFragment =
+                                splitFragment(pastedFragment, splitOffset, true).pop();
+                            content = pastedFragment.textContent;
+                            contentLength = content.length;
+                            index = 1;
+                        }
+                        else {
+                            index += 1;
+                        }
+                    } while (index <= contentLength && splitAndDecorate);
                 }
-                else {
-                    index += 1;
+
+                if (segments[i+1] !== null) {
+                    curLine = createLine(curLine, {addPilotNode: true});
+                    fragment = getFragmentsInLine(curLine).shift();
                 }
-            } while (index <= contentLength);
+            }
 
             //  Make sure that the pasted text remains highlighted.
             setSelection({

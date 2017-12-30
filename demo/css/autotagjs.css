@@ -8,7 +8,7 @@
 /* Prevent words from breaking.
  * Courtesy: https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/
  */
- .atg-line > * {
+ .atg-line-body > span {
      caret-color: #777;
 
     /* These are technically the same, but use both */

@@ -296,7 +296,6 @@
                 // be split. We can later use the split fragments to apply
                 // custom styles via the decorator callback.
                 splitter: function(text) {
-                    console.log(text);
                     let match;
                     if ((match = text.match(/((?<=^\w+)\W$)|((?<=\W+)\w$)/))) {
                         return match.index;
