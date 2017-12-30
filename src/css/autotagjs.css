@@ -1,20 +1,16 @@
 
-.atg-text,
-.atg-tab {
+/*.atg-text {
     caret-color: #777;
     /* Rquired to display cursor in Chrome.  */
-    min-width: 1px;
-    /*display: inline-block;*/
-}
-
-/*.atg-cursor {
-    border-left: 1px solid #000;
+    /*min-width: 1px;*/
 }*/
 
 /* Prevent words from breaking.
  * Courtesy: https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/
  */
- .atg-line > * {
+ .atg-line-body > span {
+     caret-color: #777;
+
     /* These are technically the same, but use both */
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -45,18 +41,15 @@
 
 .atg-line-leader {
     vertical-align: top;
-    /* min-width: 30px; */
+     min-width: 50px;
     text-align: right;
     padding-right: 10px;
     word-break: normal;
 }
 
 .atg-line-body {
-    /*display: table-cell;*/
-}
-
-.atg-list {
-    min-width: 30px;
+    /* Allow text to right justify in Wekbit browsers */
+    width: 100%;
 }
 
 /* Deal with IE paragraph style within the editor. */
@@ -66,12 +59,12 @@
 
 ::-moz-selection {
     color : #000;
-    background : #BFD3FA;
+    background : #BFF5AC;
 }
 
 ::selection {
     color : #000;
-    background : #BFD3FA;
+    background : #BFF5AC;
 }
 
 /* Prevent outlines on contenteditable items in IE. */
@@ -96,14 +89,6 @@
     line-height: 22px;
     font-weight: bold;
 }
-
-/*.atg-palette-color-cell {
-    font-size: 12px;
-}
-
-.atg-palette-fill-cell {
-    font-size: 6px;
-}*/
 
 .atg-palette-cell:hover {
     box-shadow : 0 0 1px #000;
@@ -148,52 +133,6 @@
     border-radius : 2px;
 }
 
-.atg-list-root div {
-    display: list-item;
-    list-style-position: outside;
-    list-style-type: none;
-    position: relative;
-    padding-left: 55px;
-}
-
-.atg-list-root div::before {
-    position: absolute;
-    left: 0;
-    width: 40px;
-    text-align: right;
-}
-
-/*div[class^="atg-"]:hover::before {
-    background-color: #BFD3FA;
-}*/
-
-.atg-numbered-list-1::before {
-    content: counter(atg-numbered-counter-1) ".";
-    counter-increment: atg-numbered-counter-1;
-}
-
-.atg-numbered-list-2::before {
-    content: counter(atg-numbered-counter-2, lower-latin) ".";
-    counter-increment: atg-numbered-counter-2;
-}
-
-.atg-numbered-list-3::before {
-    content: counter(atg-numbered-counter-3, lower-roman) ".";
-    counter-increment: atg-numbered-counter-3;
-}
-
-.atg-bulleted-list-1::before {
-    content: '●';
-}
-
-.atg-bulleted-list-2::before {
-    content : '○';
-}
-
-.atg-bulleted-list-3::before {
-    content : '▪';
-}
-
 @media only screen and (max-width: 480px), only screen and (max-device-width: 480px) {
 
     .page-header {
@@ -211,9 +150,4 @@
         width: 26px;
         margin: 4px;
     }
-}
-
-/* V3 */
-.atg-tab {
-    white-space: pre;
 }
