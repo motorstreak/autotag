@@ -306,18 +306,21 @@
                 decorator: function(nodes) {
                     // The splitter above splits the text at the point it
                     // detects a word boundary.
-                    let node = nodes[0].parentNode;
-                    let text = node.textContent.toLowerCase();
-                    let classList = node.classList;
+                    let node = nodes[0];
+                    if (node) {
+                        node = node.parentNode;
+                        let text = node.textContent.toLowerCase();
+                        let classList = node.classList;
 
-                    if (pronouns.indexOf(text) >= 0) {
-                        classList.add('demo-pronoun');
-                        node.setAttribute('data-tooltip', 'Pronoun');
-                    }
-                    else {
-                        // Always remember to clean the node!
-                        classList.remove('demo-pronoun');
-                        node.removeAttribute('data-tooltip');
+                        if (pronouns.indexOf(text) >= 0) {
+                            classList.add('demo-pronoun');
+                            node.setAttribute('data-tooltip', 'Pronoun');
+                        }
+                        else {
+                            // Always remember to clean the node!
+                            classList.remove('demo-pronoun');
+                            node.removeAttribute('data-tooltip');
+                        }
                     }
                 },
 
@@ -369,22 +372,25 @@
                 // detects a '#', '@', or '+'.
                 // Eg. "Hello #yo" => ["Hello ", "#yo"]
                 decorator: function(nodes) {
-                    let node = nodes[1].parentNode;
-                    let text = node.textContent;
-                    var classList = node.classList;
-                    if (text.match(/^#[\w]{2}[\w]*$/)) {
-                        classList.add('demo-hash-tag');
-                    }
-                    else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
-                        classList.add('demo-plus-sign');
-                    }
-                    else if (text.match(/^[\@][\w]{2}[\w]*$/)) {
-                        classList.add('demo-at-tag');
-                    }
-                    else {
-                        classList.remove('demo-hash-tag');
-                        classList.remove('demo-at-tag');
-                        classList.remove('demo-plus-sign');
+                    let node = nodes[1];
+                    if (node) {
+                        node = node.parentNode;
+                        let text = node.textContent;
+                        var classList = node.classList;
+                        if (text.match(/^#[\w]{2}[\w]*$/)) {
+                            classList.add('demo-hash-tag');
+                        }
+                        else if (text.match(/^[\+][\w]{2}[\w]*$/)) {
+                            classList.add('demo-plus-sign');
+                        }
+                        else if (text.match(/^[\@][\w]{2}[\w]*$/)) {
+                            classList.add('demo-at-tag');
+                        }
+                        else {
+                            classList.remove('demo-hash-tag');
+                            classList.remove('demo-at-tag');
+                            classList.remove('demo-plus-sign');
+                        }
                     }
                 },
                 ignoreReturnKey: true
