@@ -1087,7 +1087,7 @@ var AutotagJS = (function() {
 
             // splitAndDecorate(container);
             let splitOffset = splitter_(container.textContent);
-            if (splitOffset !== null) {
+            if (!isNaN(splitOffset)) {
                 let fragment =
                     splitFragment(container, splitOffset, true).pop();
                 setCaret(fragment);
@@ -1165,15 +1165,15 @@ var AutotagJS = (function() {
 
                     do  {
                         let splitOffset = splitter_(content.slice(0, index));
-                        if (splitOffset !== null) {
+                        if (isNaN(splitOffset)) {
+                            index += 1;
+                        }
+                        else {
                             pastedFragment =
                                 splitFragment(pastedFragment, splitOffset, true).pop();
                             content = pastedFragment.textContent;
                             contentLength = content.length;
                             index = 1;
-                        }
-                        else {
-                            index += 1;
                         }
                     } while (index <= contentLength && splitAndDecorate);
                 }
