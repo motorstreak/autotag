@@ -1052,12 +1052,12 @@ var AutotagJS = (function() {
             let index = fragments.indexOf(fragment);
 
             if (index === 0 && direction === -1) {
-                return line.previousSibling &&
-                    getFragmentsInLine(line.previousSibling).pop();
+                let previous = line.previousElementSibling;
+                return previous && getFragmentsInLine(previous).pop();
             }
             else if ((index === fragments.length - 1) && direction === 1) {
-                return line.nextSibling &&
-                    getFragmentsInLine(line.nextSibling).shift();
+                let next = line.nextElementSibling;
+                return next && getFragmentsInLine(next).shift();
             }
             else {
                 return fragments[index + direction];
@@ -1087,7 +1087,7 @@ var AutotagJS = (function() {
 
             // splitAndDecorate(container);
             let splitOffset = splitter_(container.textContent);
-            if (splitOffset) {
+            if (splitOffset !== null) {
                 let fragment =
                     splitFragment(container, splitOffset, true).pop();
                 setCaret(fragment);
@@ -1165,7 +1165,7 @@ var AutotagJS = (function() {
 
                     do  {
                         let splitOffset = splitter_(content.slice(0, index));
-                        if (splitOffset) {
+                        if (splitOffset !== null) {
                             pastedFragment =
                                 splitFragment(pastedFragment, splitOffset, true).pop();
                             content = pastedFragment.textContent;
@@ -1419,7 +1419,7 @@ var AutotagJS = (function() {
         };
 
         var deleteLine = function(line) {
-            let previousLine = line.previousSibling;
+            let previousLine = line.previousElementSibling;
             if (isLine(previousLine)) {
                 let prevLineBody = getLineBody(previousLine);
                 let lineBody = getLineBody(line);

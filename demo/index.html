@@ -360,7 +360,7 @@
                 // custom styles via the decorator callback.
                 splitter: function(text) {
                     let match;
-                    if ((match = text.match(/([#\+\@]\w{2}$)|((?<=^[#\+\@]\w{2,})\W$)/))) {
+                    if ((match = text.match(/((?<=^[#\+\@]\w{2,})\W$)|([#\+\@]\w{2}$)/))) {
                         return match.index;
                     }
                 },
