@@ -93,11 +93,11 @@ var AutotagJS = (function() {
         85: 'text-decoration:underline'
     });
 
-    // var PILOT_TEXT = '\u200b';
+    var PILOT_TEXT = '\u200b\u00a0';
     // Having space as the pilot indicator allows the highlighting
     // of empty lines.
-    var PILOT_TEXT = '\u00a0',
-        TAB_TEXT = '\u0009';
+    // var PILOT_TEXT = '\u00a0';
+    var TAB_TEXT = '\u0009';
 
     var LIST_INDENT_STYLE = 'margin-left:25px',
         LINE_INDENT_STYLE = 'margin-left:35px';
@@ -110,6 +110,7 @@ var AutotagJS = (function() {
         LINE_BODY_CLASSNAME = 'atg-line-body',
         PILOT_CLASSNAME = 'atg-pilot',
         MENU_CLASSNAME = 'atg-menu',
+        WRAPPER_CLASSNAME = 'atg-text',
         PALETTE_CLASSNAME = 'atg-palette',
         PALETTE_CELL_CLASSNAME = 'atg-palette-cell',
         PALETTE_ROW_CLASSNAME = 'atg-palette-row',
@@ -594,22 +595,54 @@ var AutotagJS = (function() {
             }
         };
 
-        // var emptyLineObserver = function(mutationList) {
-        //     for(let mutation of mutationList) {
-        //         let target = mutation.target;
-        //         if (mutation.type == 'characterData' &&
-        //                 target.textContent.length == 0) {
-        //
-        //             // Disconnect the observer on this line so that it does not
-        //             // fire when we add the pilot node.
-        //             this.disconnect();
-        //             renewLineBody(target.parentNode, true);
-        //
-        //             // Now connect it back.
-        //             this.observe(target, { childList: true, subtree: true });
-        //         }
-        //     }
-        // };
+        var emptyLineObserver = function(mutationList) {
+            for(let mutation of mutationList) {
+                let target = mutation.target;
+                console.log(mutation);
+                // if (mutation.type == 'characterData' &&
+                //         target.textContent.length == 0) {
+
+                    // Disconnect the observer on this line so that it does not
+                    // fire when we add the pilot node.
+                    this.disconnect();
+                    // renewLineBody(target.parentNode, true);
+
+                    if (isLineBody(target)) {
+                        let removedNode = mutation.removedNodes[0];
+                        if (removedNode && mutation.previousSibling == null &&
+                                isWrapper(removedNode)) {
+
+                            if (isPilotWrapper(removedNode)) {
+                                console.log("deleting line");
+                                deleteLine(getLine(target));
+                            }
+                            else {
+                                if (mutation.nextSibling) {
+                                    console.log("Insert " + removedNode.outerHTML);
+                                    target.insertBefore(mutation.nextSibling, removedNode);
+                                }
+                                else {
+                                    console.log("Child " + removedNode.outerHTML);
+                                    target.appendChild(removedNode);
+                                }
+                                deleteChar(removedNode.firstChild, 1);
+                            }
+                        }
+                    }
+                    else if (isWrapper(target)) {
+                        console.log(target);
+                    }
+                    else if (isPilotWrapper(target.parentNode) &&
+                        target.textContent.length === 1){
+                        deleteLine(getLine(target));
+                    }
+
+                    // Now connect it back.
+                    this.observe(editor, {
+                        characterData: true, childList: true, subtree: true });
+                // }
+            }
+        };
 
         var createCrossedPaletteCell = function(row, type) {
             let cell = createPaletteCell(row, 0, 0, 100);
@@ -688,7 +721,8 @@ var AutotagJS = (function() {
             // Start observing the body for empty lines so that we can
             // replenish it with the pilot node.
             // let observer = new MutationObserver(emptyLineObserver);
-            // observer.observe(body, { characterData: true, childList: true, subtree: true });
+            // observer.observe(body, {
+            //     characterData: true, childList: true, subtree: true });
 
             if (refLine) {
                 switch (options.attachAs) {
@@ -727,7 +761,7 @@ var AutotagJS = (function() {
             markedFragment.classList.add(PILOT_CLASSNAME);
 
             if (focus) {
-                setCaret(fragment, 0);
+                setCaret(fragment);
             }
         };
 
@@ -737,6 +771,7 @@ var AutotagJS = (function() {
             if (isTextNode(fragment)) {
                 if (!fragment.parentNode || isUnmarkedFragment(fragment)){
                     let wrapper = createElement(MARKED_FRAGMENT_TAG, cName);
+                    wrapper.classList.add(WRAPPER_CLASSNAME);
                     setStyle(wrapper, style || continuingStyle_);
                     wrapNode(fragment, wrapper);
                 }
@@ -970,9 +1005,19 @@ var AutotagJS = (function() {
         };
 
         var isBlank = function(node) {
-            let content = node && node.textContent;
-            return (content.length ==0 ||
-                    content.length == 1 && content == PILOT_TEXT);
+            return node && (node.textContent.length == 0);
+        };
+
+        var isEmptyLine = function(node) {
+            return isPilotWrapper(getLineBody(getLine(node)).firstChild);
+        }
+
+        var isPilotWrapper = function(node) {
+            return isWrapper(node) && containsClass(node, PILOT_CLASSNAME);
+        };
+
+        var isWrapper = function(node) {
+            return node && containsClass(node, WRAPPER_CLASSNAME);
         };
 
         var isList = function(node) {
@@ -1021,7 +1066,6 @@ var AutotagJS = (function() {
                         line.dataset.atgListId =
                             indentIds.slice(0, parseInt(indentPos)).join('.');
                     }
-
                     generateLineHeader(line, listType);
 
                 } while (isList(line.nextSibling) && (line = line.nextSibling));
@@ -1067,7 +1111,6 @@ var AutotagJS = (function() {
         var processInput = function() {
             let range = getRange();
             let container = range.endContainer;
-            let offset = range.endOffset;
             if (isTextNode(container)) {
                 // Mark unmarked text nodes. This is not strictly required
                 // but it helps by pre-empting the burden of doing so later.
@@ -1077,13 +1120,24 @@ var AutotagJS = (function() {
                 }
             }
 
-            let value = container.textContent;
-            let classList = container.parentNode.classList;
-            if (classList.contains(PILOT_CLASSNAME)) {
-                container.nodeValue = value.replace(/[ \u00a0]/g, '');
-                classList.remove(PILOT_CLASSNAME);
-                setCaret(container);
-            }
+            // let value = container.textContent;
+            // let wrapper = container.parentNode;
+            // let classList = wrapper.classList;
+            // if (classList.contains(PILOT_CLASSNAME)) {
+            //     // container.nodeValue = value.replace(/[ \u200b]/g, '');
+            //     // classList.remove(PILOT_CLASSNAME);
+            //
+            //     // setTimeout(function(){
+            //     //     // // Set the  focus and click to ensure that the soft
+            //     //     // keyboard does not hide.
+            //     //     wrapper.focus();
+            //     //     wrapper.click();
+            //     //
+            //     //     setCaret(container);
+            //     // }, 1);
+            //
+            //     setCaret(container);
+            // }
 
             // splitAndDecorate(container);
             let splitOffset = splitter_(container.textContent);
@@ -1094,7 +1148,7 @@ var AutotagJS = (function() {
             }
 
             // Remove unwanted break nodes inserted by Forefox.
-            removeNodesInList(editor.querySelectorAll('br'));
+            // removeNodesInList(editor.querySelectorAll('br'));
         };
 
         var pasteClipboardContent = function(e) {
@@ -1152,9 +1206,9 @@ var AutotagJS = (function() {
 
                     // If the line was empty before, it is highly possible that
                     // we appended to a pilot node. Remove it if so.
-                    if (isBlank(fragment)) {
-                        removeNode(fragment.parentNode);
-                    }
+                    // if (isBlank(fragment)) {
+                    //     removeNode(fragment.parentNode);
+                    // }
 
                     // Pasting content creates one large fragment. Break this up
                     // based on splitter and apply decoration as configured.
@@ -1261,12 +1315,14 @@ var AutotagJS = (function() {
 
             if (node) {
                 offset = initObject(offset, node.length);
-                return setSelection({
-                    startContainer: node,
-                    startOffset: offset,
-                    endContainer: node,
-                    endOffset: offset
-                });
+                // setTimeout(function(){
+                    return setSelection({
+                        startContainer: node,
+                        startOffset: offset,
+                        endContainer: node,
+                        endOffset: offset
+                    });
+                // }, 0);
             }
         };
 
@@ -1387,7 +1443,7 @@ var AutotagJS = (function() {
         var isBeginingOfLine = function(node, offset) {
             let firstFragment = getFragmentsInLine(node).shift();
             return isTextNode(node) && node.isSameNode(firstFragment) &&
-                (offset == 0 || isBlank(node.parentNode));
+                (offset == 0 || isPilotWrapper(node.parentNode));
         };
 
         var isEndOfLine = function(node, offset) {
@@ -1395,47 +1451,70 @@ var AutotagJS = (function() {
             return isTextNode(node) &&
                 ((offset == node.textContent.length &&
                     (isLineBody(parent) || !parent.nextSibling)) ||
-                    isBlank(parent));
+                    isPilotWrapper(parent));
         };
 
-        var deleteChar = function(node, offset) {
-            let line = getLine(node);
-            let fragments = getFragmentsInLine(line);
-            let fragmentIndex = fragments.indexOf(node);
-            node.nodeValue = node.textContent.splice(offset - 1, 1, '');
-
-            if (isBlank(line)) {
-                renewLineBody(getLineBody(line), true);
+        var deleteChar = function(fragment, offset) {
+            let line = getLine(fragment);
+            if (isPilotWrapper(fragment.parentNode)) {
+                deleteLine(line);
             }
             else {
-                if (isBlank(node)) {
+                let fragments = getFragmentsInLine(line);
+                let fragmentIndex = fragments.indexOf(fragment);
+                fragment.nodeValue =
+                    fragment.textContent.splice(offset - 1, 1, '');
+
+                if (isBlank(fragment)) {
                     // By all counts this should be a marked fragment.
-                    removeNode(node.parentNode);
-                    node = fragments[fragmentIndex - 1];
-                    setCaret(node);
+                    removeNode(fragment.parentNode);
+                    fragment = fragments[fragmentIndex - 1];
+                    setCaret(fragment);
                 }
-                else setCaret(node, offset - 1);
+                else setCaret(fragment, offset - 1);
             }
         };
 
         var deleteLine = function(line) {
             let previousLine = line.previousElementSibling;
+            let lineBody = getLineBody(line);
+
             if (isLine(previousLine)) {
                 let prevLineBody = getLineBody(previousLine);
-                let lineBody = getLineBody(line);
-                if (isBlank(lineBody)) {
-                    setCaret(prevLineBody.lastChild);
+                let nodes = getChildren(lineBody);
+
+                // Remove the pilot node from the list
+                nodes.shift();
+
+                let caretNode;
+                if (nodes.length == 0) {
+                    caretNode = prevLineBody.lastChild;
                 }
                 else {
-                    if (isBlank(prevLineBody)) {
-                        removeAllChildNodes(prevLineBody);
-                    }
-                    let nodes = getChildren(lineBody);
-                    if (nodes.length > 0) {
+                    // if (isBlank(prevLineBody)) {
+                    //     removeAllChildNodes(prevLineBody);
+                    // }
+
+                    // if (nodes.length > 0) {
                         appendChildNodes(nodes, prevLineBody);
-                    }
+                    // }
+                    // setCaret(nodes[nodes.length - 1].firstChild);
+                    caretNode = nodes[nodes.length - 1];
                 }
+
                 removeNode(line);
+
+                setTimeout(function(){
+                    // // Set the  focus and click to ensure that the soft
+                    // keyboard does not hide.
+                    caretNode.focus();
+                    caretNode.click();
+                    setCaret(caretNode.firstChild);
+                    console.log(caretNode);
+                }, 0);
+            }
+            else {
+                renewLineBody(lineBody, true);
             }
         };
 
@@ -1605,8 +1684,8 @@ var AutotagJS = (function() {
 
             if (range) {
                 if (isDeleteKey(keyCode)) {
-                    processDelete(range);
-                    e.preventDefault();
+                    // processDelete(range);
+                    // e.preventDefault();
                 }
                 else if (isTabKey(keyCode)) {
                     updateIndentationInRange(range,
@@ -1641,6 +1720,10 @@ var AutotagJS = (function() {
         document.addEventListener('selectionchange', function(e) {
             doAfterSelection_(getMarkedFragmentsInRange(getRange()));
         });
+
+        let observer = new MutationObserver(emptyLineObserver);
+        observer.observe(editor, {
+            characterData: true, childList: true, subtree: true });
 
         return {
             attachMenubar: function(menubar) {
