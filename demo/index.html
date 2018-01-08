@@ -271,7 +271,6 @@
                 }
             };
 
-
             var isBold = function(fragment) {
                 return fragment.style.getPropertyValue('font-weight') == 'bold';
             };
@@ -290,8 +289,19 @@
                 // be split. We can later use the split fragments to apply
                 // custom styles via the decorator callback.
                 splitter: function(text) {
-                    if (text.match(/(\w+\W)|(\W\w+)/)) {
-                        return text.length - 1;
+                    console.log(text);
+                    let match;
+                    if ((match = text.match(/^\u{200b}(?=.)/u))) {
+                        console.log("matched first");
+                        return match[0].length;
+                    }
+                    else if ((match = text.match(/(\w+(?=\W)|\W+(?=\w))/))) {
+                        console.log("matched second");
+                        console.log(match);
+                        return match[0].length;
+                    }
+                    else {
+                        console.log("no match");
                     }
                 },
 

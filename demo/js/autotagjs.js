@@ -93,7 +93,8 @@ var AutotagJS = (function() {
         85: 'text-decoration:underline'
     });
 
-    var PILOT_TEXT = '\u200b\u00a0';
+    // var PILOT_TEXT = '';
+    var PILOT_TEXT = '\u200b';
     // Having space as the pilot indicator allows the highlighting
     // of empty lines.
     // var PILOT_TEXT = '\u00a0';
@@ -596,52 +597,52 @@ var AutotagJS = (function() {
         };
 
         var emptyLineObserver = function(mutationList) {
-            for(let mutation of mutationList) {
-                let target = mutation.target;
-                console.log(mutation);
-                // if (mutation.type == 'characterData' &&
-                //         target.textContent.length == 0) {
-
-                    // Disconnect the observer on this line so that it does not
-                    // fire when we add the pilot node.
-                    this.disconnect();
-                    // renewLineBody(target.parentNode, true);
-
-                    if (isLineBody(target)) {
-                        let removedNode = mutation.removedNodes[0];
-                        if (removedNode && mutation.previousSibling == null &&
-                                isWrapper(removedNode)) {
-
-                            if (isPilotWrapper(removedNode)) {
-                                console.log("deleting line");
-                                deleteLine(getLine(target));
-                            }
-                            else {
-                                if (mutation.nextSibling) {
-                                    console.log("Insert " + removedNode.outerHTML);
-                                    target.insertBefore(mutation.nextSibling, removedNode);
-                                }
-                                else {
-                                    console.log("Child " + removedNode.outerHTML);
-                                    target.appendChild(removedNode);
-                                }
-                                deleteChar(removedNode.firstChild, 1);
-                            }
-                        }
-                    }
-                    else if (isWrapper(target)) {
-                        console.log(target);
-                    }
-                    else if (isPilotWrapper(target.parentNode) &&
-                        target.textContent.length === 1){
-                        deleteLine(getLine(target));
-                    }
-
-                    // Now connect it back.
-                    this.observe(editor, {
-                        characterData: true, childList: true, subtree: true });
-                // }
-            }
+            // for(let mutation of mutationList) {
+            //     let target = mutation.target;
+            //     console.log(mutation);
+            //     // if (mutation.type == 'characterData' &&
+            //     //         target.textContent.length == 0) {
+            //
+            //         // Disconnect the observer on this line so that it does not
+            //         // fire when we add the pilot node.
+            //         this.disconnect();
+            //         // renewLineBody(target.parentNode, true);
+            //
+            //         if (isLineBody(target)) {
+            //             let removedNode = mutation.removedNodes[0];
+            //             if (removedNode && mutation.previousSibling == null &&
+            //                     isWrapper(removedNode)) {
+            //
+            //                 if (isPilotWrapper(removedNode)) {
+            //                     console.log("deleting line");
+            //                     deleteLine(getLine(target));
+            //                 }
+            //                 else {
+            //                     if (mutation.nextSibling) {
+            //                         console.log("Insert " + removedNode.outerHTML);
+            //                         target.insertBefore(mutation.nextSibling, removedNode);
+            //                     }
+            //                     else {
+            //                         console.log("Child " + removedNode.outerHTML);
+            //                         target.appendChild(removedNode);
+            //                     }
+            //                     deleteChar(removedNode.firstChild, 1);
+            //                 }
+            //             }
+            //         }
+            //         else if (isWrapper(target)) {
+            //             console.log(target);
+            //         }
+            //         else if (isPilotWrapper(target.parentNode) &&
+            //             target.textContent.length === 1){
+            //             deleteLine(getLine(target));
+            //         }
+            //
+            //         // Now connect it back.
+            //         this.observe(editor, {
+            //             characterData: true, childList: true, subtree: true });
+            //     // }
+            // }
         };
 
         var createCrossedPaletteCell = function(row, type) {
@@ -752,16 +753,17 @@ var AutotagJS = (function() {
         };
 
         var renewLineBody = function(node, focus) {
+            node = isLine(node) ? getLineBody(node) : node;
             removeAllChildNodes(node);
             let fragment = markFragment(createTextNode(PILOT_TEXT));
             let markedFragment = fragment.parentNode;
 
             node.appendChild(markedFragment);
+            node.appendChild(markedFragment.cloneNode(true));
             setStyle(markedFragment, continuingStyle_);
-            markedFragment.classList.add(PILOT_CLASSNAME);
 
             if (focus) {
-                setCaret(fragment);
+                setCaret(fragment, 1);
             }
         };
 
@@ -788,7 +790,19 @@ var AutotagJS = (function() {
         var fixCaret = function(range) {
             range = initObject(range, getRange());
             if (range.collapsed) {
-                setCaret(range.endContainer, range.endOffset);
+                let container = range.endContainer;
+                let length = container.textContent.length;
+                let offset = range.endOffset;
+
+                if (isPilotFragment(container)) {
+                    if (!getFragmentSibling(container, 1, false)) {
+                        offset = (offset == length) ? length - 1 : offset;
+                    }
+                    else if (!getFragmentSibling(container, -1, false)) {
+                        offset = (offset == 0) ? 1 : offset;
+                    }
+                }
+                setCaret(container, offset);
             }
         };
 
@@ -1008,12 +1022,21 @@ var AutotagJS = (function() {
             return node && (node.textContent.length == 0);
         };
 
-        var isEmptyLine = function(node) {
-            return isPilotWrapper(getLineBody(getLine(node)).firstChild);
-        }
+        // var isBlankLine = function(node) {
+        //     return isPilotWrapper(getLineBody(getLine(node)).firstChild);
+        // };
 
-        var isPilotWrapper = function(node) {
-            return isWrapper(node) && containsClass(node, PILOT_CLASSNAME);
+        // var isPilotWrapper = function(node) {
+        //     return isWrapper(node) && isPilotFragment(node.firstChild);
+        // };
+
+        var isBlankLine = function(node) {
+            return getLineBody(node).textContent.match(/(^\u200b)|(\u200b$)/);
+        };
+
+        var isPilotFragment = function(node) {
+            return isTextNode(node) &&
+                node.textContent.match(/(^\u200b)|(\u200b$)/);
         };
 
         var isWrapper = function(node) {
@@ -1087,24 +1110,40 @@ var AutotagJS = (function() {
             processInput();
         };
 
-        var getFragmentSibling = function(fragment, direction) {
-            // limit to -2 > direction < 2
+        // Returns the next or previous fragment across line boundaries.
+        var getFragmentSibling = function(fragment, direction, spanLines) {
+
+            // limit direction value to (-1, 0, 1)
             direction = direction % 2;
 
-            let line = getLine(fragment);
-            let fragments = getFragmentsInLine(line);
-            let index = fragments.indexOf(fragment);
+            // Nothing to do ...
+            if (direction == 0) return fragment;
 
-            if (index === 0 && direction === -1) {
-                let previous = line.previousElementSibling;
-                return previous && getFragmentsInLine(previous).pop();
-            }
-            else if ((index === fragments.length - 1) && direction === 1) {
-                let next = line.nextElementSibling;
-                return next && getFragmentsInLine(next).shift();
+            // span search for next node to next/previous line by default.
+            spanLines = initObject(spanLines, true);
+
+            if (spanLines) {
+                let line = getLine(fragment);
+                let fragments = getFragmentsInLine(line);
+                let index = fragments.indexOf(fragment);
+
+                if (index === 0 && direction === -1) {
+                    let previous = line.previousElementSibling;
+                    return previous && getFragmentsInLine(previous).pop();
+                }
+                else if ((index === fragments.length - 1) && direction === 1) {
+                    let next = line.nextElementSibling;
+                    return next && getFragmentsInLine(next).shift();
+                }
+                else {
+                    return fragments[index + direction];
+                }
             }
             else {
-                return fragments[index + direction];
+                let parent = fragment.parentNode;
+                let sibling = (direction === 1) ? parent.nextSibling
+                                                : parent.previousSibling;
+                return sibling && sibling.firstChild;
             }
         };
 
@@ -1124,31 +1163,55 @@ var AutotagJS = (function() {
             // let wrapper = container.parentNode;
             // let classList = wrapper.classList;
             // if (classList.contains(PILOT_CLASSNAME)) {
-            //     // container.nodeValue = value.replace(/[ \u200b]/g, '');
-            //     // classList.remove(PILOT_CLASSNAME);
+            //     container.nodeValue = value.replace(/[ \u200b]/g, '');
+            //     classList.remove(PILOT_CLASSNAME);
             //
-            //     // setTimeout(function(){
-            //     //     // // Set the  focus and click to ensure that the soft
-            //     //     // keyboard does not hide.
-            //     //     wrapper.focus();
-            //     //     wrapper.click();
-            //     //
-            //     //     setCaret(container);
-            //     // }, 1);
+            //     setTimeout(function(){
+            //         // // Set the  focus and click to ensure that the soft
+            //         // keyboard does not hide.
+            //         wrapper.focus();
+            //         wrapper.click();
             //
-            //     setCaret(container);
+            //         setCaret(container);
+            //     }, 1);
+            //
+            //     // setCaret(container);
             // }
 
-            // splitAndDecorate(container);
-            let splitOffset = splitter_(container.textContent);
-            if (!isNaN(splitOffset)) {
-                let fragment =
-                    splitFragment(container, splitOffset, true).pop();
-                setCaret(fragment);
-            }
+            splitAndDecorate(container);
+
 
             // Remove unwanted break nodes inserted by Forefox.
             // removeNodesInList(editor.querySelectorAll('br'));
+        };
+
+        var wordTokenizer = function(container) {
+            let match;
+            let text = container.textContent;
+            if ((match = text.match(/^\u200b(?=.)/))) {
+                console.log("matched first");
+                return match[0].length;
+            }
+            else if ((match = text.match(/(\w+(?=\W)|\W+(?=\w))/))) {
+                console.log("matched second");
+                console.log(match);
+                return match[0].length;
+            }
+            else {
+                console.log("no match");
+            }
+        };
+
+        // Recursively splits a long string into marked fragments.
+        var splitAndDecorate = function(container) {
+            let splitOffset = wordTokenizer(container);
+            if (!isNaN(splitOffset)) {
+                let fragment =
+                    splitFragment(container, splitOffset, true).pop();
+                splitAndDecorate(fragment);
+                setCaret(fragment, 1);
+                fixCaret();
+            }
         };
 
         var pasteClipboardContent = function(e) {
@@ -1173,7 +1236,7 @@ var AutotagJS = (function() {
             // If the pasted text is too large, do not apply the splitter
             // and proceed to decorate as it will take a long time and the
             // browser may become unresponsive.
-            let splitAndDecorate = (pastedContent.length < 10000);
+            let proceedWithSplit = (pastedContent.length < 10000);
 
             // Split pasted content into Lines
             let segments = pastedContent.split('\n');
@@ -1229,7 +1292,7 @@ var AutotagJS = (function() {
                             contentLength = content.length;
                             index = 1;
                         }
-                    } while (index <= contentLength && splitAndDecorate);
+                    } while (index <= contentLength && proceedWithSplit);
                 }
 
                 if (segments[i+1] !== null) {
@@ -1246,7 +1309,16 @@ var AutotagJS = (function() {
         };
 
         var processRightArrowKey = function(range) {
-            return isBlank(range.endContainer);
+            let container = range.endContainer;
+            let content = container.textContent;
+            let offset = range.endOffset;
+            return (offset < content.length && content[offset] === '\u200b');
+        };
+
+
+        var processLeftArrowKey = function(range) {
+            return (range.endOffset === 1 &&
+                range.endContainer.textContent[0] === '\u200b');
         };
 
         var processReturnKey = function(range, shifted) {
@@ -1443,7 +1515,7 @@ var AutotagJS = (function() {
         var isBeginingOfLine = function(node, offset) {
             let firstFragment = getFragmentsInLine(node).shift();
             return isTextNode(node) && node.isSameNode(firstFragment) &&
-                (offset == 0 || isPilotWrapper(node.parentNode));
+                (offset == 0);
         };
 
         var isEndOfLine = function(node, offset) {
@@ -1455,24 +1527,30 @@ var AutotagJS = (function() {
         };
 
         var deleteChar = function(fragment, offset) {
-            let line = getLine(fragment);
-            if (isPilotWrapper(fragment.parentNode)) {
-                deleteLine(line);
-            }
-            else {
-                let fragments = getFragmentsInLine(line);
-                let fragmentIndex = fragments.indexOf(fragment);
-                fragment.nodeValue =
-                    fragment.textContent.splice(offset - 1, 1, '');
-
-                if (isBlank(fragment)) {
-                    // By all counts this should be a marked fragment.
-                    removeNode(fragment.parentNode);
-                    fragment = fragments[fragmentIndex - 1];
-                    setCaret(fragment);
-                }
-                else setCaret(fragment, offset - 1);
-            }
+            // let line = getLine(fragment);
+            // if (isPilotWrapper(fragment.parentNode)) {
+            //     deleteLine(line);
+            // }
+            // else {
+            //     let fragments = getFragmentsInLine(line);
+            //     let fragmentIndex = fragments.indexOf(fragment);
+            //     fragment.nodeValue =
+            //         fragment.textContent.splice(offset - 1, 1, '');
+            //
+            //     // if (isBlank(fragment)) {
+            //     //     // By all counts this should be a marked fragment.
+            //     //     removeNode(fragment.parentNode);
+            //     //     fragment = fragments[fragmentIndex - 1];
+            //     //     setCaret(fragment);
+            //     // }
+            //     // else if (isPilotWrapper(fragment) && ) {
+            //     //
+            //     // }
+            //     // else setCaret(fragment, offset - 1);
+            //     //
+            //     // fragment.parentNode.focus();
+            //     // fragment.parentNode.click();
+            // }
         };
 
         var deleteLine = function(line) {
@@ -1502,16 +1580,19 @@ var AutotagJS = (function() {
                     caretNode = nodes[nodes.length - 1];
                 }
 
-                removeNode(line);
 
                 setTimeout(function(){
+                    setCaret(caretNode.firstChild);
                     // // Set the  focus and click to ensure that the soft
                     // keyboard does not hide.
                     caretNode.focus();
                     caretNode.click();
-                    setCaret(caretNode.firstChild);
-                    console.log(caretNode);
                 }, 0);
+
+
+                // removeNode(line);
+
+
             }
             else {
                 renewLineBody(lineBody, true);
@@ -1550,7 +1631,8 @@ var AutotagJS = (function() {
                 let updateSuccess = updateIndentationInRange(range, Indent.CLEAR_LIST);
                 if (!updateSuccess) {
                     if (isBlank(container) ||isBlank(line) ||
-                        isBeginingOfLine(container, offset)) {
+                        isBeginingOfLine(container, offset) ||
+                        offset == 0 && isBlankLine(container)) {
                         deleteLine(line);
                     }
                     else deleteChar(container, offset);
@@ -1662,21 +1744,45 @@ var AutotagJS = (function() {
         editor.addEventListener('click', function(e) {
             hideSubmenus();
             initializeEditor();
+            fixCaret();
         });
 
         editor.addEventListener('focus', function(e) {
             hideSubmenus();
-            initializeEditor();
+            // fixCaret();
+            // initializeEditor();
         });
 
-        editor.addEventListener('input', function() {
-            processInput();
+        editor.addEventListener('input', function(e) {
+            // This seems to be the only way to capture the delete key
+            // event in Chrome on Android and stop the browser from proceeding
+            // with deleeting the empty fragment nodes.
+            if (e.inputType == 'deleteContentBackward') {
+                // processDelete(getRange());
+                console.log("Back delete");
+                console.log(e);
+                console.log(getActiveLine());
+                console.log(getRange());
+                let line = getActiveLine();
+                // if (line.getElementsByClassName(PILOT_CLASSNAME).length == 0) {
+                //     console.log("deleting line");
+                //     deleteLine(line);
+                // }
+                // renewLineBody(getLineBody(getActiveLine()));
+                e.preventDefault();
+            }
+            else {
+                processInput();
+            }
         });
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
             let keyCode = getKeyCode(e);
-            if (!isDeleteKey(keyCode)) fixCaret();
+
+            if (!isDeleteKey(keyCode)) {
+                fixCaret();
+            }
 
             // Get the latest and greatest range since we cannot rely on
             // any buffered selection range (savedRange_).
@@ -1700,7 +1806,12 @@ var AutotagJS = (function() {
                     formatSelection({ atgToggle: StyleKeyMap[keyCode] });
                     e.preventDefault();
                 }
-                else if (isRightArrowKey(keyCode) && processRightArrowKey(range)) {
+                else if (isRightArrowKey(keyCode) &&
+                    processRightArrowKey(range)) {
+                    e.preventDefault();
+                }
+                else if (isLeftArrowKey(keyCode) &&
+                    processLeftArrowKey(range)) {
                     e.preventDefault();
                 }
             }

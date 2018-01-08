@@ -31,8 +31,7 @@
 .atg-pilot {
     background-color: #FFF !important;
     /* display: inline-block !important; */
-    /* width: 0px; */
-    /* font-size: 12px; */
+    width: 1px;
 }
 
 .atg-line {
