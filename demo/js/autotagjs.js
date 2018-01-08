@@ -93,11 +93,11 @@ var AutotagJS = (function() {
         85: 'text-decoration:underline'
     });
 
-    // var PILOT_TEXT = '';
-    var PILOT_TEXT = '\u200b';
+    // var LINE_MARKER = '';
+    var LINE_MARKER = '\u200b';
     // Having space as the pilot indicator allows the highlighting
     // of empty lines.
-    // var PILOT_TEXT = '\u00a0';
+    // var LINE_MARKER = '\u00a0';
     var TAB_TEXT = '\u0009';
 
     var LIST_INDENT_STYLE = 'margin-left:25px',
@@ -106,17 +106,19 @@ var AutotagJS = (function() {
     var LINE_TAG = 'div',
         MARKED_FRAGMENT_TAG = 'span';
 
-    var LINE_CLASSNAME = 'atg-line',
-        LINE_HEADER_CLASSNAME = 'atg-line-leader',
-        LINE_BODY_CLASSNAME = 'atg-line-body',
-        PILOT_CLASSNAME = 'atg-pilot',
-        MENU_CLASSNAME = 'atg-menu',
-        WRAPPER_CLASSNAME = 'atg-text',
-        PALETTE_CLASSNAME = 'atg-palette',
-        PALETTE_CELL_CLASSNAME = 'atg-palette-cell',
-        PALETTE_ROW_CLASSNAME = 'atg-palette-row',
-        PALETTE_CROSSED_CELL_CLASSNAME = 'atg-crossed-cell',
-        SUBMENU_CLASSNAME = 'atg-submenu';
+    var LINE_CNAME = 'atg-line',
+        LINE_HEADER_CNAME = 'atg-line-leader',
+        LINE_BODY_CNAME = 'atg-line-body',
+        // PILOT_CNAME = 'atg-pilot',
+        BOL_CNAME = 'atg-bol',
+        EOL_CNAME = 'atg-eol',
+        MENU_CNAME = 'atg-menu',
+        WRAPPER_CNAME = 'atg-text',
+        PALETTE_CNAME = 'atg-palette',
+        PALETTE_CELL_CNAME = 'atg-palette-cell',
+        PALETTE_ROW_CNAME = 'atg-palette-row',
+        PALETTE_CROSSED_CELL_CNAME = 'atg-crossed-cell',
+        SUBMENU_CNAME = 'atg-submenu';
 
     function initObject(obj, toObj) {
         return ((typeof obj === 'undefined') || obj == null) ? toObj : obj;
@@ -535,13 +537,13 @@ var AutotagJS = (function() {
         };
 
         var createPalette = function(menu) {
-            let palette = menu.getElementsByClassName(SUBMENU_CLASSNAME)[0];
+            let palette = menu.getElementsByClassName(SUBMENU_CNAME)[0];
             if (palette) {
                 palette.style.display = '';
             }
             else {
                 palette = createElement('div',
-                    SUBMENU_CLASSNAME + ' ' + PALETTE_CLASSNAME);
+                    SUBMENU_CNAME + ' ' + PALETTE_CNAME);
 
                 let type = menu.dataset.atgSubmenu.split('Palette')[0];
                 palette.dataset.atgPalette = type;
@@ -647,7 +649,7 @@ var AutotagJS = (function() {
 
         var createCrossedPaletteCell = function(row, type) {
             let cell = createPaletteCell(row, 0, 0, 100);
-            cell.classList.add(PALETTE_CROSSED_CELL_CLASSNAME);
+            cell.classList.add(PALETTE_CROSSED_CELL_CNAME);
 
             if (type === 'color') {
                 cell.dataset.atgPaletteColor = '#000';
@@ -657,7 +659,7 @@ var AutotagJS = (function() {
 
         var createPaletteCell = function(row, h, s, l, type) {
             let hsla = 'hsla(' + h + ', ' + s + '%, ' + l + '%, ' + '1.0)';
-            let cell = createElement('div', PALETTE_CELL_CLASSNAME);
+            let cell = createElement('div', PALETTE_CELL_CNAME);
 
             cell.style.background = hsla;
             cell.dataset.atgPaletteColor = hsla;
@@ -683,14 +685,14 @@ var AutotagJS = (function() {
 
         var createPaletteRow = function(palette) {
             return palette.appendChild(
-                createElement('div', PALETTE_ROW_CLASSNAME));
+                createElement('div', PALETTE_ROW_CNAME));
         };
 
         var generateLineHeader = function(line, listType) {
             let header = getLineHeader(line);
 
             if (!header) {
-                header = createElement(LINE_TAG, LINE_HEADER_CLASSNAME);
+                header = createElement(LINE_TAG, LINE_HEADER_CNAME);
                 header.setAttribute('contenteditable', 'false');
                 line.insertBefore(header, line.firstChild);
             }
@@ -711,8 +713,8 @@ var AutotagJS = (function() {
 
         var createLine = function(refLine, options) {
             options = options || {};
-            let line = createElement(LINE_TAG, LINE_CLASSNAME);
-            let body = createElement(LINE_TAG, LINE_BODY_CLASSNAME);
+            let line = createElement(LINE_TAG, LINE_CNAME);
+            let body = createElement(LINE_TAG, LINE_BODY_CNAME);
 
             line.appendChild(body);
 
@@ -755,12 +757,17 @@ var AutotagJS = (function() {
         var renewLineBody = function(node, focus) {
             node = isLine(node) ? getLineBody(node) : node;
             removeAllChildNodes(node);
-            let fragment = markFragment(createTextNode(PILOT_TEXT));
-            let markedFragment = fragment.parentNode;
+            let fragment = markFragment(createTextNode(LINE_MARKER));
+            let bolWrapper = fragment.parentNode;
+            node.appendChild(bolWrapper);
 
-            node.appendChild(markedFragment);
-            node.appendChild(markedFragment.cloneNode(true));
-            setStyle(markedFragment, continuingStyle_);
+            let eolWrapper = markedFragment.cloneNode(true);
+            node.appendChild(eolWrapper);
+
+            bolWrapper.classList.add(BOL_CNAME);
+            eolWrapper.classList.add(EOL_CNAME);
+
+            setStyle(bolWrapper, continuingStyle_);
 
             if (focus) {
                 setCaret(fragment, 1);
@@ -773,7 +780,7 @@ var AutotagJS = (function() {
             if (isTextNode(fragment)) {
                 if (!fragment.parentNode || isUnmarkedFragment(fragment)){
                     let wrapper = createElement(MARKED_FRAGMENT_TAG, cName);
-                    wrapper.classList.add(WRAPPER_CLASSNAME);
+                    wrapper.classList.add(WRAPPER_CNAME);
                     setStyle(wrapper, style || continuingStyle_);
                     wrapNode(fragment, wrapper);
                 }
@@ -865,14 +872,14 @@ var AutotagJS = (function() {
             if (node && !isLine(node)) {
                 node = getLine(node);
             }
-            return node && node.querySelector('.' + LINE_BODY_CLASSNAME);
+            return node && node.querySelector('.' + LINE_BODY_CNAME);
         };
 
         var getLineHeader = function(node) {
             if (node && !isLine(node)) {
                 node = getLine(node);
             }
-            return node && node.querySelector('.' + LINE_HEADER_CLASSNAME);
+            return node && node.querySelector('.' + LINE_HEADER_CNAME);
         };
 
         var getLine = function(node) {
@@ -917,8 +924,8 @@ var AutotagJS = (function() {
         };
 
         var getParentMenu = function(node) {
-            while(node && !containsClass(node, SUBMENU_CLASSNAME) &&
-                !containsClass(node, MENU_CLASSNAME)) {
+            while(node && !containsClass(node, SUBMENU_CNAME) &&
+                !containsClass(node, MENU_CNAME)) {
                 node = node.parentNode;
 
                 // Should not happen! Ever.
@@ -980,7 +987,7 @@ var AutotagJS = (function() {
         };
 
         var hideSubmenus = function() {
-            let submenus = menubar.querySelectorAll('.' + SUBMENU_CLASSNAME);
+            let submenus = menubar.querySelectorAll('.' + SUBMENU_CNAME);
             for (let i=0, submenu; (submenu = submenus[i]); i++) {
                 hideNode(submenu);
             }
@@ -991,17 +998,17 @@ var AutotagJS = (function() {
         };
 
         var isLine = function(node) {
-            return isElementNode(node) && containsClass(node, LINE_CLASSNAME);
+            return isElementNode(node) && containsClass(node, LINE_CNAME);
         };
 
         var isLineBody = function(node) {
             return isElementNode(node) &&
-                containsClass(node, LINE_BODY_CLASSNAME);
+                containsClass(node, LINE_BODY_CNAME);
         };
 
         var isLineHeader = function(node) {
             return isElementNode(node) &&
-                containsClass(node, LINE_HEADER_CLASSNAME);
+                containsClass(node, LINE_HEADER_CNAME);
         };
 
         var isFragment = function(node) {
@@ -1015,7 +1022,7 @@ var AutotagJS = (function() {
 
         var isUnmarkedFragment = function(node) {
             return isFragment(node) &&
-                containsClass(node.parentNode, LINE_BODY_CLASSNAME);
+                containsClass(node.parentNode, LINE_BODY_CNAME);
         };
 
         var isBlank = function(node) {
@@ -1040,7 +1047,7 @@ var AutotagJS = (function() {
         };
 
         var isWrapper = function(node) {
-            return node && containsClass(node, WRAPPER_CLASSNAME);
+            return node && containsClass(node, WRAPPER_CNAME);
         };
 
         var isList = function(node) {
@@ -1162,9 +1169,9 @@ var AutotagJS = (function() {
             // let value = container.textContent;
             // let wrapper = container.parentNode;
             // let classList = wrapper.classList;
-            // if (classList.contains(PILOT_CLASSNAME)) {
+            // if (classList.contains(PILOT_CNAME)) {
             //     container.nodeValue = value.replace(/[ \u200b]/g, '');
-            //     classList.remove(PILOT_CLASSNAME);
+            //     classList.remove(PILOT_CNAME);
             //
             //     setTimeout(function(){
             //         // // Set the  focus and click to ensure that the soft
@@ -1188,17 +1195,8 @@ var AutotagJS = (function() {
         var wordTokenizer = function(container) {
             let match;
             let text = container.textContent;
-            if ((match = text.match(/^\u200b(?=.)/))) {
-                console.log("matched first");
+            if ((match = text.match(/(^\u200b(?=.))|(\w+(?=\W)|\W+(?=\w))/))) {
                 return match[0].length;
-            }
-            else if ((match = text.match(/(\w+(?=\W)|\W+(?=\w))/))) {
-                console.log("matched second");
-                console.log(match);
-                return match[0].length;
-            }
-            else {
-                console.log("no match");
             }
         };
 
@@ -1764,7 +1762,7 @@ var AutotagJS = (function() {
                 console.log(getActiveLine());
                 console.log(getRange());
                 let line = getActiveLine();
-                // if (line.getElementsByClassName(PILOT_CLASSNAME).length == 0) {
+                // if (line.getElementsByClassName(PILOT_CNAME).length == 0) {
                 //     console.log("deleting line");
                 //     deleteLine(line);
                 // }
@@ -1848,7 +1846,7 @@ var AutotagJS = (function() {
 
                         if (!menu) return;
                         let submenu =
-                            menu.querySelector('.' + SUBMENU_CLASSNAME);
+                            menu.querySelector('.' + SUBMENU_CNAME);
 
                         // If a submenu already exists, just display it.
                         if (submenu) {
