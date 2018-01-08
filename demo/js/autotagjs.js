@@ -94,7 +94,7 @@ var AutotagJS = (function() {
     });
 
     // var LINE_MARKER = '';
-    var LINE_MARKER = '\u200b';
+    var LINE_MARKER = '\u200b\u200b';
     // Having space as the pilot indicator allows the highlighting
     // of empty lines.
     // var LINE_MARKER = '\u00a0';
@@ -113,7 +113,7 @@ var AutotagJS = (function() {
         BOL_CNAME = 'atg-bol',
         EOL_CNAME = 'atg-eol',
         MENU_CNAME = 'atg-menu',
-        WRAPPER_CNAME = 'atg-text',
+        MARKER_CNAME = 'atg-text',
         PALETTE_CNAME = 'atg-palette',
         PALETTE_CELL_CNAME = 'atg-palette-cell',
         PALETTE_ROW_CNAME = 'atg-palette-row',
@@ -613,7 +613,7 @@ var AutotagJS = (function() {
             //         if (isLineBody(target)) {
             //             let removedNode = mutation.removedNodes[0];
             //             if (removedNode && mutation.previousSibling == null &&
-            //                     isWrapper(removedNode)) {
+            //                     isMarker(removedNode)) {
             //
             //                 if (isPilotWrapper(removedNode)) {
             //                     console.log("deleting line");
@@ -632,7 +632,7 @@ var AutotagJS = (function() {
             //                 }
             //             }
             //         }
-            //         else if (isWrapper(target)) {
+            //         else if (isMarker(target)) {
             //             console.log(target);
             //         }
             //         else if (isPilotWrapper(target.parentNode) &&
@@ -761,16 +761,16 @@ var AutotagJS = (function() {
             let bolWrapper = fragment.parentNode;
             node.appendChild(bolWrapper);
 
-            let eolWrapper = markedFragment.cloneNode(true);
-            node.appendChild(eolWrapper);
+            // let eolWrapper = markedFragment.cloneNode(true);
+            // node.appendChild(eolWrapper);
 
             bolWrapper.classList.add(BOL_CNAME);
-            eolWrapper.classList.add(EOL_CNAME);
+            // eolWrapper.classList.add(EOL_CNAME);
 
             setStyle(bolWrapper, continuingStyle_);
 
             if (focus) {
-                setCaret(fragment, 1);
+                setCaret(fragment, 2);
             }
         };
 
@@ -780,7 +780,7 @@ var AutotagJS = (function() {
             if (isTextNode(fragment)) {
                 if (!fragment.parentNode || isUnmarkedFragment(fragment)){
                     let wrapper = createElement(MARKED_FRAGMENT_TAG, cName);
-                    wrapper.classList.add(WRAPPER_CNAME);
+                    wrapper.classList.add(MARKER_CNAME);
                     setStyle(wrapper, style || continuingStyle_);
                     wrapNode(fragment, wrapper);
                 }
@@ -798,16 +798,9 @@ var AutotagJS = (function() {
             range = initObject(range, getRange());
             if (range.collapsed) {
                 let container = range.endContainer;
-                let length = container.textContent.length;
                 let offset = range.endOffset;
-
-                if (isPilotFragment(container)) {
-                    if (!getFragmentSibling(container, 1, false)) {
-                        offset = (offset == length) ? length - 1 : offset;
-                    }
-                    else if (!getFragmentSibling(container, -1, false)) {
-                        offset = (offset == 0) ? 1 : offset;
-                    }
+                if (isEdgeMarker(container.parentNode) && offset < 2) {
+                    offset = 2;
                 }
                 setCaret(container, offset);
             }
@@ -1034,20 +1027,24 @@ var AutotagJS = (function() {
         // };
 
         // var isPilotWrapper = function(node) {
-        //     return isWrapper(node) && isPilotFragment(node.firstChild);
+        //     return isMarker(node) && isPilotFragment(node.firstChild);
         // };
 
         var isBlankLine = function(node) {
             return getLineBody(node).textContent.match(/(^\u200b)|(\u200b$)/);
         };
 
-        var isPilotFragment = function(node) {
-            return isTextNode(node) &&
-                node.textContent.match(/(^\u200b)|(\u200b$)/);
+        // var isPilotFragment = function(node) {
+        //     return isTextNode(node) &&
+        //         node.textContent.match(/(^\u200b)|(\u200b$)/);
+        // };
+
+        var isMarker = function(node) {
+            return node && containsClass(node, MARKER_CNAME);
         };
 
-        var isWrapper = function(node) {
-            return node && containsClass(node, WRAPPER_CNAME);
+        var isEdgeMarker = function(node) {
+            return isMarker(node) && containsClass(node, BOL_CNAME);
         };
 
         var isList = function(node) {
@@ -1195,7 +1192,7 @@ var AutotagJS = (function() {
         var wordTokenizer = function(container) {
             let match;
             let text = container.textContent;
-            if ((match = text.match(/(^\u200b(?=.))|(\w+(?=\W)|\W+(?=\w))/))) {
+            if ((match = text.match(/(^\u200b{2}(?=.))|(\w+(?=\W)|\W+(?=\w))/))) {
                 return match[0].length;
             }
         };
@@ -1315,8 +1312,8 @@ var AutotagJS = (function() {
 
 
         var processLeftArrowKey = function(range) {
-            return (range.endOffset === 1 &&
-                range.endContainer.textContent[0] === '\u200b');
+            return (range.endOffset == 2 &&
+                isEdgeMarker(range.endContainer.parentNode));
         };
 
         var processReturnKey = function(range, shifted) {
@@ -1326,9 +1323,16 @@ var AutotagJS = (function() {
             fixCaret(range);
 
             if (range.collapsed && isTextNode(container)) {
-                let newLine;
                 let line = getLine(container);
 
+                if (isEdgeMarker(container)) {
+                    return createLine(line, {
+                        addPilotNode: true,
+                        setCaret: true
+                    });
+                }
+
+                let newLine;
                 if (isEndOfLine(container, offset)) {
                     newLine = createLine(line, {
                         addPilotNode: true,
@@ -1344,11 +1348,10 @@ var AutotagJS = (function() {
                 }
                 else {
                     let fragment = splitFragment(container, offset)[1];
-                    newLine = createLine(line, {attachAs: 'next-sibling'});
+                    newLine = createLine(line, { addPilotNode: true });
 
-                    // // Collect remaining nodes (Fragments and Lines) and append
-                    // // them to the new line.
-                    let node = fragment.parentNode, nodes = [];
+                    let node = fragment.parentNode;
+                    let nodes = [];
                     do {
                         nodes.push(node);
                     } while ((node = node.nextSibling));
@@ -1521,7 +1524,7 @@ var AutotagJS = (function() {
             return isTextNode(node) &&
                 ((offset == node.textContent.length &&
                     (isLineBody(parent) || !parent.nextSibling)) ||
-                    isPilotWrapper(parent));
+                    isEdgeMarker(parent));
         };
 
         var deleteChar = function(fragment, offset) {
@@ -1586,11 +1589,7 @@ var AutotagJS = (function() {
                     caretNode.focus();
                     caretNode.click();
                 }, 0);
-
-
-                // removeNode(line);
-
-
+                removeNode(line);
             }
             else {
                 renewLineBody(lineBody, true);
@@ -1626,7 +1625,9 @@ var AutotagJS = (function() {
                 let offset = range.startOffset;
 
                 let line = getLine(container);
-                let updateSuccess = updateIndentationInRange(range, Indent.CLEAR_LIST);
+                let updateSuccess =
+                    updateIndentationInRange(range, Indent.CLEAR_LIST);
+
                 if (!updateSuccess) {
                     if (isBlank(container) ||isBlank(line) ||
                         isBeginingOfLine(container, offset) ||
@@ -1756,18 +1757,14 @@ var AutotagJS = (function() {
             // event in Chrome on Android and stop the browser from proceeding
             // with deleeting the empty fragment nodes.
             if (e.inputType == 'deleteContentBackward') {
-                // processDelete(getRange());
-                console.log("Back delete");
-                console.log(e);
-                console.log(getActiveLine());
-                console.log(getRange());
-                let line = getActiveLine();
-                // if (line.getElementsByClassName(PILOT_CNAME).length == 0) {
-                //     console.log("deleting line");
-                //     deleteLine(line);
-                // }
-                // renewLineBody(getLineBody(getActiveLine()));
-                e.preventDefault();
+                console.log("delete");
+                let range = getRange();
+                let container = range.endContainer;
+                if (isEdgeMarker(container.parentNode) && range.endOffset == 1) {
+                    deleteLine(getLine(container));
+                    e.preventDefault();
+                }
+                renewLineBody(getActiveLine());
             }
             else {
                 processInput();
