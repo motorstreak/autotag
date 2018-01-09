@@ -420,6 +420,8 @@ var AutotagJS = (function() {
     return function(editor, config) {
         // The latest selection made in the editor.
         // let savedRange_;
+        let keyCode_;
+
 
         // All selection is copied to the clipboard buffer.
         let copiedRange_;
@@ -711,12 +713,20 @@ var AutotagJS = (function() {
             return header;
         };
 
+        var createLineBody = function(line, options) {
+            let body = createElement(LINE_TAG, LINE_BODY_CNAME);
+            line.appendChild(body);
+            if (options.addPilotNode) {
+                renewLineBody(body, options.setCaret);
+            }
+        };
+
         var createLine = function(refLine, options) {
             options = options || {};
             let line = createElement(LINE_TAG, LINE_CNAME);
-            let body = createElement(LINE_TAG, LINE_BODY_CNAME);
+            // let body = createElement(LINE_TAG, LINE_BODY_CNAME);
 
-            line.appendChild(body);
+            // line.appendChild(body);
 
             // Set the identation position
             line.dataset.atgIndentPos = 0;
@@ -747,9 +757,10 @@ var AutotagJS = (function() {
                     line.dataset.atgIndentPos = refLine.dataset.atgIndentPos;
                 }
 
-                if (options.addPilotNode) {
-                    renewLineBody(body, options.setCaret);
-                }
+                createLineBody(line, options);
+                // if (options.addPilotNode) {
+                //     renewLineBody(body, options.setCaret);
+                // }
             }
             return line;
         };
@@ -807,7 +818,7 @@ var AutotagJS = (function() {
         };
 
         var initializeEditor = function() {
-            if (editor.children.length == 0) {
+            if (editor.textContent.length == 0) {
                 return createLine(editor, {
                     attachAs: 'child',
                     addPilotNode: true,
@@ -853,8 +864,9 @@ var AutotagJS = (function() {
             return nodes.filter(Boolean);
         };
 
-        var getActiveLine = function() {
-            return getLine(getRange().startContainer, false);
+        var getActiveLine = function(range) {
+            range = initObject(range, getRange());
+            return getLine(range.startContainer, false);
         };
 
         var getFirstLine = function() {
@@ -1031,7 +1043,8 @@ var AutotagJS = (function() {
         // };
 
         var isBlankLine = function(node) {
-            return getLineBody(node).textContent.match(/(^\u200b)|(\u200b$)/);
+            let body = getLineBody(node);
+            return body && body.textContent.length <= 2;
         };
 
         // var isPilotFragment = function(node) {
@@ -1583,13 +1596,13 @@ var AutotagJS = (function() {
 
 
                 setTimeout(function(){
+                    removeNode(line);
                     setCaret(caretNode.firstChild);
                     // // Set the  focus and click to ensure that the soft
                     // keyboard does not hide.
                     caretNode.focus();
                     caretNode.click();
                 }, 0);
-                removeNode(line);
             }
             else {
                 renewLineBody(lineBody, true);
@@ -1755,16 +1768,46 @@ var AutotagJS = (function() {
         editor.addEventListener('input', function(e) {
             // This seems to be the only way to capture the delete key
             // event in Chrome on Android and stop the browser from proceeding
-            // with deleeting the empty fragment nodes.
-            if (e.inputType == 'deleteContentBackward') {
-                console.log("delete");
+            // with deleeting the empty fragment nodes. Note that we are opting
+            // to fix dom inconsistancies post delete.
+            if (e.inputType == 'deleteContentBackward' || isDeleteKey(keyCode_)) {
+
+                // Remove unwanted break nodes inserted by browsers,
+                // especially Firefox.
+                removeNodesInList(editor.querySelectorAll('br'));
+
                 let range = getRange();
                 let container = range.endContainer;
+
+                // If the caret is on the line marker, it means that the user
+                // has already deleted the first zero width character without
+                // the curosor moving, indicating that we should now dcelete the
+                // current line.
                 if (isEdgeMarker(container.parentNode) && range.endOffset == 1) {
                     deleteLine(getLine(container));
                     e.preventDefault();
                 }
-                renewLineBody(getActiveLine());
+
+                // Deletion leaves empty marked fragments oin Firefox.
+                // Remove the blank node and move the cursor up.
+                else if (range.endOffset == 0 && isMarker(container)) {
+                    setCaret(container.previousSibling.firstChild);
+                    removeNode(container);
+                }
+                else {
+                    let line = getActiveLine();
+                    let lineBody = getLineBody(line);
+
+                    if (isBlankLine(lineBody)) {
+                        renewLineBody(lineBody);
+                    }
+                    else if (getLineHeader(line) && lineBody == null){
+                        createLineBody(line, { addPilotNode: true });
+                    }
+                    else {
+                        initializeEditor();
+                    }
+                }
             }
             else {
                 processInput();
@@ -1773,9 +1816,9 @@ var AutotagJS = (function() {
 
         // Start handling events.
         editor.addEventListener('keydown', function(e) {
-            let keyCode = getKeyCode(e);
+            keyCode_ = getKeyCode(e);
 
-            if (!isDeleteKey(keyCode)) {
+            if (!isDeleteKey(keyCode_)) {
                 fixCaret();
             }
 
@@ -1784,28 +1827,29 @@ var AutotagJS = (function() {
             let range = getRange();
 
             if (range) {
-                if (isDeleteKey(keyCode)) {
+                if (isDeleteKey(keyCode_)) {
                     // processDelete(range);
                     // e.preventDefault();
+                    // console.log("Delete Key Pressed");
                 }
-                else if (isTabKey(keyCode)) {
+                else if (isTabKey(keyCode_)) {
                     updateIndentationInRange(range,
                         e.shiftKey ? Indent.DECREASE : Indent.INCREASE);
                     e.preventDefault();
                 }
-                else if (isReturnKey(keyCode)) {
+                else if (isReturnKey(keyCode_)) {
                     if (!ignoreReturnKey_) processReturnKey(range, e.shiftKey);
                     e.preventDefault();
                 }
-                else if (e.metaKey && isFormatKey(keyCode)) {
-                    formatSelection({ atgToggle: StyleKeyMap[keyCode] });
+                else if (e.metaKey && isFormatKey(keyCode_)) {
+                    formatSelection({ atgToggle: StyleKeyMap[keyCode_] });
                     e.preventDefault();
                 }
-                else if (isRightArrowKey(keyCode) &&
+                else if (isRightArrowKey(keyCode_) &&
                     processRightArrowKey(range)) {
                     e.preventDefault();
                 }
-                else if (isLeftArrowKey(keyCode) &&
+                else if (isLeftArrowKey(keyCode_) &&
                     processLeftArrowKey(range)) {
                     e.preventDefault();
                 }
