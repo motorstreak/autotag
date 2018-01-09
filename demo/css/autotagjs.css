@@ -1,9 +1,9 @@
 
-/*.atg-text {
+.atg-text {
     caret-color: #777;
-    /* Rquired to display cursor in Chrome.  */
-    /*min-width: 1px;*/
-}*/
+    width: 1px;
+    padding: 1px;
+}
 
 /* Prevent words from breaking.
  * Courtesy: https://css-tricks.com/snippets/css/prevent-long-urls-from-breaking-out-of-container/
@@ -30,12 +30,12 @@
 
 .atg-pilot {
     background-color: #FFF !important;
-    /* display: inline-block !important; */
     width: 1px;
 }
 
 .atg-line {
     display: flex;
+    display: -ms-flexbox;
     white-space: pre-wrap;
     cursor: text;
 }
@@ -78,7 +78,8 @@
 }
 
 .atg-palette-row {
-    display : flex;
+    display: flex;
+    display: -ms-flexbox;
 }
 
 .atg-palette-cell {

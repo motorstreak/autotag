@@ -57,6 +57,7 @@ body {
 .page-section {
     display :         flex;
     display : -webkit-flex;
+    display: -ms-flexbox;
     flex-flow : row wrap;
     align-items : center;
     justify-content : center;
