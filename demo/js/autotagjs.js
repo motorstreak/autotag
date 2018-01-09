@@ -1784,9 +1784,26 @@ var AutotagJS = (function() {
                 }
                 else {
                     savedLine_ = getLine(range.endContainer);
+
+                    // for testing only
+                    if (isUpArrowKey(keyCode_) || isDownArrowKey(keyCode_)) {
+                        e.preventDefault();
+                    }
                 }
             }
         });
+
+        var getEdgeFragment = function(fragment) {
+            let marker = fragment.parentNode;
+            let offset = marker.offsetLeft;
+
+            let startMarker = marker;
+            let next;
+            while((next = marker.previousSibling) && next.offsetLeft < offset) {
+                marker = next;
+            }
+            return marker.firstChild;
+        };
 
         var getFragmentDataAtLineIndex = function(line, index) {
             let fragments = getFragmentsInLine(line);
@@ -1812,8 +1829,13 @@ var AutotagJS = (function() {
         var getFragmentLineIndex = function(line, fragment, offset) {
             let fragments = getFragmentsInLine(line);
             // return fragments.indexOf(fragment) + offset;
-            for(let i=0, pos=0, fgmt; (fgmt = fragments[i]); i++) {
-                if (fragment.parentNode.isSameNode(fgmt.parentNode)) {
+            let i = fragments.indexOf(fragment);
+            let edgeFragment = getEdgeFragment(fragment);
+            for(let pos=0; (fragment = fragments[i]); i--) {
+                // console.log("-----");
+                // console.log(fgmt.parentNode.offsetLeft);
+                // console.log(fgmt.parentNode.parentNode.offsetLeft);
+                if (fragment.parentNode.isSameNode(edgeFragment.parentNode)) {
                     return pos + offset;
                 }
                 else {
@@ -1827,6 +1849,8 @@ var AutotagJS = (function() {
             let container = range.endContainer;
             let offset = range.endOffset;
             let line = getLine(container);
+
+            getFragmentEdgeOffset(container);
 
             if (line.isSameNode(savedLine_)) {
                 let data, index;
