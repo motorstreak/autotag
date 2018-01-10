@@ -1798,7 +1798,6 @@ var AutotagJS = (function() {
 
         var getEdgeMarker = function(fragment) {
             let marker = fragment.parentNode;
-            // let offset = marker.offsetLeft;
 
             let next;
             while((next = marker.previousSibling) &&
@@ -1808,7 +1807,14 @@ var AutotagJS = (function() {
             return marker;
         };
 
-        var getFragmentInfoAtColumn = function(line, column, direction) {
+        var getFragmentOffsetPosition = function(fragment, offset) {
+            let marker = fragment.parentNode;
+            var rect = marker.getBoundingClientRect();
+            let charWidth = (rect.right - rect.left) / marker.textContent.length;
+            return rect.left + charWidth * offset;
+        };
+
+        var getFragmentAndOffsetAtPosition = function(line, position, direction) {
             direction = initObject(direction, Direction.START_TO_END);
             let lineBody = getLineBody(line);
 
@@ -1817,30 +1823,19 @@ var AutotagJS = (function() {
                     lineBody.firstChild :
                         getEdgeMarker(lineBody.lastChild.firstChild);
 
-            let counter = 0;
             let nextMarker = marker;
             do {
-                let length = nextMarker.textContent.length;
-                if (column < counter + length) {
-                    return [nextMarker.firstChild, column - counter];
+                let rect = nextMarker.getBoundingClientRect();
+                if (rect.right > position) {
+                    let charWidth = (rect.right - rect.left) / nextMarker.textContent.length;
+                    console.log(charWidth);
+                    let offset = Math.round((position - rect.left) / charWidth);
+                    return [nextMarker.firstChild, offset];
                 }
-
-                counter += length;
                 marker = nextMarker;
             } while((nextMarker = nextMarker.nextSibling));
 
             return [marker.firstChild, marker.textContent.length];
-        };
-
-        var getFragmentColumn = function(fragment) {
-            let column = 0;
-            let edgeMarker = getEdgeMarker(fragment);
-            let marker = fragment.parentNode;
-            while (marker && !marker.isSameNode(edgeMarker)) {
-                marker = marker.previousSibling;
-                column += marker.textContent.length;
-            }
-            return column;
         };
 
         editor.addEventListener('keyup', function(e) {
@@ -1863,16 +1858,9 @@ var AutotagJS = (function() {
                                     Direction.START_TO_END :
                                         Direction.END_TO_START;
 
-                    let column = getFragmentColumn(container);
-                    // console.log(column);
-                    // console.log(range.endOffset);
-
-                    let fragmentInfo = getFragmentInfoAtColumn(
-                            targetLine,
-                            column + range.endOffset,
-                            direction);
-
-                    // console.log(fragmentInfo);
+                    let pos = getFragmentOffsetPosition(container, range.endOffset);
+                    let fragmentInfo = getFragmentAndOffsetAtPosition(
+                        targetLine, pos, direction);
                     setCaret(fragmentInfo[0], fragmentInfo[1]);
                 }
             }
@@ -1920,7 +1908,6 @@ var AutotagJS = (function() {
                             }
                         }
                         else {
-
                             // If the submenu alludes to atg-palette, extract
                             // the color properties into the target (a palette
                             // cell in this case).
