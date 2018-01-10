@@ -66,6 +66,11 @@ var AutotagJS = (function() {
         DECREASE: 2
     });
 
+    var Direction = Object.freeze({
+        START_TO_END: 1,
+        END_TO_START: -1
+    });
+
     var List = {
         'numbered-period': {
             styles: [ 'decimal', 'lower-alpha', 'lower-roman' ],
@@ -430,10 +435,9 @@ var AutotagJS = (function() {
         // let savedRange_;
         let keyCode_;
 
-        let savedLine_;
+        let savedNode_;
 
         // All selection is copied to the clipboard buffer.
-        let copiedRange_;
         let editorMenubar_;
 
         // Continues the current text style to the next line and
@@ -1783,85 +1787,93 @@ var AutotagJS = (function() {
                     e.preventDefault();
                 }
                 else {
-                    savedLine_ = getLine(range.endContainer);
-
+                    savedNode_ = getRange().endContainer;
                     // for testing only
-                    if (isUpArrowKey(keyCode_) || isDownArrowKey(keyCode_)) {
-                        e.preventDefault();
-                    }
+                    // if (isUpArrowKey(keyCode_) || isDownArrowKey(keyCode_)) {
+                    //     e.preventDefault();
+                    // }
                 }
             }
         });
 
-        var getEdgeFragment = function(fragment) {
+        var getEdgeMarker = function(fragment) {
             let marker = fragment.parentNode;
-            let offset = marker.offsetLeft;
+            // let offset = marker.offsetLeft;
 
-            let startMarker = marker;
             let next;
-            while((next = marker.previousSibling) && next.offsetLeft < offset) {
+            while((next = marker.previousSibling) &&
+                    next.offsetLeft <= marker.offsetLeft) {
                 marker = next;
             }
-            return marker.firstChild;
+            return marker;
         };
 
-        var getFragmentDataAtLineIndex = function(line, index) {
-            let fragments = getFragmentsInLine(line);
-            let fgmt, pos = 0;
-            for(let i=0; (fgmt = fragments[i]); i++) {
-                let length = fgmt.length;
-                if (index < (pos + length)) {
-                    return [fgmt, index - pos];
-                }
-                else {
-                    pos += length;
-                }
-            }
+        var getFragmentInfoAtColumn = function(line, column, direction) {
+            direction = initObject(direction, Direction.START_TO_END);
+            let lineBody = getLineBody(line);
 
-            // Move cursor to the end of the target line if the target line
-            // is shorter in length.
-            if (pos <= index) {
-                fgmt = fragments.pop();
-                return [fgmt, fgmt.length];
-            }
+            let marker =
+                (direction == Direction.START_TO_END) ?
+                    lineBody.firstChild :
+                        getEdgeMarker(lineBody.lastChild.firstChild);
+
+            let counter = 0;
+            let nextMarker = marker;
+            do {
+                let length = nextMarker.textContent.length;
+                if (column < counter + length) {
+                    return [nextMarker.firstChild, column - counter];
+                }
+
+                counter += length;
+                marker = nextMarker;
+            } while((nextMarker = nextMarker.nextSibling));
+
+            return [marker.firstChild, marker.textContent.length];
         };
 
-        var getFragmentLineIndex = function(line, fragment, offset) {
-            let fragments = getFragmentsInLine(line);
-            // return fragments.indexOf(fragment) + offset;
-            let i = fragments.indexOf(fragment);
-            let edgeFragment = getEdgeFragment(fragment);
-            for(let pos=0; (fragment = fragments[i]); i--) {
-                // console.log("-----");
-                // console.log(fgmt.parentNode.offsetLeft);
-                // console.log(fgmt.parentNode.parentNode.offsetLeft);
-                if (fragment.parentNode.isSameNode(edgeFragment.parentNode)) {
-                    return pos + offset;
-                }
-                else {
-                    pos += fgmt.length;
-                }
+        var getFragmentColumn = function(fragment) {
+            let column = 0;
+            let edgeMarker = getEdgeMarker(fragment);
+            let marker = fragment.parentNode;
+            while (marker && !marker.isSameNode(edgeMarker)) {
+                marker = marker.previousSibling;
+                column += marker.textContent.length;
             }
+            return column;
         };
 
         editor.addEventListener('keyup', function(e) {
             let range = getRange();
             let container = range.endContainer;
-            let offset = range.endOffset;
-            let line = getLine(container);
 
-            getFragmentEdgeOffset(container);
-
-            if (line.isSameNode(savedLine_)) {
-                let data, index;
+            // Darn IE does not move the cursor across lines.
+            // The code below calculates the approximate column
+            // at which to place the caret in such an event.
+            if (container.isSameNode(savedNode_)) {
+                let line = getLine(container);
                 let targetLine =
                     (isUpArrowKey(keyCode_) && line.previousSibling) ||
                     (isDownArrowKey(keyCode_) && line.nextSibling) || null;
 
                 if (targetLine) {
-                    index = getFragmentLineIndex(line, container, offset);
-                    data = getFragmentDataAtLineIndex(targetLine, index);
-                    setCaret(data[0], data[1]);
+                    let direction = isUpArrowKey(keyCode_) ?
+                            Direction.END_TO_START :
+                                isDownArrowKey(keyCode_) ?
+                                    Direction.START_TO_END :
+                                        Direction.END_TO_START;
+
+                    let column = getFragmentColumn(container);
+                    // console.log(column);
+                    // console.log(range.endOffset);
+
+                    let fragmentInfo = getFragmentInfoAtColumn(
+                            targetLine,
+                            column + range.endOffset,
+                            direction);
+
+                    // console.log(fragmentInfo);
+                    setCaret(fragmentInfo[0], fragmentInfo[1]);
                 }
             }
         });
