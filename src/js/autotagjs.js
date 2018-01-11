@@ -1596,7 +1596,6 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('focus', function(e) {
-            hideSubmenus();
         });
 
         editor.addEventListener('input', function(e) {
@@ -1806,8 +1805,7 @@ var AutotagJS = (function() {
                         let menu = getParentMenu(target);
 
                         if (!menu) return;
-                        let submenu =
-                            menu.querySelector('.' + SUBMENU_CNAME);
+                        let submenu = menu.querySelector('.' + SUBMENU_CNAME);
 
                         // If a submenu already exists, just display it.
                         if (submenu) {
