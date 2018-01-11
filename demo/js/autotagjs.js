@@ -1596,7 +1596,6 @@ var AutotagJS = (function() {
         });
 
         editor.addEventListener('focus', function(e) {
-            hideSubmenus();
         });
 
         editor.addEventListener('input', function(e) {
