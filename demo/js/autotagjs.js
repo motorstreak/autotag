@@ -432,9 +432,9 @@ var AutotagJS = (function() {
 
     return function(editor, config) {
         // The latest selection made in the editor.
-        // let savedRange_;
         let keyCode_;
 
+        let savedRange_;
         let savedNode_;
 
         // All selection is copied to the clipboard buffer.
@@ -508,7 +508,7 @@ var AutotagJS = (function() {
                 }
             }
             else {
-                // if (isBlank(target)) return;
+                // if (isBlankNode(target)) return;
                 target = isTextNode(target) ? target.parentNode : target;
                 for (let j = 0; j < declarations.length; j++) {
                     let declaration = declarations[j].split(/\s*:\s*/);
@@ -768,6 +768,11 @@ var AutotagJS = (function() {
             }
         };
 
+        var resetEdgeMarker = function(line) {
+            let edgeMarker = getLineBody(line).firstChild;
+            edgeMarker.firstChild.nodeValue = LINE_MARKER;
+        };
+
         var initializeEditor = function() {
             if (editor.textContent.length == 0) {
                 return createLine(editor, {
@@ -782,7 +787,7 @@ var AutotagJS = (function() {
             if (dataset) {
                 // Allow users to chose formatting on empty lines and apply
                 // style to following text.
-                // if (!savedRange_.collapsed || isBlank(savedRange_.endContainer)) {
+                // if (!savedRange_.collapsed || isBlankNode(savedRange_.endContainer)) {
                     let nodes = getNodesInSelection(scope);
                     for (let key in dataset) {
                         if (dataset.hasOwnProperty(key)) {
@@ -951,13 +956,11 @@ var AutotagJS = (function() {
         };
 
         var isLineBody = function(node) {
-            return isElementNode(node) &&
-                containsClass(node, LINE_BODY_CNAME);
+            return isElementNode(node) && containsClass(node, LINE_BODY_CNAME);
         };
 
         var isLineHeader = function(node) {
-            return isElementNode(node) &&
-                containsClass(node, LINE_HEADER_CNAME);
+            return isElementNode(node) && containsClass(node, LINE_HEADER_CNAME);
         };
 
         var isFragment = function(node) {
@@ -966,15 +969,14 @@ var AutotagJS = (function() {
         };
 
         var isMarkedFragment = function(node) {
-            return isFragment(node) && !isLineBody(node.parentNode);
+            return isFragment(node) && isMarker(node.parentNode);
         };
 
         var isUnmarkedFragment = function(node) {
-            return isFragment(node) &&
-                containsClass(node.parentNode, LINE_BODY_CNAME);
+            return isFragment(node) && isLineBody(node.parentNode);
         };
 
-        var isBlank = function(node) {
+        var isBlankNode = function(node) {
             return node && (node.textContent.length == 0);
         };
 
@@ -989,6 +991,10 @@ var AutotagJS = (function() {
 
         var isEdgeMarker = function(node) {
             return isMarker(node) && containsClass(node, BOL_CNAME);
+        };
+
+        var isEdgeFragment = function(node) {
+            return isEdgeMarker(node.parentNode);
         };
 
         var isList = function(node) {
@@ -1056,38 +1062,39 @@ var AutotagJS = (function() {
 
         // Returns the next or previous fragment across line boundaries.
         var getFragmentSibling = function(fragment, direction, spanLines) {
+            if (isFragment(fragment)) {
+                // limit direction value to (-1, 0, 1)
+                direction = direction % 2;
 
-            // limit direction value to (-1, 0, 1)
-            direction = direction % 2;
+                // Nothing to do ...
+                if (direction == 0) return fragment;
 
-            // Nothing to do ...
-            if (direction == 0) return fragment;
+                // span search for next node to next/previous line by default.
+                spanLines = initObject(spanLines, true);
 
-            // span search for next node to next/previous line by default.
-            spanLines = initObject(spanLines, true);
+                if (spanLines) {
+                    let line = getLine(fragment);
+                    let fragments = getFragmentsInLine(line);
+                    let index = fragments.indexOf(fragment);
 
-            if (spanLines) {
-                let line = getLine(fragment);
-                let fragments = getFragmentsInLine(line);
-                let index = fragments.indexOf(fragment);
-
-                if (index === 0 && direction === -1) {
-                    let previous = line.previousElementSibling;
-                    return previous && getFragmentsInLine(previous).pop();
-                }
-                else if ((index === fragments.length - 1) && direction === 1) {
-                    let next = line.nextElementSibling;
-                    return next && getFragmentsInLine(next).shift();
+                    if (index === 0 && direction === -1) {
+                        let previous = line.previousElementSibling;
+                        return previous && getFragmentsInLine(previous).pop();
+                    }
+                    else if ((index === fragments.length - 1) && direction === 1) {
+                        let next = line.nextElementSibling;
+                        return next && getFragmentsInLine(next).shift();
+                    }
+                    else {
+                        return fragments[index + direction];
+                    }
                 }
                 else {
-                    return fragments[index + direction];
+                    let parent = fragment.parentNode;
+                    let sibling = (direction === 1) ? parent.nextSibling
+                                                    : parent.previousSibling;
+                    return sibling && sibling.firstChild;
                 }
-            }
-            else {
-                let parent = fragment.parentNode;
-                let sibling = (direction === 1) ? parent.nextSibling
-                                                : parent.previousSibling;
-                return sibling && sibling.firstChild;
             }
         };
 
@@ -1180,7 +1187,7 @@ var AutotagJS = (function() {
 
                     // If the line was empty before, it is highly possible that
                     // we appended to a pilot node. Remove it if so.
-                    // if (isBlank(fragment)) {
+                    // if (isBlankNode(fragment)) {
                     //     removeNode(fragment.parentNode);
                     // }
 
@@ -1220,10 +1227,9 @@ var AutotagJS = (function() {
         };
 
         var processRightArrowKey = function(range) {
-            let container = range.endContainer;
-            let content = container.textContent;
-            let offset = range.endOffset;
-            return (offset < content.length && content[offset] === '\u200b');
+            let content = range.endContainer.textContent;
+            return (range.endOffset < content.length &&
+                content[range.endOffset] === '\u200b');
         };
 
         var processLeftArrowKey = function(range) {
@@ -1265,8 +1271,8 @@ var AutotagJS = (function() {
                     let fragment = splitFragment(container, offset)[1];
                     newLine = createLine(line, { addPilotNode: true });
 
-                    let node = fragment.parentNode;
                     let nodes = [];
+                    let node = fragment.parentNode;
                     do {
                         nodes.push(node);
                     } while ((node = node.nextSibling));
@@ -1426,18 +1432,14 @@ var AutotagJS = (function() {
         };
 
         var isBeginingOfLine = function(node, offset) {
-            let firstFgmt = getFragmentsInLine(node).shift();
-            return isTextNode(node) &&
-                node.isSameNode(firstFgmt) &&
-                (offset == 0);
+            node = (offset == 0) ? getFragmentSibling(node, -1, false) : node;
+            return isEdgeFragment(node);
         };
 
         var isEndOfLine = function(node, offset) {
-            let parent = node.parentNode;
-            return isTextNode(node) &&
-                ((offset == node.textContent.length &&
-                    (isLineBody(parent) || !parent.nextSibling)) ||
-                    isEdgeMarker(parent));
+            return isFragment(node) &&
+                (offset == node.textContent.length) &&
+                !getFragmentSibling(node, 1, false);
         };
 
         var deleteLine = function(line) {
@@ -1446,19 +1448,14 @@ var AutotagJS = (function() {
 
             if (isLine(previousLine)) {
                 let prevLineBody = getLineBody(previousLine);
+                let caretNode = prevLineBody.lastChild;
+
                 let nodes = getChildren(lineBody);
 
-                // Remove the pilot node from the list
+                // Remove the edge marker node from the list
                 nodes.shift();
 
-                let caretNode;
-                if (nodes.length == 0) {
-                    caretNode = prevLineBody.lastChild;
-                }
-                else {
-                    appendChildNodes(nodes, prevLineBody);
-                    caretNode = nodes[nodes.length - 1];
-                }
+                appendChildNodes(nodes, prevLineBody);
 
                 setTimeout(function(){
                     removeNode(line);
@@ -1485,7 +1482,7 @@ var AutotagJS = (function() {
             if (nextFragment) { setCaret(nextFragment); }
 
             removeNodesInList(getLinesInRange(range), function(line) {
-                return isBlank(line) || isBlank(getLineBody(line));
+                return isBlankNode(line) || isBlankNode(getLineBody(line));
             });
 
             // ..just in case all lines were deleted, including the line on
@@ -1598,11 +1595,9 @@ var AutotagJS = (function() {
             fixCaret();
         });
 
-        // editor.addEventListener('focus', function(e) {
-        //     hideSubmenus();
-        //     initializeEditor();
-        //     fixCaret();
-        // });
+        editor.addEventListener('focus', function(e) {
+            hideSubmenus();
+        });
 
         editor.addEventListener('input', function(e) {
             // This seems to be the only way to capture the delete key
@@ -1617,13 +1612,25 @@ var AutotagJS = (function() {
 
                 let range = getRange();
                 let container = range.endContainer;
+                let marker = container.parentNode;
+                let line = getActiveLine();
 
                 // If the caret is on the line marker, it means that the user
                 // has already deleted the first zero width character without
                 // the curosor moving, indicating that we should now dcelete the
                 // current line.
-                if (isEdgeMarker(container.parentNode) && range.endOffset == 1) {
-                    deleteLine(getLine(container));
+                if (isEdgeMarker(marker) && range.endOffset == 1) {
+                    resetEdgeMarker(line);
+                    setCaret(marker.firstChild);
+                    if (isList(line)) {
+                        updateListIndentation(line, Indent.CLEAR_LIST);
+                    }
+                    else if (isIndented(line)) {
+                        updateLineIndentation(line, Indent.DECREASE);
+                    }
+                    else {
+                        deleteLine(line);
+                    }
                     e.preventDefault();
                 }
 
@@ -1634,7 +1641,6 @@ var AutotagJS = (function() {
                     removeNode(container);
                 }
                 else {
-                    let line = getActiveLine();
                     let lineBody = getLineBody(line);
 
                     if (isBlankLine(lineBody)) {
@@ -1667,8 +1673,7 @@ var AutotagJS = (function() {
 
             if (range) {
                 if (isDeleteKey(keyCode_)) {
-                    // processDelete(range);
-                    // e.preventDefault();
+                    // Processed under the event 'input'
                 }
                 else if (isTabKey(keyCode_)) {
                     updateIndentationInRange(range,
@@ -1676,28 +1681,32 @@ var AutotagJS = (function() {
                     e.preventDefault();
                 }
                 else if (isReturnKey(keyCode_)) {
-                    if (!ignoreReturnKey_) processReturnKey(range, e.shiftKey);
+                    if (!ignoreReturnKey_) {
+                        processReturnKey(range, e.shiftKey);
+                    }
                     e.preventDefault();
                 }
                 else if (e.metaKey && isFormatKey(keyCode_)) {
                     formatSelection({ atgToggle: StyleKeyMap[keyCode_] });
                     e.preventDefault();
                 }
-                else if (isRightArrowKey(keyCode_) &&
-                    processRightArrowKey(range)) {
-                    e.preventDefault();
+                else if (isRightArrowKey(keyCode_)) {
+                    if (processRightArrowKey(range)) e.preventDefault();
                 }
-                else if (isLeftArrowKey(keyCode_) &&
-                    processLeftArrowKey(range)) {
-                    e.preventDefault();
+                else if (isLeftArrowKey(keyCode_)) {
+                    if (processLeftArrowKey(range)) e.preventDefault();
                 }
                 else {
                     savedNode_ = getRange().endContainer;
 
-                    // TODO: For testing only - remove later.
-                    if (isUpArrowKey(keyCode_) || isDownArrowKey(keyCode_)) {
-                        e.preventDefault();
-                    }
+                    // Uncomment to handle up/down keys manually. Note that
+                    // the manual intervention is required for IE/Edge
+                    // browsers because the cursor does not respond when the
+                    // text spans multiple lines.
+                    //
+                    // if (isUpArrowKey(keyCode_) || isDownArrowKey(keyCode_)) {
+                    //     e.preventDefault();
+                    // }
                 }
             }
         });
@@ -1782,14 +1791,15 @@ var AutotagJS = (function() {
         });
 
         document.addEventListener('selectionchange', function(e) {
-            doAfterSelection_(getMarkedFragmentsInRange(getRange()));
+            doAfterSelection_(getMarkedFragmentsInRange(savedRange_));
         });
 
         return {
             attachMenubar: function(menubar) {
                 if (menubar) {
                     editorMenubar_ = menubar;
-                    editorMenubar_.addEventListener('click', function(e) {
+                    editorMenubar_.addEventListener('mousedown', function(e) {
+                        savedRange_ = getRange();
                         hideSubmenus();
 
                         let target = e.target;
@@ -1823,7 +1833,10 @@ var AutotagJS = (function() {
                             formatSelection(target.dataset, scope);
                             hideSubmenus();
                         }
+                    });
 
+                    editorMenubar_.addEventListener('mouseup', function(e) {
+                        resetRange(savedRange_);
                     });
                 }
             }

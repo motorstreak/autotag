@@ -59,12 +59,12 @@
 
 ::-moz-selection {
     color : #000;
-    background : #BFF5AC;
+    background : rgb(231, 255, 224);
 }
 
 ::selection {
     color : #000;
-    background : #BFF5AC;
+    background : rgb(231, 255, 224);
 }
 
 /* Prevent outlines on contenteditable items in IE. */
